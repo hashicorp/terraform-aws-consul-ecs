@@ -1,0 +1,30 @@
+# Terraform files
+.terraform
+terraform.tfstate
+terraform.tfvars
+*.tfstate*
+
+# OS X files
+.history
+.DS_Store
+
+# IntelliJ files
+.idea_modules
+*.iml
+*.iws
+*.ipr
+.idea/
+build/
+*/build/
+out/
+# VIM Swap files
+*.swp
+
+# Go best practices dictate that libraries should not include the vendor directory
+vendor
+
+# Folder used to store temporary test data by Terratest
+.test-data
+# Ignore Terraform lock files, as we want to test the Terraform code in these repos with the latest provider
+# versions.
+.terraform.lock.hcl
