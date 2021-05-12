@@ -24,29 +24,31 @@ locals {
     containerPath = "/consul"
   }
 
-  // app_container_with_depends_on is the app's container definition with its dependsOn key
+  // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on mesh-init and sidecar-proxy.
-  // We add these dependencies in so that the app doesn't start until the proxy
+  // We add these dependencies in so that the app containers don't start until the proxy
   // is ready to serve traffic.
-  app_container_with_depends_on = merge(
-    var.app_container,
-    {
-      dependsOn = flatten(
-        concat(
-          lookup(var.app_container, "dependsOn", []),
-          [
-            {
-              containerName = "mesh-init"
-              condition     = "SUCCESS"
-            },
-            {
-              containerName = "sidecar-proxy"
-              condition     = "HEALTHY"
-            }
-          ]
-      ))
-    }
-  )
+  container_defs_with_depends_on = [for def in var.container_definitions :
+    merge(
+      def,
+      {
+        dependsOn = flatten(
+          concat(
+            lookup(def, "dependsOn", []),
+            [
+              {
+                containerName = "mesh-init"
+                condition     = "SUCCESS"
+              },
+              {
+                containerName = "sidecar-proxy"
+                condition     = "HEALTHY"
+              }
+            ]
+        ))
+      }
+    )
+  ]
   upstreams_flag = join(",", [for upstream in var.upstreams : "${upstream["destination_name"]}:${upstream["local_bind_port"]}"])
 }
 
@@ -68,8 +70,8 @@ resource "aws_ecs_task_definition" "this" {
     flatten(
       concat(
         local.discover_servers_containers,
+        local.container_defs_with_depends_on,
         [
-          local.app_container_with_depends_on,
           {
             name             = "mesh-init"
             image            = var.consul_ecs_image

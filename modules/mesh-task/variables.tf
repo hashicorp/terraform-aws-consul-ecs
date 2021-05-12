@@ -15,26 +15,26 @@ variable "task_role_arn" {
 
 variable "port" {
   description = "Port that application listens on. If application does not listen on a port, set outbound_only to true."
-  default     = 0
   type        = number
+  default     = 0
 }
 
 variable "outbound_only" {
   description = "Whether application only makes outward calls and so doesn't listen on a port."
-  default     = false
   type        = bool
+  default     = false
 }
 
 variable "consul_image" {
   description = "Consul Docker image."
-  default     = "docker.io/hashicorp/consul:1.9.5"
   type        = string
+  default     = "docker.io/hashicorp/consul:1.9.5"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
-  default     = "ghcr.io/lkysow/consul-ecs:apr27-2"
   type        = string
+  default     = "ghcr.io/lkysow/consul-ecs:apr27-2"
 }
 
 variable "log_configuration" {
@@ -43,9 +43,9 @@ variable "log_configuration" {
   default     = null
 }
 
-variable "app_container" {
-  description = "Application container definition (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
-  type        = any
+variable "container_definitions" {
+  description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
+  type        = list(any)
 }
 
 variable "upstreams" {
@@ -77,13 +77,19 @@ variable "envoy_image" {
 }
 
 variable "dev_server_enabled" {
+  description = "Whether the Consul dev server running on ECS is enabled."
   type        = bool
   default     = true
-  description = "Whether the Consul dev server running on ECS is enabled."
 }
 
 variable "retry_join" {
+  description = "Argument to pass to -retry-join. If dev_server_enabled=true don't set this, otherwise it's required (https://www.consul.io/docs/agent/options#_retry_join)."
   type        = string
   default     = ""
-  description = "Argument to pass to -retry-join. If dev_server_enabled=true don't set this, otherwise it's required (https://www.consul.io/docs/agent/options#_retry_join)."
+}
+
+variable "tags" {
+  description = "List of tags to add to all resources that support tags. Each element in the list is a map containing keys 'key', 'value', and 'propagate_at_launch' mapped to the respective values."
+  type        = list(object({ key : string, value : string, propagate_at_launch : bool }))
+  default     = []
 }

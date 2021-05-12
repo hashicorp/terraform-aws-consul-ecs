@@ -12,7 +12,7 @@ resource "aws_ecs_service" "this" {
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.subnet_ids
   }
   launch_type = "FARGATE"
   dynamic "load_balancer" {
@@ -218,11 +218,12 @@ resource "aws_security_group" "load_balancer" {
   vpc_id = var.vpc_id
 
   ingress {
-    description = var.lb_ingress_description
-    from_port   = 8500
-    to_port     = 8500
-    protocol    = "tcp"
-    cidr_blocks = var.lb_ingress_cidr_blocks
+    description     = "Access to Consul dev server HTTP API and UI."
+    from_port       = 8500
+    to_port         = 8500
+    protocol        = "tcp"
+    cidr_blocks     = var.lb_ingress_rule_cidr_blocks
+    security_groups = var.lb_ingress_rule_security_groups
   }
 
   egress {
