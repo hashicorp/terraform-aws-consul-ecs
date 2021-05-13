@@ -180,7 +180,7 @@ resource "aws_lb_target_group" "this" {
   name                 = var.name
   port                 = 8500
   protocol             = "HTTP"
-  vpc_id               = var.vpc_id
+  vpc_id               = var.lb_vpc_id
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
@@ -215,7 +215,7 @@ resource "aws_lb_listener" "this" {
 resource "aws_security_group" "load_balancer" {
   count  = var.load_balancer_enabled ? 1 : 0
   name   = var.name
-  vpc_id = var.vpc_id
+  vpc_id = var.lb_vpc_id
 
   ingress {
     description     = "Access to Consul dev server HTTP API and UI."

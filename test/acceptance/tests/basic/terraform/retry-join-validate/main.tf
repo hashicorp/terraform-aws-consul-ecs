@@ -4,13 +4,13 @@ provider "aws" {
 
 module "test_client" {
   dev_server_enabled = false
-  source             = "../../../../../../terraform/modules/mesh-task"
+  source             = "../../../../../../modules/mesh-task"
   family             = "family"
   execution_role_arn = aws_iam_role.this_execution.arn
   task_role_arn      = aws_iam_role.this_task.arn
-  app_container = {
+  container_definitions = [{
     name = "basic"
-  }
+  }]
 }
 
 resource "aws_iam_policy" "this_execution" {

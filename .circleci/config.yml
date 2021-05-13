@@ -101,19 +101,20 @@ jobs:
           working_directory: test/acceptance/tests
           no_output_timeout: 1h
           command: |
-            export ecs_cluster_arn=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .ecs_cluster_arn.value)
-            export private_subnets=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .private_subnets.value)
-            export suffix=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .suffix.value)
-            export region=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .region.value)
-            export log_group_name=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .log_group_name.value)
-            export tags=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .tags.value)
+            export ecs_cluster_arn=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .ecs_cluster_arn.value | tee /dev/tty)
+            export private_subnets=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .private_subnets.value | tee /dev/tty)
+            export suffix=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .suffix.value | tee /dev/tty)
+            export region=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .region.value | tee /dev/tty)
+            export log_group_name=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .log_group_name.value | tee /dev/tty)
+            export tags=$(terraform output -state ./setup-terraform/terraform.tfstate -json | jq -rc .tags.value | tee /dev/tty)
+
             gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 30m -v -failfast \
-              -var ecs_cluster_arn="$ecs_cluster_arn" \
-              -var private_subnets="$private_subnets" \
-              -var suffix="$suffix" \
-              -var log_group_region="$region" \
-              -var log_group_name="$log_group_name" \
-              -var tags="$tags" \
+              -ecs-cluster-arn="$ecs_cluster_arn" \
+              -subnets="$private_subnets" \
+              -suffix="$suffix" \
+              -region="$region" \
+              -log-group-name="$log_group_name" \
+              -tf-tags="$tags"
 
       - store_test_results:
           path: /tmp/test-results

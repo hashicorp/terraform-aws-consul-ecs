@@ -35,10 +35,10 @@ provider "aws" {
 }
 
 module "consul_server" {
-  source                = "../../../../../../terraform/modules/server"
+  source                = "../../../../../../modules/dev-server"
   load_balancer_enabled = false
   ecs_cluster_arn       = var.ecs_cluster_arn
-  subnets               = var.subnets
+  subnet_ids            = var.subnets
   name                  = "consul_server_${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
@@ -72,11 +72,11 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source             = "../../../../../../terraform/modules/mesh-task"
+  source             = "../../../../../../modules/mesh-task"
   family             = "test_client_${var.suffix}"
   execution_role_arn = aws_iam_role.this_execution.arn
   task_role_arn      = aws_iam_role.this_task.arn
-  app_container = {
+  container_definitions = [{
     name      = "basic"
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
     essential = true
@@ -89,9 +89,9 @@ module "test_client" {
     linuxParameters = {
       initProcessEnabled = true
     }
-  }
+  }]
   dev_server_enabled         = true
-  consul_server_service_name = module.consul_server.service_name
+  consul_server_service_name = module.consul_server.ecs_service_name
   upstreams = [
     {
       destination_name = "test_server_${var.suffix}"
@@ -129,17 +129,17 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  source             = "../../../../../../terraform/modules/mesh-task"
+  source             = "../../../../../../modules/mesh-task"
   family             = "test_server_${var.suffix}"
   execution_role_arn = aws_iam_role.this_execution.arn
   task_role_arn      = aws_iam_role.this_task.arn
-  app_container = {
+  container_definitions = [{
     name      = "basic"
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
     essential = true
-  }
+  }]
   dev_server_enabled         = true
-  consul_server_service_name = module.consul_server.service_name
+  consul_server_service_name = module.consul_server.ecs_service_name
   log_configuration = {
     logDriver = "awslogs"
     options = {

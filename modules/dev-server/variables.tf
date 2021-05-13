@@ -14,14 +14,16 @@ variable "load_balancer_enabled" {
   default     = false
 }
 
-variable "vpc_id" {
-  description = "VPC ID ECS cluster is running in."
+variable "lb_vpc_id" {
+  description = "VPC ID for ALB."
   type        = string
+  default     = null
 }
 
 variable "lb_subnets" {
   description = "Subnet IDs to attach to the load balancer."
   type        = list(string)
+  default     = null
 }
 
 variable "lb_ingress_rule_cidr_blocks" {
@@ -53,7 +55,7 @@ variable "name" {
 }
 
 variable "tags" {
-  description = "List of tags to add to all resources that support tags. Each element in the list is a map containing keys 'key', 'value', and 'propagate_at_launch' mapped to the respective values."
-  type        = list(object({ key : string, value : string, propagate_at_launch : bool }))
-  default     = []
+  description = "A map of tags to add to all resources"
+  type        = map(string)
+  default     = {}
 }

@@ -89,7 +89,7 @@ variable "retry_join" {
 }
 
 variable "tags" {
-  description = "List of tags to add to all resources that support tags. Each element in the list is a map containing keys 'key', 'value', and 'propagate_at_launch' mapped to the respective values."
-  type        = list(object({ key : string, value : string, propagate_at_launch : bool }))
-  default     = []
+  description = "A map of tags to add to all resources"
+  type        = map(string)
+  default     = {}
 }

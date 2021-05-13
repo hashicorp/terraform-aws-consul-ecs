@@ -3,7 +3,7 @@ package config
 // TestConfig holds configuration for the test suite
 type TestConfig struct {
 	NoCleanupOnFailure bool
-	ClusterARN         string
+	ECSClusterARN      string
 	Subnets            string
 	Suffix             string
 	Region             string
@@ -13,7 +13,7 @@ type TestConfig struct {
 
 func (t TestConfig) TFVars() map[string]interface{} {
 	vars := map[string]interface{}{
-		"ecs_cluster_arn": t.ClusterARN,
+		"ecs_cluster_arn": t.ECSClusterARN,
 		"subnets":         t.Subnets,
 		"suffix":          t.Suffix,
 		"region":          t.Region,
