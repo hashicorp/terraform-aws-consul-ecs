@@ -145,17 +145,6 @@ func TestBasic(t *testing.T) {
 	logger.Log(t, "Test successful!")
 }
 
-func mergeMaps(a map[string]interface{}, b map[string]interface{}) map[string]interface{} {
-	m := make(map[string]interface{})
-	for k, v := range a {
-		m[k] = v
-	}
-	for k, v := range b {
-		m[k] = v
-	}
-	return m
-}
-
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
 }
