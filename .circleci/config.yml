@@ -1,0 +1,137 @@
+version: 2.1
+orbs:
+  slack: circleci/slack@3.4.2
+executors:
+  go:
+    docker:
+      - image: docker.mirror.hashicorp.services/circleci/golang:1.14
+    environment:
+      TEST_RESULTS: /tmp/test-results # path to where test results are saved
+      CONSUL_VERSION: 1.9.4 # Consul's OSS version to use in tests
+
+jobs:
+  go-fmt-and-lint-acceptance:
+    executor: go
+    steps:
+      - checkout
+
+      # Restore go module cache if there is one
+      - restore_cache:
+          keys:
+            - consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+
+      - run:
+          name: go mod download
+          working_directory: test/acceptance
+          command: go mod download
+
+      # Save go module cache if the go.mod file has changed
+      - save_cache:
+          key: consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+          paths:
+            - "/go/pkg/mod"
+
+      # check go fmt output because it does not report non-zero when there are fmt changes
+      - run:
+          name: check go fmt
+          command: |
+            files=$(go fmt ./...)
+            if [ -n "$files" ]; then
+              echo "The following file(s) do not conform to go fmt:"
+              echo "$files"
+              exit 1
+            fi
+
+      - run:
+          name: go vet
+          working_directory: test/acceptance
+          command: go vet ./...
+
+      - run:
+          name: lint-consul-retry
+          working_directory: test/acceptance
+          command: |
+            go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+            golangci-lint run
+
+      - run:
+          name: golangci-lint
+          working_directory: test/acceptance
+          command: |
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+            golangci-lint run
+
+  acceptance:
+    environment:
+      - TEST_RESULTS: /tmp/test-results
+    docker:
+      - image: ghcr.io/lkysow/consul-ecs-test:0.1.0
+    steps:
+      - checkout
+
+      - run:
+          name: configure aws
+          command: |
+            aws configure --profile default set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+            aws configure --profile default set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+            aws configure set role_arn "$AWS_ROLE_ARN"
+            aws configure set source_profile default
+
+            echo "unset AWS_ACCESS_KEY_ID" >> $BASH_ENV
+            echo "unset AWS_SECRET_ACCESS_KEY" >> $BASH_ENV
+
+      - run:
+          name: terraform init & apply
+          working_directory: test/acceptance/setup-terraform
+          command: |
+            terraform init
+
+            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve
+
+      # Restore go module cache if there is one
+      - restore_cache:
+          keys:
+            - consul-ecs-modcache-v1-{{ checksum "go.mod" }}
+
+      - run: mkdir -p $TEST_RESULTS
+
+      - run:
+          name: Run acceptance tests
+          working_directory: test/acceptance/tests
+          no_output_timeout: 1h
+          command: |
+            export ecs_cluster_arn=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .ecs_cluster_arn.value)
+            export private_subnets=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .private_subnets.value)
+            export suffix=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .suffix.value)
+            export region=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .region.value)
+            export log_group_name=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .log_group_name.value)
+            export tags=$(terraform output -state ../../setup-terraform/terraform.tfstate -json | jq -rc .tags.value)
+            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 30m -v -failfast \
+              -var ecs_cluster_arn="$ecs_cluster_arn" \
+              -var private_subnets="$private_subnets" \
+              -var suffix="$suffix" \
+              -var log_group_region="$region" \
+              -var log_group_name="$log_group_name" \
+              -var tags="$tags" \
+
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+
+      - run:
+          name: terraform destroy
+          working_directory: test/acceptance/setup-terraform
+          command: |
+            terraform destroy -auto-approve
+          when: always
+
+workflows:
+  version: 2
+  test-and-build:
+    jobs:
+      - go-fmt-and-lint-acceptance
+      - acceptance:
+          requires:
+            - go-fmt-and-lint-acceptance
