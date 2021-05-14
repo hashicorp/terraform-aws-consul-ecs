@@ -6,7 +6,7 @@ locals {
   name = "consul-ecs-${random_string.suffix.result}"
 }
 
-//data "aws_availability_zones" "available" {}
+data "aws_availability_zones" "available" {}
 
 resource "random_string" "suffix" {
   length  = 8
@@ -17,10 +17,9 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "2.78.0"
 
-  name = local.name
-  cidr = "10.0.0.0/16"
-  //  azs                  = data.aws_availability_zones.available.names
-  azs                  = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  name                 = local.name
+  cidr                 = "10.0.0.0/16"
+  azs                  = data.aws_availability_zones.available.names
   private_subnets      = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets       = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_nat_gateway   = true
