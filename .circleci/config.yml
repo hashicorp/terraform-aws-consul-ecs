@@ -73,10 +73,10 @@ jobs:
       - run:
           name: configure aws
           command: |
-            aws configure --profile default set aws_access_key_id "$AWS_ACCESS_KEY_ID"
-            aws configure --profile default set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+            aws configure --profile ecs_user set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+            aws configure --profile ecs_user set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
             aws configure set role_arn "$AWS_ROLE_ARN"
-            aws configure set source_profile default
+            aws configure set source_profile ecs_user
 
             echo "unset AWS_ACCESS_KEY_ID" >> $BASH_ENV
             echo "unset AWS_SECRET_ACCESS_KEY" >> $BASH_ENV
