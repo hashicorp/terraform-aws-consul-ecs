@@ -1,13 +1,13 @@
 # Consul AWS ECS Modules
 
-**IMPORTANT:** This is a tech preview of Consul on AWS ECS. It does not yet support production workloads.
+⚠️ **IMPORTANT:** This is a tech preview of Consul on AWS ECS. It does not yet support production workloads. ⚠️
 
-This repo contains a set of modules in the [modules folder](./modules) for deploying [Consul Service Mesh](https://www.consul.io/) on
-[AWS ECS (Elastic Container Service)](https://aws.amazon.com/ecs/) using [Terraform](https://www.terraform.io/).
+This repo contains a set of modules for deploying Consul Service Mesh on
+AWS ECS (Elastic Container Service) using Terraform.
 
-## Installation
+## Usage
 
-todo
+
 
 ## Modules 
 
