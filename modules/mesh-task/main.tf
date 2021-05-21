@@ -120,14 +120,14 @@ resource "aws_ecs_task_definition" "this" {
             ]
             logConfiguration = var.log_configuration
             entryPoint       = ["/bin/sh", "-ec"]
-            command = [
+            command = [replace(
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
                   dev_server_enabled = var.dev_server_enabled
                   retry_join         = var.retry_join
                 }
-              )
+              ), "\r", "")
             ]
             mountPoints = [
               local.consul_data_mount
