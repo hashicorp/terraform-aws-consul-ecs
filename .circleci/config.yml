@@ -134,5 +134,9 @@ workflows:
     jobs:
       - go-fmt-and-lint-acceptance
       - acceptance:
+          filters:
+            branches:
+              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+              ignore: /pull\/[0-9]+/
           requires:
             - go-fmt-and-lint-acceptance
