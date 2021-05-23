@@ -5,6 +5,8 @@
 This repo contains a set of modules for deploying Consul Service Mesh on
 AWS ECS (Elastic Container Service) using Terraform.
 
+![Architecture](_docs/architecture.png?raw=true)
+
 ## Usage
 
 
