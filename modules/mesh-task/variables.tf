@@ -66,7 +66,7 @@ variable "upstreams" {
 }
 
 variable "consul_server_service_name" {
-  description = "Name of Consul server ECS service when using dev server."
+  description = "Name of Consul server ECS service when using dev server. This or retry_join must be set."
   type        = string
   default     = ""
 }
@@ -77,14 +77,8 @@ variable "envoy_image" {
   default     = "docker.io/envoyproxy/envoy-alpine:v1.16.2"
 }
 
-variable "dev_server_enabled" {
-  description = "Whether the Consul dev server running on ECS is enabled."
-  type        = bool
-  default     = true
-}
-
 variable "retry_join" {
-  description = "Argument to pass to -retry-join. If dev_server_enabled=true don't set this, otherwise it's required (https://www.consul.io/docs/agent/options#_retry_join)."
+  description = "Argument to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
   type        = string
   default     = ""
 }

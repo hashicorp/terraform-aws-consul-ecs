@@ -1,4 +1,5 @@
 locals {
+  dev_server_enabled = var.consul_server_service_name != ""
   discover_server_container = {
     name      = "discover-servers"
     image     = var.consul_ecs_image
@@ -17,7 +18,7 @@ locals {
     volumesFrom      = []
     logConfiguration = var.log_configuration
   }
-  discover_servers_containers = var.dev_server_enabled ? [local.discover_server_container] : []
+  discover_servers_containers = local.dev_server_enabled ? [local.discover_server_container] : []
   consul_data_volume_name     = "consul_data"
   consul_data_mount = {
     sourceVolume  = local.consul_data_volume_name
@@ -86,7 +87,7 @@ resource "aws_ecs_task_definition" "this" {
             mountPoints = [
               local.consul_data_mount
             ]
-            dependsOn = var.dev_server_enabled ? [
+            dependsOn = local.dev_server_enabled ? [
               {
                 containerName = "discover-servers"
                 condition     = "SUCCESS"
@@ -124,7 +125,7 @@ resource "aws_ecs_task_definition" "this" {
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
-                  dev_server_enabled = var.dev_server_enabled
+                  dev_server_enabled = local.dev_server_enabled
                   retry_join         = var.retry_join
                 }
               ), "\r", "")
@@ -135,7 +136,7 @@ resource "aws_ecs_task_definition" "this" {
             linuxParameters = {
               initProcessEnabled = true
             }
-            dependsOn = var.dev_server_enabled ? [{
+            dependsOn = local.dev_server_enabled ? [{
               containerName = "discover-servers"
               condition     = "SUCCESS"
             }] : []

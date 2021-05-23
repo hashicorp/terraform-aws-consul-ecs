@@ -85,7 +85,6 @@ module "example_client_app" {
     volumesFrom = []
   }]
   consul_server_service_name = module.dev_consul_server.ecs_service_name
-  dev_server_enabled         = true
 }
 
 # The server app is part of the service mesh. It's called
@@ -126,7 +125,6 @@ module "example_server_app" {
     ]
   }]
   consul_server_service_name = module.dev_consul_server.ecs_service_name
-  dev_server_enabled         = true
 }
 
 

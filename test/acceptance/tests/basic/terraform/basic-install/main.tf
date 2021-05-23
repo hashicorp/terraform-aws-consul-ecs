@@ -90,7 +90,6 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  dev_server_enabled         = true
   consul_server_service_name = module.consul_server.ecs_service_name
   upstreams = [
     {
@@ -138,7 +137,6 @@ module "test_server" {
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
     essential = true
   }]
-  dev_server_enabled         = true
   consul_server_service_name = module.consul_server.ecs_service_name
   log_configuration = {
     logDriver = "awslogs"
