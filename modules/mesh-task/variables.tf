@@ -1,26 +1,26 @@
 variable "family" {
-  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family)."
+  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This name will also be used as the Consul service name."
   type        = string
 }
 
 variable "execution_role_arn" {
-  description = "ARN for task execution role."
+  description = "ARN for the task's execution role. This role is used internally by ECS."
   type        = string
 }
 
 variable "task_role_arn" {
-  description = "ARN for task role."
+  description = "ARN for the task's task role. This role defines permissions for the containers running in the task."
   type        = string
 }
 
 variable "port" {
-  description = "Port that application listens on. If application does not listen on a port, set outbound_only to true."
+  description = "Port that the application listens on. If the application does not listen on a port, set outbound_only to true."
   type        = number
   default     = 0
 }
 
 variable "outbound_only" {
-  description = "Whether application only makes outward calls and so doesn't listen on a port."
+  description = "Whether the application only makes outward requests and does not receive any requests. Must be set to true if port is 0."
   type        = bool
   default     = false
 }
@@ -34,7 +34,8 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "ghcr.io/lkysow/consul-ecs:apr27-2"
+  # todo: update to "docker.io/hashicorp/consul-ecs:0.1.0"
+  default = "ghcr.io/lkysow/consul-ecs:apr27-2"
 }
 
 variable "log_configuration" {
@@ -89,7 +90,7 @@ variable "retry_join" {
 }
 
 variable "tags" {
-  description = "A map of tags to add to all resources"
+  description = "A map of tags to add to all resources."
   type        = map(string)
   default     = {}
 }

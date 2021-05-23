@@ -1,5 +1,5 @@
 locals {
-  load_balancer = var.load_balancer_enabled ? [{
+  load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
     container_port   = 8500
@@ -176,7 +176,7 @@ EOF
 }
 
 resource "aws_lb_target_group" "this" {
-  count                = var.load_balancer_enabled ? 1 : 0
+  count                = var.lb_enabled ? 1 : 0
   name                 = var.name
   port                 = 8500
   protocol             = "HTTP"
@@ -193,7 +193,7 @@ resource "aws_lb_target_group" "this" {
 }
 
 resource "aws_lb" "this" {
-  count              = var.load_balancer_enabled ? 1 : 0
+  count              = var.lb_enabled ? 1 : 0
   name               = var.name
   internal           = false
   load_balancer_type = "application"
@@ -202,7 +202,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_listener" "this" {
-  count             = var.load_balancer_enabled ? 1 : 0
+  count             = var.lb_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this[count.index].arn
   port              = "8500"
   protocol          = "HTTP"
@@ -213,7 +213,7 @@ resource "aws_lb_listener" "this" {
 }
 
 resource "aws_security_group" "load_balancer" {
-  count  = var.load_balancer_enabled ? 1 : 0
+  count  = var.lb_enabled ? 1 : 0
   name   = var.name
   vpc_id = var.lb_vpc_id
 

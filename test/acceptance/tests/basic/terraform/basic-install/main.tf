@@ -35,11 +35,11 @@ provider "aws" {
 }
 
 module "consul_server" {
-  source                = "../../../../../../modules/dev-server"
-  load_balancer_enabled = false
-  ecs_cluster_arn       = var.ecs_cluster_arn
-  subnet_ids            = var.subnets
-  name                  = "consul_server_${var.suffix}"
+  source          = "../../../../../../modules/dev-server"
+  lb_enabled      = false
+  ecs_cluster_arn = var.ecs_cluster_arn
+  subnet_ids      = var.subnets
+  name            = "consul_server_${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
     options = {

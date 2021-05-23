@@ -8,7 +8,7 @@ module "dev_consul_server" {
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.subnet_ids
   lb_vpc_id                   = var.vpc_id
-  load_balancer_enabled       = true
+  lb_enabled                  = true
   lb_subnets                  = var.lb_subnet_ids
   lb_ingress_rule_cidr_blocks = var.lb_ingress_rule_cidr_blocks
   log_configuration = {
