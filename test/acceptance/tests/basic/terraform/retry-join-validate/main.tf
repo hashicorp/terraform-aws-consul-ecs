@@ -75,27 +75,4 @@ resource "aws_iam_role" "this_task" {
       },
     ]
   })
-  # for discover-servers
-  # todo: scope this down so it's only list and describe tasks.
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonECS_FullAccess"]
-
-  # for ecs exec
-  inline_policy {
-    name = "exec"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel"
-          ]
-          Resource = "*"
-        }
-      ]
-    })
-  }
 }

@@ -149,9 +149,6 @@ resource "aws_iam_role" "example_app_task_role" {
       },
     ]
   })
-  # for discover-servers
-  # todo: scope this down so it's only list and describe tasks.
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonECS_FullAccess"]
 
   # todo: only if execute-command is enabled
   inline_policy {
@@ -168,6 +165,22 @@ resource "aws_iam_role" "example_app_task_role" {
             "ssmmessages:OpenDataChannel"
           ]
           Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:ListTasks",
+          ]
+          Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:DescribeTasks"
+          ]
+          Resource = [
+            "arn:aws:ecs:${var.region}:${data.aws_caller_identity.this.account_id}:task/*",
+          ]
         }
       ]
     })
@@ -207,6 +220,8 @@ data "aws_security_group" "vpc_default" {
   vpc_id = var.vpc_id
 }
 
+data "aws_caller_identity" "this" {}
+
 resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
   type                     = "ingress"
   from_port                = 0
@@ -218,8 +233,8 @@ resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
 
 resource "aws_security_group_rule" "ingress_from_server_alb_to_ecs" {
   type                     = "ingress"
-  from_port                = 0
-  to_port                  = 65535
+  from_port                = 8500
+  to_port                  = 8500
   protocol                 = "tcp"
   source_security_group_id = module.dev_consul_server.lb_security_group_id
   security_group_id        = data.aws_security_group.vpc_default.id
