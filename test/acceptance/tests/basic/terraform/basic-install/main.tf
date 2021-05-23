@@ -198,6 +198,8 @@ resource "aws_iam_role_policy_attachment" "this_execution" {
   policy_arn = aws_iam_policy.this_execution.arn
 }
 
+data "aws_caller_identity" "this" {}
+
 resource "aws_iam_role" "this_task" {
   name = "basic_task_${var.suffix}"
   assume_role_policy = jsonencode({
@@ -213,13 +215,9 @@ resource "aws_iam_role" "this_task" {
       },
     ]
   })
-  # for discover-servers
-  # todo: scope this down so it's only list and describe tasks.
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonECS_FullAccess"]
 
-  # for ecs exec
   inline_policy {
-    name = "exec"
+    name = "basic_task_${var.suffix}"
     policy = jsonencode({
       Version = "2012-10-17"
       Statement = [
@@ -232,6 +230,22 @@ resource "aws_iam_role" "this_task" {
             "ssmmessages:OpenDataChannel"
           ]
           Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:ListTasks",
+          ]
+          Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:DescribeTasks"
+          ]
+          Resource = [
+            "arn:aws:ecs:${var.region}:${data.aws_caller_identity.this.account_id}:task/*",
+          ]
         }
       ]
     })

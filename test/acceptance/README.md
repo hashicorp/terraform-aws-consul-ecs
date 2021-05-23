@@ -47,3 +47,12 @@ These tests run the Terraform code.
      -log-group-name="$log_group_name" \
      -tf-tags="$tags"
    ```
+
+   You may want to add the `-no-cleanup-on-failure` flag if you're debugging
+   a failing test. Without this flag, the tests will delete all resources
+   regardless of passing or failing.
+
+### Cleanup
+
+If the tests haven't cleaned up after themselves you must run `terraform destroy`
+in each directory, e.g. `test/acceptance/tests/basic/terraform/basic-install`.
