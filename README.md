@@ -3,24 +3,44 @@
 ⚠️ **IMPORTANT:** This is a tech preview of Consul on AWS ECS. It does not yet support production workloads. ⚠️
 
 This repo contains a set of modules for deploying Consul Service Mesh on
-AWS ECS (Elastic Container Service) using Terraform.
+AWS ECS (Elastic Container Service).
 
+## Documentation
+
+See https://www.consul.io/docs/ecs for full documentation.
+
+## Architecture
 ![Architecture](_docs/architecture.png?raw=true)
+
+Each task is created via the `mesh-task` module. This module adds
+additional containers known as sidecar containers to your task definition.
+
+Specifically, it adds the following containers:
+
+* `discover-servers` – Runs at startup to discover the IP address of the Consul server.
+* `mesh-init` – Runs at startup to set up initial configuration.
+* `consul-client` – Runs for the full lifecycle of the task. This container runs a
+  [Consul client](https://www.consul.io/docs/architecture) that connects with
+  Consul servers and configures the sidecar proxy.
+* `sidecar-proxy` – Runs for the full lifecycle of the task. This container runs
+  [Envoy](https://www.envoyproxy.io/) which is used to proxy and control
+  service mesh traffic. All requests to and from the application run through
+  the sidecar proxy.
+
+The `dev-server` module runs a development/testing-only Consul server as an
+ECS task.
 
 ## Usage
 
-
+See https://www.consul.io/docs/ecs.
 
 ## Modules 
 
 * [mesh-task](modules/mesh-task): This module creates an [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html)
-  that adds the necessary configuration for your application task to be part of the Consul service mesh.
+  that adds additional containers to your application task, so it can be part of the Consul service mesh.
 
-* [dev-server](modules/dev-server) [**For Development/Demo Only**]: This module deploys a Consul server onto your ECS Cluster
-  for development/demo purposes. The server does not have persistent storage and so is not suitable for production deployments.
-  
-  When you're ready to run Consul in production, you should run the Consul server via HashiCorp Cloud Platform or on EC2 VMs.
-  **Note:** HashiCorp Cloud Platform is not yet supported.
+* [dev-server](modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
+  for development/testing purposes. The server does not have persistent storage and so is not suitable for production deployments.
 
 ## Roadmap
 
