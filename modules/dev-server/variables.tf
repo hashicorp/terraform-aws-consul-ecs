@@ -8,7 +8,7 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "load_balancer_enabled" {
+variable "lb_enabled" {
   description = "Whether to create an ALB for the server task. Useful for accessing the UI."
   type        = bool
   default     = false
@@ -27,19 +27,21 @@ variable "lb_subnets" {
 }
 
 variable "lb_ingress_rule_cidr_blocks" {
-  type    = list(string)
-  default = null
+  description = "CIDR blocks that are allowed access to the load balancer."
+  type        = list(string)
+  default     = null
 }
 
 variable "lb_ingress_rule_security_groups" {
-  type    = list(string)
-  default = null
+  description = "Security groups that are allowed access to the load balancer."
+  type        = list(string)
+  default     = null
 }
 
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorp/consul:1.9.5"
+  default     = "docker.io/hashicorp/consul:1.9.5"
 }
 
 variable "log_configuration" {
@@ -49,13 +51,13 @@ variable "log_configuration" {
 }
 
 variable "name" {
-  description = "Name to be used on all the resources as identifier"
+  description = "Name to be used on all the resources as identifier."
   type        = string
   default     = "consul-server"
 }
 
 variable "tags" {
-  description = "A map of tags to add to all resources"
+  description = "A map of tags to add to all resources."
   type        = map(string)
   default     = {}
 }
