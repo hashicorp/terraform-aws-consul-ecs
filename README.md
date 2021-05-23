@@ -10,7 +10,7 @@ AWS ECS (Elastic Container Service).
 See https://www.consul.io/docs/ecs for full documentation.
 
 ## Architecture
-![Architecture](https://github.com/hasicorp/terraform-aws-consul-ecs/blob/main/_docs/architecture.png?raw=true)
+![Architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/architecture.png?raw=true)
 
 Each task is created via the `mesh-task` module. This module adds
 additional containers known as sidecar containers to your task definition.
@@ -36,10 +36,10 @@ See https://www.consul.io/docs/ecs.
 
 ## Modules 
 
-* [mesh-task](https://github.com/hasicorp/terraform-aws-consul-ecs/blob/main/modules/mesh-task): This module creates an [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html)
+* [mesh-task](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/mesh-task): This module creates an [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html)
   that adds additional containers to your application task, so it can be part of the Consul service mesh.
 
-* [dev-server](https://github.com/hasicorp/terraform-aws-consul-ecs/blob/main/modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
+* [dev-server](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
   for development/testing purposes. The server does not have persistent storage and so is not suitable for production deployments.
 
 ## Roadmap
@@ -48,4 +48,4 @@ See https://www.consul.io/docs/ecs.
 
 ## License
 
-This code is released under the Mozilla Public License 2.0. Please see [LICENSE](https://github.com/hasicorp/terraform-aws-consul-ecs/blob/main/LICENSE) for more details.
+This code is released under the Mozilla Public License 2.0. Please see [LICENSE](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/LICENSE) for more details.
