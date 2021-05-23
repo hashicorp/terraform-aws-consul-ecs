@@ -62,6 +62,13 @@ jobs:
             curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
             golangci-lint run
 
+  terraform-fmt:
+    docker:
+      - image: ghcr.io/lkysow/consul-ecs-test:0.1.0
+    steps:
+      - checkout
+      - run: terraform fmt -check -recursive .
+
   acceptance:
     environment:
       - TEST_RESULTS: /tmp/test-results
@@ -133,6 +140,7 @@ workflows:
   test-and-build:
     jobs:
       - go-fmt-and-lint-acceptance
+      - terraform-fmt
       - acceptance:
           filters:
             branches:
