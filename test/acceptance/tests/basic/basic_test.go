@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test the validation that if dev_server_enabled=false then retry_join_url
+// Test the validation that if either consul_server_service_name or retry_join_url
 // must be set.
 func TestValidation_RetryJoinRequired(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
@@ -25,7 +25,7 @@ func TestValidation_RetryJoinRequired(t *testing.T) {
 	defer terraform.Destroy(t, terraformOptions)
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: retry_join must be set if dev_server_enabled=false so that Consul clients can join the cluster")
+	require.Contains(t, err.Error(), "ERROR: either consul_server_service_name or retry_join must be set so that Consul clients can join the cluster")
 }
 
 func TestBasic(t *testing.T) {

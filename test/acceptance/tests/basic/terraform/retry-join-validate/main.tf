@@ -3,7 +3,6 @@ provider "aws" {
 }
 
 module "test_client" {
-  dev_server_enabled = false
   source             = "../../../../../../modules/mesh-task"
   family             = "family"
   execution_role_arn = aws_iam_role.this_execution.arn
