@@ -145,6 +145,6 @@ workflows:
           filters:
             branches:
               # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-              ignore: /pull\/[0-9]+/
+              ignore: /pull\/[0-9]+|docs\/.*/
           requires:
             - go-fmt-and-lint-acceptance
