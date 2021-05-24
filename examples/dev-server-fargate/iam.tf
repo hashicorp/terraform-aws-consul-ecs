@@ -1,5 +1,5 @@
 resource "aws_iam_role" "example_app_task_role" {
-  name = "example-app"
+  name = "${var.name}-example-app"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -51,7 +51,7 @@ resource "aws_iam_role" "example_app_task_role" {
 }
 
 resource "aws_iam_policy" "example_app_execution" {
-  name        = "example-app-execution"
+  name        = "${var.name}-example-app-execution"
   path        = "/ecs/"
   description = "example-app execution"
 
@@ -73,7 +73,7 @@ EOF
 }
 
 resource "aws_iam_role" "example_app_execution" {
-  name = "example-app-execution"
+  name = "${var.name}-example-app-execution"
   path = "/ecs/"
 
   assume_role_policy = <<EOF

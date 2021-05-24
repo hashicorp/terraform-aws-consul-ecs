@@ -1,5 +1,6 @@
 # Run the Consul dev server as an ECS task.
 module "dev_consul_server" {
+  name                        = var.name
   source                      = "../../modules/dev-server"
   ecs_cluster_arn             = aws_ecs_cluster.this.arn
   subnet_ids                  = module.vpc.private_subnets

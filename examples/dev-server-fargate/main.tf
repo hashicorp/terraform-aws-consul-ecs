@@ -24,7 +24,7 @@ data "aws_security_group" "vpc_default" {
 # the server app through the service mesh.
 # It's exposed via a load balancer.
 resource "aws_ecs_service" "example_client_app" {
-  name            = "example-client-app"
+  name            = "${var.name}-example-client-app"
   cluster         = aws_ecs_cluster.this.arn
   task_definition = module.example_client_app.task_definition_arn
   desired_count   = 1
@@ -46,7 +46,7 @@ resource "aws_ecs_service" "example_client_app" {
 
 module "example_client_app" {
   source             = "../../modules/mesh-task"
-  family             = "example-client-app"
+  family             = "${var.name}-example-client-app"
   execution_role_arn = aws_iam_role.example_app_execution.arn
   task_role_arn      = aws_iam_role.example_app_task_role.arn
   port               = "9090"
@@ -65,7 +65,7 @@ module "example_client_app" {
     environment = [
       {
         name  = "NAME"
-        value = "example-client-app"
+        value = "${var.name}-example-client-app"
       },
       {
         name  = "UPSTREAM_URIS"
@@ -89,7 +89,7 @@ module "example_client_app" {
 # The server app is part of the service mesh. It's called
 # by the client app.
 resource "aws_ecs_service" "example_server_app" {
-  name            = "example-server-app"
+  name            = "${var.name}-example-server-app"
   cluster         = aws_ecs_cluster.this.arn
   task_definition = module.example_server_app.task_definition_arn
   desired_count   = 1
@@ -106,7 +106,7 @@ resource "aws_ecs_service" "example_server_app" {
 
 module "example_server_app" {
   source             = "../../modules/mesh-task"
-  family             = "example-server-app"
+  family             = "${var.name}-example-server-app"
   execution_role_arn = aws_iam_role.example_app_execution.arn
   task_role_arn      = aws_iam_role.example_app_task_role.arn
   port               = "9090"
@@ -119,7 +119,7 @@ module "example_server_app" {
     environment = [
       {
         name  = "NAME"
-        value = "example-server-app"
+        value = "${var.name}-example-server-app"
       }
     ]
   }]
@@ -127,7 +127,7 @@ module "example_server_app" {
 }
 
 resource "aws_lb" "example_client_app" {
-  name               = "example-client-app"
+  name               = "${var.name}-example-client-app"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.example_client_app_alb.id]
@@ -135,7 +135,7 @@ resource "aws_lb" "example_client_app" {
 }
 
 resource "aws_security_group" "example_client_app_alb" {
-  name   = "example-client-app-alb"
+  name   = "${var.name}-example-client-app-alb"
   vpc_id = module.vpc.vpc_id
 
   ingress {
@@ -173,7 +173,7 @@ resource "aws_security_group_rule" "ingress_from_server_alb_to_ecs" {
 }
 
 resource "aws_lb_target_group" "example_client_app" {
-  name                 = "example-client-app"
+  name                 = "${var.name}-example-client-app"
   port                 = 9090
   protocol             = "HTTP"
   vpc_id               = module.vpc.vpc_id
