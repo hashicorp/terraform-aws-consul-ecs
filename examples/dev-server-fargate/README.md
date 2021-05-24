@@ -151,12 +151,12 @@ We can create a deny intention to deny this traffic through the UI:
 1. Click the **Deny** card.
 1. Click the **Save** button.
 
-![Intention UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/intentions?raw=true)
+![Intention UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/intentions.png?raw=true)
 
 Now, navigate to the UI of the example application. You should see something
 that looks like:
 
-![UI After Intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/ui-after-intention?raw=true)
+![UI After Intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/ui-after-intention.png?raw=true)
 
 The connection is red because the service mesh is no longer allowing `example-client-app` to 
 make requests to `example-server-app`.
