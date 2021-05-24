@@ -1,24 +1,23 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "3.42.0"
+    }
+  }
+}
+
 provider "aws" {
   region = var.region
 }
 
-# Run the Consul dev server as an ECS task.
-module "dev_consul_server" {
-  source                      = "../../modules/dev-server"
-  ecs_cluster_arn             = var.ecs_cluster_arn
-  subnet_ids                  = var.subnet_ids
-  lb_vpc_id                   = var.vpc_id
-  lb_enabled                  = true
-  lb_subnets                  = var.lb_subnet_ids
-  lb_ingress_rule_cidr_blocks = var.lb_ingress_rule_cidr_blocks
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = aws_cloudwatch_log_group.log_group.name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-server"
-    }
-  }
+data "aws_availability_zones" "available" {}
+
+data "aws_caller_identity" "this" {}
+
+data "aws_security_group" "vpc_default" {
+  name   = "default"
+  vpc_id = module.vpc.vpc_id
 }
 
 # The client app is part of the service mesh. It calls
@@ -26,11 +25,11 @@ module "dev_consul_server" {
 # It's exposed via a load balancer.
 resource "aws_ecs_service" "example_client_app" {
   name            = "example-client-app"
-  cluster         = var.ecs_cluster_arn
+  cluster         = aws_ecs_cluster.this.arn
   task_definition = module.example_client_app.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnet_ids
+    subnets = module.vpc.private_subnets
   }
   launch_type    = "FARGATE"
   propagate_tags = "TASK_DEFINITION"
@@ -91,11 +90,11 @@ module "example_client_app" {
 # by the client app.
 resource "aws_ecs_service" "example_server_app" {
   name            = "example-server-app"
-  cluster         = var.ecs_cluster_arn
+  cluster         = aws_ecs_cluster.this.arn
   task_definition = module.example_server_app.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnet_ids
+    subnets = module.vpc.private_subnets
   }
   launch_type            = "FARGATE"
   propagate_tags         = "TASK_DEFINITION"
@@ -127,82 +126,24 @@ module "example_server_app" {
   consul_server_service_name = module.dev_consul_server.ecs_service_name
 }
 
-
-resource "aws_cloudwatch_log_group" "log_group" {
-  name = "consul"
-}
-
-resource "aws_iam_role" "example_app_task_role" {
-  name = "example-app"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      },
-    ]
-  })
-
-  # todo: only if execute-command is enabled
-  inline_policy {
-    name = "exec"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ecs:ListTasks",
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ecs:DescribeTasks"
-          ]
-          Resource = [
-            "arn:aws:ecs:${var.region}:${data.aws_caller_identity.this.account_id}:task/*",
-          ]
-        }
-      ]
-    })
-  }
-}
-
 resource "aws_lb" "example_client_app" {
   name               = "example-client-app"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.example_client_app_alb.id]
-  subnets            = var.lb_subnet_ids
+  subnets            = module.vpc.public_subnets
 }
 
 resource "aws_security_group" "example_client_app_alb" {
   name   = "example-client-app-alb"
-  vpc_id = var.vpc_id
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     description = "Access to example client application."
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
-    cidr_blocks = var.lb_ingress_rule_cidr_blocks
+    cidr_blocks = ["${var.lb_ingress_ip}/32"]
   }
 
   egress {
@@ -212,13 +153,6 @@ resource "aws_security_group" "example_client_app_alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-data "aws_security_group" "vpc_default" {
-  name   = "default"
-  vpc_id = var.vpc_id
-}
-
-data "aws_caller_identity" "this" {}
 
 resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
   type                     = "ingress"
@@ -242,7 +176,7 @@ resource "aws_lb_target_group" "example_client_app" {
   name                 = "example-client-app"
   port                 = 9090
   protocol             = "HTTP"
-  vpc_id               = var.vpc_id
+  vpc_id               = module.vpc.vpc_id
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
@@ -264,53 +198,10 @@ resource "aws_lb_listener" "example_client_app" {
   }
 }
 
-resource "aws_iam_policy" "example_app_execution" {
-  name        = "example-app-execution"
-  path        = "/ecs/"
-  description = "example-app execution"
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
+resource "aws_cloudwatch_log_group" "log_group" {
+  name = var.name
 }
 
-resource "aws_iam_role" "example_app_execution" {
-  name = "example-app-execution"
-  path = "/ecs/"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "example_app_execution" {
-  role       = aws_iam_role.example_app_execution.id
-  policy_arn = aws_iam_policy.example_app_execution.arn
-}
 
 locals {
   example_server_app_log_config = {
