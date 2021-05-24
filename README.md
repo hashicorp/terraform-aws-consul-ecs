@@ -44,7 +44,7 @@ See https://www.consul.io/docs/ecs.
 
 ## Roadmap
 
-- [ ] Support for running Consul servers in HashiCorp Cloud Platform
+- Support for running Consul servers in HashiCorp Cloud Platform
 
 ## License
 
