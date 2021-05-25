@@ -28,14 +28,19 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "docker.io/hashicorp/consul:1.9.5"
+  default     = "docker.mirror.hashicorp.services/hashicorp/consul:1.9.5"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  # todo: update to "docker.io/hashicorp/consul-ecs:0.1.0"
-  default = "ghcr.io/lkysow/consul-ecs:apr27-2"
+  default     = "docker.mirror.hashicorp.services/hashicorp/consul-ecs:0.1.2"
+}
+
+variable "envoy_image" {
+  description = "Envoy Docker image."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/envoyproxy/envoy-alpine:v1.16.2"
 }
 
 variable "log_configuration" {
@@ -69,12 +74,6 @@ variable "consul_server_service_name" {
   description = "Name of Consul server ECS service when using dev server. This or retry_join must be set."
   type        = string
   default     = ""
-}
-
-variable "envoy_image" {
-  description = "Envoy Docker image."
-  type        = string
-  default     = "docker.io/envoyproxy/envoy-alpine:v1.16.2"
 }
 
 variable "retry_join" {

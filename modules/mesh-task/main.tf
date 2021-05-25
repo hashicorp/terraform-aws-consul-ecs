@@ -4,6 +4,7 @@ locals {
     name      = "discover-servers"
     image     = var.consul_ecs_image
     essential = false
+    user      = "root"
     command = [
       "discover-servers",
       "-service-name=${var.consul_server_service_name}",
@@ -84,6 +85,7 @@ resource "aws_ecs_task_definition" "this" {
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}"
             ]
+            user = "root"
             mountPoints = [
               local.consul_data_mount
             ]
