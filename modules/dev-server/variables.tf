@@ -21,7 +21,7 @@ variable "lb_vpc_id" {
 }
 
 variable "lb_subnets" {
-  description = "Subnet IDs to attach to the load balancer."
+  description = "Subnet IDs to attach to the load balancer. NOTE: These must be public subnets if you wish to access the load balancer externally."
   type        = list(string)
   default     = null
 }
