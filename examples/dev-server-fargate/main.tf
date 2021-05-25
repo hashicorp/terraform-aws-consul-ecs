@@ -57,7 +57,7 @@ module "example_client_app" {
   port               = "9090"
   upstreams = [
     {
-      destination_name = "example-server-app"
+      destination_name = "${var.name}-example-server-app"
       local_bind_port  = 1234
     }
   ]
