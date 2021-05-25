@@ -6,6 +6,8 @@ a Consul dev server and two example service mesh tasks using Fargate.
 There are then instructions on how to interact with Consul and test out
 some service mesh features.
 
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/dev-server-fargate.png?raw=true)
+
 ## Requirements
 
 * Terraform >= 0.14.0
