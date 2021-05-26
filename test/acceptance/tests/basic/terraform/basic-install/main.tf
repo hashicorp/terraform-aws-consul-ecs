@@ -48,6 +48,7 @@ module "consul_server" {
       awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
+  launch_type = "FARGATE"
 
   tags = var.tags
 }

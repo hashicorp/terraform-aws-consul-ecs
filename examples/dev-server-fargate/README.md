@@ -72,8 +72,8 @@ Apply complete! Resources: 46 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-consul_server_lb_address = "http://consul-server-111111111.us-east-1.elb.amazonaws.com:8500"
-mesh_client_lb_address = "http://example-client-app-111111111.us-east-1.elb.amazonaws.com:9090/ui"
+consul_server_lb_address = "http://consul-ecs-consul-server-111111111.us-east-1.elb.amazonaws.com:8500"
+mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east-1.elb.amazonaws.com:9090/ui"
 ```
 
 ### Explore
@@ -89,40 +89,40 @@ a minute or two, you should be able to load the UI:
 
 ![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/example-app.png?raw=true)
 
-The `example-client-app` calls the `example-server-app` through the service mesh
+The `consul-ecs-example-client-app` calls the `consul-ecs-example-server-app` through the service mesh
 and shows the request path in the UI.
 
 If you navigate to the same URL without `/ui`, you'll see the raw requests:
 
 ```json
 {
-  "name": "example-client-app",
+  "name": "consul-ecs-example-client-app",
   "uri": "/",
   "type": "HTTP",
   "ip_addresses": [
-    "10.0.3.75",
-    "169.254.172.1"
+    "169.254.172.2",
+    "10.0.2.197"
   ],
-  "start_time": "2021-05-24T16:37:58.643460",
-  "end_time": "2021-05-24T16:37:58.648447",
-  "duration": "4.986149ms",
+  "start_time": "2021-05-26T17:18:50.577783",
+  "end_time": "2021-05-26T17:18:50.581168",
+  "duration": "3.384384ms",
   "body": "Hello World",
   "upstream_calls": {
     "http://localhost:1234": {
-      "name": "example-server-app",
+      "name": "consul-ecs-example-server-app",
       "uri": "http://localhost:1234",
       "type": "HTTP",
       "ip_addresses": [
         "169.254.172.2",
-        "10.0.1.46"
+        "10.0.2.168"
       ],
-      "start_time": "2021-05-24T16:37:58.647615",
-      "end_time": "2021-05-24T16:37:58.647701",
-      "duration": "85.212µs",
+      "start_time": "2021-05-26T17:18:50.580468",
+      "end_time": "2021-05-26T17:18:50.580550",
+      "duration": "82.636µs",
       "headers": {
-        "Content-Length": "286",
+        "Content-Length": "298",
         "Content-Type": "text/plain; charset=utf-8",
-        "Date": "Mon, 24 May 2021 16:37:58 GMT"
+        "Date": "Wed, 26 May 2021 17:18:50 GMT"
       },
       "body": "Hello World",
       "code": 200
@@ -132,7 +132,7 @@ If you navigate to the same URL without `/ui`, you'll see the raw requests:
 }
 ```
 
-Under `upstream_calls`, you can see that the `example-client-app` is making
+Under `upstream_calls`, you can see that the `consul-ecs-example-client-app` is making
 a call to uri `http://localhost:1234` which is returning with an HTTP code 200.
 
 ### Intentions
@@ -141,15 +141,15 @@ One of the features of Consul is its [Intentions](/docs/connect/intentions) syst
 Intentions allow you to define rules dictating which services can communicate.
 
 Because this installation does not have [ACLs](/docs/security/acl) enabled, by
-default all services are allowed to communicate. That's why `example-client-app`
-can make requests to `example-server-app`.
+default all services are allowed to communicate. That's why `consul-ecs-example-client-app`
+can make requests to `consul-ecs-example-server-app`.
 
 We can create a deny intention to deny this traffic through the UI:
 
 1. Click on the **Intentions** tab in the Consul UI.
 1. Click the **Create** button.
-1. In the **Source Service** drop-down, select `example-client-app`.
-1. In the **Destination Service** drop-down, select `example-server-app`.
+1. In the **Source Service** drop-down, select `consul-ecs-example-client-app`.
+1. In the **Destination Service** drop-down, select `consul-ecs-example-server-app`.
 1. Click the **Deny** card.
 1. Click the **Save** button.
 
@@ -160,8 +160,8 @@ that looks like:
 
 ![UI After Intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/ui-after-intention.png?raw=true)
 
-The connection is red because the service mesh is no longer allowing `example-client-app` to 
-make requests to `example-server-app`.
+The connection is red because the service mesh is no longer allowing `consul-ecs-example-client-app` to 
+make requests to `consul-ecs-example-server-app`.
 
 If you delete the intention through the Consul UI, the traffic should flow again.
 
