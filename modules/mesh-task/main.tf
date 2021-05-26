@@ -56,7 +56,7 @@ locals {
 
 resource "aws_ecs_task_definition" "this" {
   family                   = var.family
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["FARGATE", "EC2"]
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512

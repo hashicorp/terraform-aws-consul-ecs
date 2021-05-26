@@ -16,4 +16,5 @@ module "dev_consul_server" {
       awslogs-stream-prefix = "consul-server"
     }
   }
+  launch_type = "FARGATE"
 }

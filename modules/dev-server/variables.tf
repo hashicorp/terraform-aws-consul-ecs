@@ -4,7 +4,7 @@ variable "ecs_cluster_arn" {
 }
 
 variable "subnet_ids" {
-  description = "Subnet IDs into which the task should be deployed."
+  description = "Subnet IDs into which the task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
   type        = list(string)
 }
 
@@ -60,4 +60,16 @@ variable "tags" {
   description = "A map of tags to add to all resources."
   type        = map(string)
   default     = {}
+}
+
+variable "launch_type" {
+  description = "Launch type on which to run service. Valid values are EC2 and FARGATE."
+  type        = string
+  default     = "EC2"
+}
+
+variable "assign_public_ip" {
+  description = "Assign a public IP address to the ENI. If running in public subnets this is required so that ECS can pull the Docker images."
+  type        = bool
+  default     = false
 }

@@ -12,9 +12,10 @@ resource "aws_ecs_service" "this" {
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnet_ids
+    subnets          = var.subnet_ids
+    assign_public_ip = var.assign_public_ip
   }
-  launch_type = "FARGATE"
+  launch_type = var.launch_type
   dynamic "load_balancer" {
     for_each = local.load_balancer
     content {
@@ -32,7 +33,7 @@ resource "aws_ecs_service" "this" {
 
 resource "aws_ecs_task_definition" "this" {
   family                   = var.name
-  requires_compatibilities = ["FARGATE"]
+  requires_compatibilities = ["FARGATE", "EC2"]
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512
