@@ -23,7 +23,7 @@ $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
 $ cd terraform-aws-consul-ecs/examples/dev-server-fargate
 ```
 
-This module contains everything needed spin up the example. The only
+This module contains everything needed to spin up the example. The only
 requirement is that you pass in the IP address of your workstation via the `lb_ingress_ip`
 variable. This is used for the security group on the two load balancers to ensure
 only you have access to them since Consul is not running in a secure configuration.
@@ -65,7 +65,7 @@ Type `yes` to apply the changes.
    when you've finished testing.
 
 The apply should take 2-5 minutes. When complete, the URLs of the two load
-balancers should be output:
+balancers should be in the output:
 
 ```shell
 Apply complete! Resources: 46 added, 0 changed, 0 destroyed.
@@ -78,14 +78,17 @@ mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east
 
 ### Explore
 
-If you click on the URL of the `consul_server_lb_address` you should be able
+If you click on the URL of the `consul_server_lb_address`, you should be able
 to view the Consul UI:
 
 ![Consul UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/consul-ui.png?raw=true)
 
-At first, if you click on the URL of the `mesh_client_lb_address` the page might not
-load. This is because the example client application is not yet healthy. After
-a minute or two, you should be able to load the UI:
+~> At first, if you click on the URL of the `mesh_client_lb_address` or `consul_server_lb_address`,
+the page might not load.
+This is because the example client application or the Consul server are not yet healthy. After
+a minute or two, you should be able to load the UI.
+
+If you go the URL of the `mesh_client_lb_address` in your browser, you should see the UI:
 
 ![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/example-app.png?raw=true)
 
