@@ -27,7 +27,7 @@ locals {
   }
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
-  // modified to add in dependencies on mesh-init and sidecar-proxy.
+  // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
   // is ready to serve traffic.
   container_defs_with_depends_on = [for def in var.container_definitions :
@@ -39,7 +39,7 @@ locals {
             lookup(def, "dependsOn", []),
             [
               {
-                containerName = "mesh-init"
+                containerName = "consul-ecs-mesh-init"
                 condition     = "SUCCESS"
               },
               {
@@ -75,7 +75,7 @@ resource "aws_ecs_task_definition" "this" {
         local.container_defs_with_depends_on,
         [
           {
-            name             = "mesh-init"
+            name             = "consul-ecs-mesh-init"
             image            = var.consul_ecs_image
             essential        = false
             logConfiguration = var.log_configuration
@@ -164,7 +164,7 @@ resource "aws_ecs_task_definition" "this" {
             ]
             dependsOn = [
               {
-                containerName = "mesh-init"
+                containerName = "consul-ecs-mesh-init"
                 condition     = "SUCCESS"
               },
             ]
