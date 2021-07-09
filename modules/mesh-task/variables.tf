@@ -87,3 +87,14 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "tls" {
+  description = "Whether to enable TLS for the mesh-task."
+  type        = bool
+  default     = false
+}
+
+variable "consul_server_ca_cert_arn" {
+  description = "The ARN of the secret of the Consul server CA certificate."
+  type        = string
+}

@@ -249,10 +249,9 @@ exec consul agent -server \
   -hcl='key_file = "/consul/dc1-server-consul-0-key.pem"' \
   -hcl='auto_encrypt = {allow_tls = true}' \
   -hcl='ports { https = 8501 }' \
-  -hcl='ports { http = -1 }' \
-  -hcl='verify_incoming_rpc = false' \
-  -hcl='verify_outgoing = false' \
-  -hcl='verify_server_hostname = false' \
+  -hcl='verify_incoming_rpc = true' \
+  -hcl='verify_outgoing = true' \
+  -hcl='verify_server_hostname = true' \
 %{endif~}
 EOF
 

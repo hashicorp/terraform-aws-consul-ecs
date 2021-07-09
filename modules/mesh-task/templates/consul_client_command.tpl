@@ -3,6 +3,10 @@ ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Address
 SERVER_IP=$(cat /consul/server-ip)
 %{ endif ~}
 
+%{ if tls }
+echo "$CONSUL_CACERT" > /tmp/consul-ca-cert.pem
+%{ endif }
+
 exec consul agent \
   -advertise "$ECS_IPV4" \
   -data-dir /consul/data \
@@ -17,3 +21,10 @@ exec consul agent \
   -hcl 'ports { grpc = 8502 }' \
   -hcl 'advertise_reconnect_timeout = "15m"' \
   -hcl 'enable_central_service_config = true' \
+%{ if tls ~}
+  -hcl 'ca_file = "/tmp/consul-ca-cert.pem"' \
+  -hcl 'auto_encrypt = {tls = true}' \
+  -hcl "auto_encrypt = {ip_san = [\"$ECS_IPV4\"]}" \
+  -hcl 'verify_outgoing = true' \
+  -hcl 'ports {https = 8501}' \
+%{ endif ~}

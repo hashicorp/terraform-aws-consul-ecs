@@ -62,6 +62,15 @@ resource "aws_iam_policy" "example_app_execution" {
     {
       "Effect": "Allow",
       "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${module.dev_consul_server.ca_cert_arn}"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],

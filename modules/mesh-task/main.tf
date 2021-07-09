@@ -129,6 +129,7 @@ resource "aws_ecs_task_definition" "this" {
                 {
                   dev_server_enabled = local.dev_server_enabled
                   retry_join         = var.retry_join
+                  tls                = var.tls
                 }
               ), "\r", "")
             ]
@@ -145,6 +146,12 @@ resource "aws_ecs_task_definition" "this" {
             cpu         = 0
             volumesFrom = []
             environment = []
+            secrets = [
+              {
+                name      = "CONSUL_CACERT",
+                valueFrom = var.consul_server_ca_cert_arn
+              }
+            ]
           },
           {
             name             = "sidecar-proxy"
