@@ -6,6 +6,57 @@ locals {
   }] : []
 }
 
+resource "tls_private_key" "ca" {
+  count       = var.tls ? 1 : 0
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P384"
+}
+
+resource "tls_self_signed_cert" "ca" {
+  count           = var.tls ? 1 : 0
+  key_algorithm   = "ECDSA"
+  private_key_pem = tls_private_key.ca[count.index].private_key_pem
+
+  subject {
+    common_name  = "Consul Agent CA"
+    organization = "HashiCorp Inc."
+  }
+
+  // 5 years.
+  validity_period_hours = 43800
+
+  is_ca_certificate  = true
+  set_subject_key_id = true
+
+  allowed_uses = [
+    "digital_signature",
+    "cert_signing",
+    "crl_signing",
+  ]
+}
+
+resource "aws_secretsmanager_secret" "ca_key" {
+  count = var.tls ? 1 : 0
+  name  = "${var.name}-ca-key"
+}
+
+resource "aws_secretsmanager_secret_version" "ca_key" {
+  count         = var.tls ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.ca_key[count.index].id
+  secret_string = tls_private_key.ca[count.index].private_key_pem
+}
+
+resource "aws_secretsmanager_secret" "ca_cert" {
+  count = var.tls ? 1 : 0
+  name  = "${var.name}-ca-cert"
+}
+
+resource "aws_secretsmanager_secret_version" "ca_cert" {
+  count         = var.tls ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.ca_cert[count.index].id
+  secret_string = tls_self_signed_cert.ca[count.index].cert_pem
+}
+
 resource "aws_ecs_service" "this" {
   name            = var.name
   cluster         = var.ecs_cluster_arn
@@ -42,36 +93,44 @@ resource "aws_ecs_task_definition" "this" {
   volume {
     name = "consul-data"
   }
-  container_definitions = jsonencode([
-    {
-      name      = "consul-server"
-      image     = var.consul_image
-      essential = true
-      portMappings = [
-        {
-          containerPort = 8301
-        },
-        {
-          containerPort = 8300
-        },
-        {
-          containerPort = 8500
+  container_definitions = jsonencode(concat(
+    local.tls_init_containers,
+    [
+      {
+        name      = "consul-server"
+        image     = var.consul_image
+        essential = true
+        portMappings = [
+          {
+            containerPort = 8301
+          },
+          {
+            containerPort = 8300
+          },
+          {
+            containerPort = 8500
+          }
+        ]
+        logConfiguration = var.log_configuration
+        entryPoint       = ["/bin/sh", "-ec"]
+        command          = [replace(local.consul_server_command, "\r", "")]
+        mountPoints = [
+          {
+            sourceVolume  = "consul-data"
+            containerPath = "/consul"
+          }
+        ]
+        linuxParameters = {
+          initProcessEnabled = true
         }
-      ]
-      logConfiguration = var.log_configuration
-      entryPoint       = ["/bin/sh", "-ec"]
-      command          = [replace(local.consul_server_command, "\r", "")]
-      mountPoints = [
-        {
-          sourceVolume  = "consul-data"
-          containerPath = "/consul"
-        }
-      ]
-      linuxParameters = {
-        initProcessEnabled = true
+        dependsOn = var.tls ? [
+          {
+            containerName = "tls-init"
+            condition     = "SUCCESS"
+          },
+        ] : []
       }
-    }
-  ])
+  ]))
 }
 
 resource "aws_iam_policy" "this_execution" {
@@ -83,6 +142,18 @@ resource "aws_iam_policy" "this_execution" {
 {
   "Version": "2012-10-17",
   "Statement": [
+    %{if var.tls~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${aws_secretsmanager_secret.ca_cert[0].arn}",
+        "${aws_secretsmanager_secret.ca_key[0].arn}"
+      ]
+    },
+    %{endif~}
     {
       "Effect": "Allow",
       "Action": [
@@ -158,7 +229,6 @@ resource "aws_iam_role" "this_task" {
   }
 }
 
-
 locals {
   consul_server_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
@@ -173,7 +243,52 @@ exec consul agent -server \
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
+%{if var.tls~}
+  -hcl='ca_file = "/consul/consul-agent-ca.pem"' \
+  -hcl='cert_file = "/consul/dc1-server-consul-0.pem"' \
+  -hcl='key_file = "/consul/dc1-server-consul-0-key.pem"' \
+  -hcl='auto_encrypt = {allow_tls = true}' \
+  -hcl='ports { https = 8501 }' \
+  -hcl='ports { http = -1 }' \
+  -hcl='verify_incoming_rpc = false' \
+  -hcl='verify_outgoing = false' \
+  -hcl='verify_server_hostname = false' \
+%{endif~}
 EOF
+
+  consul_server_tls_init_command = <<EOF
+ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
+cd /consul
+echo "$CONSUL_CACERT" > ./consul-agent-ca.pem
+echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
+consul tls cert create -server -additional-ipaddress=$ECS_IPV4
+EOF
+
+  tls_init_container = {
+    name             = "tls-init"
+    image            = var.consul_image
+    essential        = false
+    logConfiguration = var.log_configuration
+    mountPoints = [
+      {
+        sourceVolume  = "consul-data"
+        containerPath = "/consul"
+      }
+    ]
+    entryPoint = ["/bin/sh", "-ec"]
+    command    = [local.consul_server_tls_init_command]
+    secrets = [
+      {
+        name      = "CONSUL_CACERT",
+        valueFrom = aws_secretsmanager_secret.ca_cert[0].arn
+      },
+      {
+        name      = "CONSUL_CAKEY",
+        valueFrom = aws_secretsmanager_secret.ca_key[0].arn
+      }
+    ]
+  }
+  tls_init_containers = var.tls ? [local.tls_init_container] : []
 }
 
 resource "aws_lb_target_group" "this" {

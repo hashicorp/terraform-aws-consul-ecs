@@ -17,4 +17,5 @@ module "dev_consul_server" {
     }
   }
   launch_type = "FARGATE"
+  tls         = true
 }
