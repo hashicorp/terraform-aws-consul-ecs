@@ -85,7 +85,6 @@ module "example_client_app" {
   }]
   consul_server_service_name = module.dev_consul_server.ecs_service_name
   consul_server_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
-  tls                        = true
 }
 
 # The server app is part of the service mesh. It's called
@@ -122,7 +121,6 @@ module "example_server_app" {
   }]
   consul_server_service_name = module.dev_consul_server.ecs_service_name
   consul_server_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
-  tls                        = true
 }
 
 resource "aws_lb" "example_client_app" {
