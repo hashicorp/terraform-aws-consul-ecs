@@ -3,14 +3,16 @@ variable "family" {
   type        = string
 }
 
-variable "execution_role_arn" {
-  description = "ARN for the task's execution role. This role is used internally by ECS."
-  type        = string
+variable "additional_task_role_policies" {
+  description = "List of additional policy ARNs to attach to the task role."
+  type        = list(any)
+  default     = []
 }
 
-variable "task_role_arn" {
-  description = "ARN for the task's task role. This role defines permissions for the containers running in the task."
-  type        = string
+variable "additional_execution_role_policies" {
+  description = "List of additional policy ARNs to attach to the execution role."
+  type        = list(any)
+  default     = []
 }
 
 variable "port" {
@@ -34,7 +36,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorp/consul-ecs:0.1.2"
+  default     = "ishustava/consul-ecs-dev:latest"
 }
 
 variable "envoy_image" {
