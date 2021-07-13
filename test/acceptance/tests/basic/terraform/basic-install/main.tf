@@ -30,6 +30,12 @@ variable "tags" {
   default     = {}
 }
 
+variable "secure" {
+  description = "Whether to create all resources in a secure installation (with TLS, ACLs and gossip encryption)."
+  type        = bool
+  default     = false
+}
+
 provider "aws" {
   region = var.region
 }
@@ -51,6 +57,8 @@ module "consul_server" {
   launch_type = "FARGATE"
 
   tags = var.tags
+
+  tls = var.secure
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -101,6 +109,9 @@ module "test_client" {
     }
   }
   outbound_only = true
+
+  tls                       = var.secure
+  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -136,4 +147,7 @@ module "test_server" {
     }
   }
   port = 9090
+
+  tls                       = var.secure
+  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
 }
