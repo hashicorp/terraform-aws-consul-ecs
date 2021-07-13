@@ -276,7 +276,7 @@ EOF
     ]
     entryPoint = ["/bin/sh", "-ec"]
     command    = [local.consul_server_tls_init_command]
-    secrets = [
+    secrets = var.tls ? [
       {
         name      = "CONSUL_CACERT",
         valueFrom = aws_secretsmanager_secret.ca_cert[0].arn
@@ -285,7 +285,7 @@ EOF
         name      = "CONSUL_CAKEY",
         valueFrom = aws_secretsmanager_secret.ca_key[0].arn
       }
-    ]
+    ] : []
   }
   tls_init_containers = var.tls ? [local.tls_init_container] : []
 }

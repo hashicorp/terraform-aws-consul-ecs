@@ -66,17 +66,11 @@ resource "aws_ecs_service" "test_client" {
   enable_execute_command = true
 
   tags = var.tags
-
-  depends_on = [
-    aws_iam_role.this_task
-  ]
 }
 
 module "test_client" {
-  source             = "../../../../../../modules/mesh-task"
-  family             = "test_client_${var.suffix}"
-  execution_role_arn = aws_iam_role.this_execution.arn
-  task_role_arn      = aws_iam_role.this_task.arn
+  source = "../../../../../../modules/mesh-task"
+  family = "test_client_${var.suffix}"
   container_definitions = [{
     name      = "basic"
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
@@ -122,17 +116,11 @@ resource "aws_ecs_service" "test_server" {
   enable_execute_command = true
 
   tags = var.tags
-
-  depends_on = [
-    aws_iam_role.this_task
-  ]
 }
 
 module "test_server" {
-  source             = "../../../../../../modules/mesh-task"
-  family             = "test_server_${var.suffix}"
-  execution_role_arn = aws_iam_role.this_execution.arn
-  task_role_arn      = aws_iam_role.this_task.arn
+  source = "../../../../../../modules/mesh-task"
+  family = "test_server_${var.suffix}"
   container_definitions = [{
     name      = "basic"
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
@@ -148,107 +136,4 @@ module "test_server" {
     }
   }
   port = 9090
-}
-
-resource "aws_iam_policy" "this_execution" {
-  name = "basic_execution_${var.suffix}"
-  path = "/ecs/"
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role" "this_execution" {
-  name = "basic_execution_${var.suffix}"
-  path = "/ecs/"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "this_execution" {
-  role       = aws_iam_role.this_execution.id
-  policy_arn = aws_iam_policy.this_execution.arn
-}
-
-data "aws_caller_identity" "this" {}
-
-resource "aws_iam_role" "this_task" {
-  name = "basic_task_${var.suffix}"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      },
-    ]
-  })
-
-  inline_policy {
-    name = "basic_task_${var.suffix}"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ecs:ListTasks",
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ecs:DescribeTasks"
-          ]
-          Resource = [
-            "arn:aws:ecs:${var.region}:${data.aws_caller_identity.this.account_id}:task/*",
-          ]
-        }
-      ]
-    })
-  }
-
-  tags = var.tags
 }

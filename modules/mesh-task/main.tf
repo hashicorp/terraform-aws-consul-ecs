@@ -269,12 +269,12 @@ resource "aws_ecs_task_definition" "this" {
             cpu         = 0
             volumesFrom = []
             environment = []
-            secrets = [
+            secrets = var.tls ? [
               {
                 name      = "CONSUL_CACERT",
                 valueFrom = var.consul_server_ca_cert_arn
               }
-            ]
+            ] : []
           },
           {
             name             = "sidecar-proxy"
