@@ -131,6 +131,17 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
+%{if var.gossip_key_secret_arn != ""~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.gossip_key_secret_arn}"
+      ]
+    },
+%{endif~}
     {
       "Effect": "Allow",
       "Action": [
@@ -263,12 +274,20 @@ resource "aws_ecs_task_definition" "this" {
             cpu         = 0
             volumesFrom = []
             environment = []
-            secrets = var.tls ? [
-              {
-                name      = "CONSUL_CACERT",
-                valueFrom = var.consul_server_ca_cert_arn
-              }
-            ] : []
+            secrets = concat(
+              var.tls ? [
+                {
+                  name      = "CONSUL_CACERT",
+                  valueFrom = var.consul_server_ca_cert_arn
+                }
+              ] : [],
+              var.gossip_key_secret_arn != "" ? [
+                {
+                  name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+                  valueFrom = var.gossip_key_secret_arn
+                }
+              ] : [],
+            )
           },
           {
             name             = "sidecar-proxy"

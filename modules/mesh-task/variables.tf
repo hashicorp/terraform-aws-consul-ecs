@@ -97,7 +97,13 @@ variable "tls" {
 }
 
 variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the secret of the Consul server CA certificate."
+  description = "The ARN of the secret containing the Consul server CA certificate."
+  type        = string
+  default     = ""
+}
+
+variable "gossip_key_secret_arn" {
+  description = "The ARN of the secret containing the Consul gossip encryption key."
   type        = string
   default     = ""
 }

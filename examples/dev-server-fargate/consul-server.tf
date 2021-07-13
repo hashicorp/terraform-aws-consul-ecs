@@ -16,5 +16,6 @@ module "dev_consul_server" {
       awslogs-stream-prefix = "consul-server"
     }
   }
-  launch_type = "FARGATE"
+  launch_type           = "FARGATE"
+  gossip_key_secret_arn = aws_secretsmanager_secret.gossip_key.arn
 }
