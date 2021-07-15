@@ -114,7 +114,7 @@ resource "aws_iam_role_policy_attachment" "additional_task_policies" {
 resource "aws_iam_policy" "execution" {
   name        = "${var.family}-execution"
   path        = "/ecs/"
-  description = "Consul mesh-task execution policy"
+  description = "${var.family} mesh-task execution policy"
 
   policy = <<EOF
 {
@@ -206,7 +206,6 @@ resource "aws_ecs_task_definition" "this" {
               "-envoy-bootstrap-file=/consul/envoy-bootstrap.json",
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
-              "-tls=${var.tls}"
             ]
             user = "root"
             mountPoints = [
@@ -237,11 +236,6 @@ resource "aws_ecs_task_definition" "this" {
                 containerPort = 8300
                 hostPort      = 8300
                 protocol      = "udp"
-              },
-              {
-                containerPort = 8500
-                hostPort      = 8500
-                protocol      = "tcp"
               },
             ]
             logConfiguration = var.log_configuration

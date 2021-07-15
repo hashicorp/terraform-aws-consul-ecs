@@ -5,13 +5,13 @@ variable "family" {
 
 variable "additional_task_role_policies" {
   description = "List of additional policy ARNs to attach to the task role."
-  type        = list(any)
+  type        = list(string)
   default     = []
 }
 
 variable "additional_execution_role_policies" {
   description = "List of additional policy ARNs to attach to the execution role."
-  type        = list(any)
+  type        = list(string)
   default     = []
 }
 
@@ -36,7 +36,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "ishustava/consul-ecs-dev:latest"
+  default     = "docker.mirror.hashicorp.services/hashicorp/consul-ecs:0.1.2"
 }
 
 variable "envoy_image" {
@@ -91,7 +91,7 @@ variable "tags" {
 }
 
 variable "tls" {
-  description = "Whether to enable TLS for the mesh-task."
+  description = "Whether to enable TLS for the mesh-task for the control plane traffic."
   type        = bool
   default     = false
 }

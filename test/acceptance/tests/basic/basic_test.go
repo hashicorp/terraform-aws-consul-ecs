@@ -23,10 +23,22 @@ func TestValidation_RetryJoinRequired(t *testing.T) {
 		TerraformDir: "./terraform/retry-join-validate",
 		NoColor:      true,
 	})
-	defer terraform.Destroy(t, terraformOptions)
+	defer terraform.DestroyE(t, terraformOptions)
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ERROR: either consul_server_service_name or retry_join must be set so that Consul clients can join the cluster")
+}
+
+// Test the validation that if TLS is enabled, Consul's CA certificate must also be provided.
+func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/ca-cert-validate",
+		NoColor:      true,
+	})
+	defer terraform.DestroyE(t, terraformOptions)
+	_, err := terraform.InitAndPlanE(t, terraformOptions)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ERROR: Consul CA certificate is required when TLS is enabled")
 }
 
 func TestBasic(t *testing.T) {

@@ -11,6 +11,9 @@ exec consul agent \
   -advertise "$ECS_IPV4" \
   -data-dir /consul/data \
   -client 0.0.0.0 \
+  -hcl 'addresses = { dns = "127.0.0.1" }' \
+  -hcl 'addresses = { grpc = "127.0.0.1" }' \
+  -hcl 'addresses = { http = "127.0.0.1" }' \
 %{ if dev_server_enabled ~}
   -retry-join "$SERVER_IP" \
 %{ else ~}
@@ -26,5 +29,4 @@ exec consul agent \
   -hcl 'auto_encrypt = {tls = true}' \
   -hcl "auto_encrypt = {ip_san = [\"$ECS_IPV4\"]}" \
   -hcl 'verify_outgoing = true' \
-  -hcl 'ports {https = 8501}' \
 %{ endif ~}

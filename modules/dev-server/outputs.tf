@@ -14,9 +14,11 @@ output "lb_security_group_id" {
 }
 
 output "ca_cert_arn" {
-  value = var.tls ? aws_secretsmanager_secret.ca_cert[0].arn : null
+  description = "The ARN of the CA certificate secret for the Consul server."
+  value       = var.tls ? aws_secretsmanager_secret.ca_cert[0].arn : null
 }
 
 output "ca_key_arn" {
-  value = var.tls ? aws_secretsmanager_secret.ca_key[0].arn : null
+  description = "The ARN of the CA key secret for the Consul server."
+  value       = var.tls ? aws_secretsmanager_secret.ca_key[0].arn : null
 }

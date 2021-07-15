@@ -75,7 +75,7 @@ variable "assign_public_ip" {
 }
 
 variable "tls" {
-  description = "Whether to enable TLS on the server."
+  description = "Whether to enable TLS on the server for the control plane traffic."
   type        = bool
   default     = false
 }
