@@ -23,7 +23,11 @@ func TestValidation_RetryJoinRequired(t *testing.T) {
 		TerraformDir: "./terraform/retry-join-validate",
 		NoColor:      true,
 	})
-	defer terraform.DestroyE(t, terraformOptions)
+	t.Cleanup(func() {
+		_, err := terraform.DestroyE(t, terraformOptions)
+		// We expect error here since terraform destroy would fail in the same way as apply.
+		require.Error(t, err)
+	})
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ERROR: either consul_server_service_name or retry_join must be set so that Consul clients can join the cluster")
@@ -35,7 +39,11 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 		TerraformDir: "./terraform/ca-cert-validate",
 		NoColor:      true,
 	})
-	defer terraform.DestroyE(t, terraformOptions)
+	t.Cleanup(func() {
+		_, err := terraform.DestroyE(t, terraformOptions)
+		// We expect error here since terraform destroy would fail in the same way as apply.
+		require.Error(t, err)
+	})
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ERROR: Consul CA certificate is required when TLS is enabled")
