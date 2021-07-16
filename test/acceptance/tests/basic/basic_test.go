@@ -24,9 +24,7 @@ func TestValidation_RetryJoinRequired(t *testing.T) {
 		NoColor:      true,
 	})
 	t.Cleanup(func() {
-		_, err := terraform.DestroyE(t, terraformOptions)
-		// We expect error here since terraform destroy would fail in the same way as apply.
-		require.Error(t, err)
+		_, _ = terraform.DestroyE(t, terraformOptions)
 	})
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
@@ -40,9 +38,7 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 		NoColor:      true,
 	})
 	t.Cleanup(func() {
-		_, err := terraform.DestroyE(t, terraformOptions)
-		// We expect error here since terraform destroy would fail in the same way as apply.
-		require.Error(t, err)
+		_, _ = terraform.DestroyE(t, terraformOptions)
 	})
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
