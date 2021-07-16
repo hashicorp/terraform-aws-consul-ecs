@@ -42,7 +42,7 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 	})
 	_, err := terraform.InitAndPlanE(t, terraformOptions)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: Consul CA certificate is required when TLS is enabled")
+	require.Contains(t, err.Error(), "ERROR: consul_server_ca_cert_arn must be set if tls is true")
 }
 
 func TestBasic(t *testing.T) {
