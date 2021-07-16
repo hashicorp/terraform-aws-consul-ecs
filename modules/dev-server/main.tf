@@ -255,6 +255,9 @@ exec consul agent -server \
 %{endif~}
 EOF
 
+  // We use this command to generate the server certs dynamically before the servers start
+  // because we need to add the IP of the task as a SAN to the certificate, and we don't know that
+  // IP ahead of time.
   consul_server_tls_init_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
 cd /consul
