@@ -1,3 +1,13 @@
+## Unreleased
+BREAKING CHANGES
+* modules/mesh-task: `execution_role_arn` and `task_role_arn` variables have been removed.
+  The mesh-task now creates those roles and instead accepts `additional_task_role_policies`
+  and `additional_execution_role_policies` to modify the execution and task roles and allow
+  more permissions. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+
+FEATURES
+* Enable TLS for the Consul service mesh control plane. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+
 ## 0.1.1 (May 26, 2021)
 
 IMPROVEMENTS

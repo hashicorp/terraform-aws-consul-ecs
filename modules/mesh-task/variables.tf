@@ -3,14 +3,16 @@ variable "family" {
   type        = string
 }
 
-variable "execution_role_arn" {
-  description = "ARN for the task's execution role. This role is used internally by ECS."
-  type        = string
+variable "additional_task_role_policies" {
+  description = "List of additional policy ARNs to attach to the task role."
+  type        = list(string)
+  default     = []
 }
 
-variable "task_role_arn" {
-  description = "ARN for the task's task role. This role defines permissions for the containers running in the task."
-  type        = string
+variable "additional_execution_role_policies" {
+  description = "List of additional policy ARNs to attach to the execution role."
+  type        = list(string)
+  default     = []
 }
 
 variable "port" {
@@ -86,4 +88,16 @@ variable "tags" {
   description = "A map of tags to add to all resources."
   type        = map(string)
   default     = {}
+}
+
+variable "tls" {
+  description = "Whether to enable TLS for the mesh-task for the control plane traffic."
+  type        = bool
+  default     = false
+}
+
+variable "consul_server_ca_cert_arn" {
+  description = "The ARN of the secret of the Consul server CA certificate."
+  type        = string
+  default     = ""
 }

@@ -44,17 +44,12 @@ resource "aws_ecs_service" "example_client_app" {
     container_port   = 9090
   }
   enable_execute_command = true
-  depends_on = [
-    aws_iam_role.example_app_task_role
-  ]
 }
 
 module "example_client_app" {
-  source             = "../../modules/mesh-task"
-  family             = "${var.name}-example-client-app"
-  execution_role_arn = aws_iam_role.example_app_execution.arn
-  task_role_arn      = aws_iam_role.example_app_task_role.arn
-  port               = "9090"
+  source = "../../modules/mesh-task"
+  family = "${var.name}-example-client-app"
+  port   = "9090"
   upstreams = [
     {
       destination_name = "${var.name}-example-server-app"
@@ -104,18 +99,13 @@ resource "aws_ecs_service" "example_server_app" {
   launch_type            = "FARGATE"
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
-  depends_on = [
-    aws_iam_role.example_app_task_role
-  ]
 }
 
 module "example_server_app" {
-  source             = "../../modules/mesh-task"
-  family             = "${var.name}-example-server-app"
-  execution_role_arn = aws_iam_role.example_app_execution.arn
-  task_role_arn      = aws_iam_role.example_app_task_role.arn
-  port               = "9090"
-  log_configuration  = local.example_server_app_log_config
+  source            = "../../modules/mesh-task"
+  family            = "${var.name}-example-server-app"
+  port              = "9090"
+  log_configuration = local.example_server_app_log_config
   container_definitions = [{
     name             = "example-server-app"
     image            = "ghcr.io/lkysow/fake-service:v0.21.0"
