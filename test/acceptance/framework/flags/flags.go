@@ -68,33 +68,41 @@ type tfOutputItem struct {
 func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 	var cfg config.TestConfig
 
+	// If there is a terraform output directory, use that to create test config.
 	if t.flagTFOutputDir != "" {
+		// We use tfOutput to parse the terraform output.
+		// We then read the parsed output and put into tfOutputValues,
+		// extracting only Values from the output.
 		var tfOutput map[string]tfOutputItem
-		testConfigMap := make(map[string]interface{})
+		tfOutputValues := make(map[string]interface{})
+
+		// Get terraform output as JSON.
 		cmd := exec.Command("terraform", "output", "-state", fmt.Sprintf("%s/terraform.tfstate", t.flagTFOutputDir), "-json")
 		cmdOutput, err := cmd.CombinedOutput()
 		if err != nil {
 			return nil, err
 		}
+
+		// Parse terraform output into tfOutput map.
 		err = json.Unmarshal(cmdOutput, &tfOutput)
 		if err != nil {
 			return nil, err
 		}
 
+		// Extract Values from the parsed output into a separate map.
 		for k, v := range tfOutput {
-			if k == "private_subnets" {
-				testConfigMap["subnets"] = v.Value
-			} else {
-				testConfigMap[k] = v.Value
-			}
+			tfOutputValues[k] = v.Value
 		}
-		testConfigJSON, err := json.Marshal(testConfigMap)
+
+		// Marshal the resulting map back into JSON so that
+		// we can unmarshal it into the TestConfig struct directly.
+		testConfigJSON, err := json.Marshal(tfOutputValues)
 		if err != nil {
 			return nil, err
 		}
 		err = json.Unmarshal(testConfigJSON, &cfg)
 		if err != nil {
-			fmt.Println("error unmarshalling", err)
+			return nil, err
 		}
 	} else {
 		cfg = config.TestConfig{

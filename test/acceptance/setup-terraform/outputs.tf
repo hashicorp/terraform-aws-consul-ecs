@@ -2,7 +2,7 @@ output "ecs_cluster_arn" {
   value = aws_ecs_cluster.this.arn
 }
 
-output "private_subnets" {
+output "subnets" {
   value = module.vpc.private_subnets
 }
 
