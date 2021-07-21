@@ -48,7 +48,8 @@ resource "random_id" "gossip_encryption_key" {
 
 resource "aws_secretsmanager_secret" "gossip_key" {
   count = var.secure ? 1 : 0
-  name  = "basic-install-gossip-encryption-key-${var.suffix}"
+  // Only 'consul_server*' secrets are allowed by the IAM role used by Circle CI
+  name = "consul_server_${var.suffix}-gossip-encryption-key"
 }
 
 resource "aws_secretsmanager_secret_version" "gossip_key" {
