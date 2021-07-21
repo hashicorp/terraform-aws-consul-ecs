@@ -25,11 +25,8 @@ func NewSuite(m *testing.M) Suite {
 
 	flag.Parse()
 
-	testConfig := flags.TestConfigFromFlags()
-
 	return &suite{
 		m:     m,
-		cfg:   testConfig,
 		flags: flags,
 	}
 }
@@ -40,6 +37,13 @@ func (s *suite) Run() int {
 		fmt.Printf("Flag validation failed: %s\n", err)
 		return 1
 	}
+
+	testConfig, err := s.flags.TestConfigFromFlags()
+	if err != nil {
+		fmt.Printf("Failed to create test config: %s\n", err)
+		return 1
+	}
+	s.cfg = testConfig
 
 	return s.m.Run()
 }

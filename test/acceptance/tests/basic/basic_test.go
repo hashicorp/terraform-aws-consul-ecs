@@ -61,7 +61,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			defer func() {
-				if suite.Config().NoCleanupOnFailure {
+				if suite.Config().NoCleanupOnFailure && t.Failed() {
 					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
 				} else {
 					terraform.Destroy(t, terraformOptions)
