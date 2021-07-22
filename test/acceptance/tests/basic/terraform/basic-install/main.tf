@@ -40,6 +40,24 @@ provider "aws" {
   region = var.region
 }
 
+// Generate a gossip encryption key if a secure installation.
+resource "random_id" "gossip_encryption_key" {
+  count       = var.secure ? 1 : 0
+  byte_length = 32
+}
+
+resource "aws_secretsmanager_secret" "gossip_key" {
+  count = var.secure ? 1 : 0
+  // Only 'consul_server*' secrets are allowed by the IAM role used by Circle CI
+  name = "consul_server_${var.suffix}-gossip-encryption-key"
+}
+
+resource "aws_secretsmanager_secret_version" "gossip_key" {
+  count         = var.secure ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.gossip_key[0].id
+  secret_string = random_id.gossip_encryption_key[0].b64_std
+}
+
 module "consul_server" {
   source          = "../../../../../../modules/dev-server"
   lb_enabled      = false
@@ -58,7 +76,8 @@ module "consul_server" {
 
   tags = var.tags
 
-  tls = var.secure
+  tls                   = var.secure
+  gossip_key_secret_arn = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -112,6 +131,7 @@ module "test_client" {
 
   tls                       = var.secure
   consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -150,4 +170,5 @@ module "test_server" {
 
   tls                       = var.secure
   consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
 }

@@ -79,3 +79,9 @@ variable "tls" {
   type        = bool
   default     = false
 }
+
+variable "gossip_key_secret_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
+  type        = string
+  default     = ""
+}

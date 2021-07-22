@@ -1,4 +1,5 @@
 locals {
+  gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
@@ -129,6 +130,12 @@ resource "aws_ecs_task_definition" "this" {
             condition     = "SUCCESS"
           },
         ] : []
+        secrets = local.gossip_encryption_enabled ? [
+          {
+            name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+            valueFrom = var.gossip_key_secret_arn
+          },
+        ] : []
       }
   ]))
 }
@@ -142,7 +149,7 @@ resource "aws_iam_policy" "this_execution" {
 {
   "Version": "2012-10-17",
   "Statement": [
-    %{if var.tls~}
+%{if var.tls~}
     {
       "Effect": "Allow",
       "Action": [
@@ -153,7 +160,18 @@ resource "aws_iam_policy" "this_execution" {
         "${aws_secretsmanager_secret.ca_key[0].arn}"
       ]
     },
-    %{endif~}
+%{endif~}
+%{if local.gossip_encryption_enabled~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.gossip_key_secret_arn}"
+      ]
+    },
+%{endif~}
     {
       "Effect": "Allow",
       "Action": [
@@ -239,7 +257,9 @@ exec consul agent -server \
   -advertise "$ECS_IPV4" \
   -client 0.0.0.0 \
   -data-dir /tmp/consul-data \
+%{if local.gossip_encryption_enabled~}
   -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
+%{endif~}
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \

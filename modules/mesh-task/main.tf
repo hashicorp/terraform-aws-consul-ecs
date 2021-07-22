@@ -1,5 +1,6 @@
 locals {
-  dev_server_enabled = var.consul_server_service_name != ""
+  dev_server_enabled        = var.consul_server_service_name != ""
+  gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   discover_server_container = {
     name      = "discover-servers"
     image     = var.consul_ecs_image
@@ -131,6 +132,17 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
+%{if local.gossip_encryption_enabled~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.gossip_key_secret_arn}"
+      ]
+    },
+%{endif~}
     {
       "Effect": "Allow",
       "Action": [
@@ -244,9 +256,10 @@ resource "aws_ecs_task_definition" "this" {
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
-                  dev_server_enabled = local.dev_server_enabled
-                  retry_join         = var.retry_join
-                  tls                = var.tls
+                  dev_server_enabled        = local.dev_server_enabled
+                  gossip_encryption_enabled = local.gossip_encryption_enabled
+                  retry_join                = var.retry_join
+                  tls                       = var.tls
                 }
               ), "\r", "")
             ]
@@ -263,12 +276,20 @@ resource "aws_ecs_task_definition" "this" {
             cpu         = 0
             volumesFrom = []
             environment = []
-            secrets = var.tls ? [
-              {
-                name      = "CONSUL_CACERT",
-                valueFrom = var.consul_server_ca_cert_arn
-              }
-            ] : []
+            secrets = concat(
+              var.tls ? [
+                {
+                  name      = "CONSUL_CACERT",
+                  valueFrom = var.consul_server_ca_cert_arn
+                }
+              ] : [],
+              local.gossip_encryption_enabled ? [
+                {
+                  name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+                  valueFrom = var.gossip_key_secret_arn
+                }
+              ] : [],
+            )
           },
           {
             name             = "sidecar-proxy"
