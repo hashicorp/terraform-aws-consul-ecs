@@ -98,7 +98,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Wait for both tasks to be registered in Consul.
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
 					Command: "aws",
 					Args: []string{
