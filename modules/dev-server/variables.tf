@@ -81,7 +81,7 @@ variable "tls" {
 }
 
 variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secret containing the Consul gossip encryption key"
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
   type        = string
   default     = ""
 }

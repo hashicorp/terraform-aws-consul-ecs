@@ -1,5 +1,6 @@
 locals {
-  dev_server_enabled = var.consul_server_service_name != ""
+  dev_server_enabled        = var.consul_server_service_name != ""
+  gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   discover_server_container = {
     name      = "discover-servers"
     image     = var.consul_ecs_image
@@ -131,7 +132,7 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
-%{if var.gossip_key_secret_arn != ""~}
+%{if local.gossip_encryption_enabled~}
     {
       "Effect": "Allow",
       "Action": [
@@ -255,9 +256,10 @@ resource "aws_ecs_task_definition" "this" {
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
-                  dev_server_enabled = local.dev_server_enabled
-                  retry_join         = var.retry_join
-                  tls                = var.tls
+                  dev_server_enabled        = local.dev_server_enabled
+                  gossip_encryption_enabled = local.gossip_encryption_enabled
+                  retry_join                = var.retry_join
+                  tls                       = var.tls
                 }
               ), "\r", "")
             ]
@@ -281,7 +283,7 @@ resource "aws_ecs_task_definition" "this" {
                   valueFrom = var.consul_server_ca_cert_arn
                 }
               ] : [],
-              var.gossip_key_secret_arn != "" ? [
+              local.gossip_encryption_enabled ? [
                 {
                   name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
                   valueFrom = var.gossip_key_secret_arn
