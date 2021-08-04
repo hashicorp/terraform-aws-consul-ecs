@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 locals {
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   consul_data_volume_name   = "consul_data"
@@ -157,10 +159,10 @@ resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
 
 resource "aws_ecs_task_definition" "this" {
   family                   = var.family
-  requires_compatibilities = ["FARGATE", "EC2"]
+  requires_compatibilities = var.requires_compatibilities
   network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = var.cpu
+  memory                   = var.memory
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
   volume {

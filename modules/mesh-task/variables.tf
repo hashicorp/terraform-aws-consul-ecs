@@ -3,6 +3,24 @@ variable "family" {
   type        = string
 }
 
+variable "requires_compatibilities" {
+  description = "Set of launch types required by the task."
+  type        = list(string)
+  default     = ["EC2", "FARGATE"]
+}
+
+variable "cpu" {
+  description = "Number of cpu units used by the task."
+  type        = number
+  default     = 256
+}
+
+variable "memory" {
+  description = "Amount (in MiB) of memory used by the task."
+  type        = number
+  default     = 512
+}
+
 variable "additional_task_role_policies" {
   description = "List of additional policy ARNs to attach to the task role."
   type        = list(string)

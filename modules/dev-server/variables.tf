@@ -3,6 +3,24 @@ variable "ecs_cluster_arn" {
   type        = string
 }
 
+variable "requires_compatibilities" {
+  description = "Set of launch types required by the task."
+  type        = list(string)
+  default     = ["EC2", "FARGATE"]
+}
+
+variable "cpu" {
+  description = "Number of cpu units used by the task."
+  type        = number
+  default     = 256
+}
+
+variable "memory" {
+  description = "Amount (in MiB) of memory used by the task."
+  type        = number
+  default     = 512
+}
+
 variable "subnet_ids" {
   description = "Subnet IDs into which the task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
   type        = list(string)

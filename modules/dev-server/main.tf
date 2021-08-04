@@ -89,10 +89,10 @@ resource "aws_ecs_service" "this" {
 
 resource "aws_ecs_task_definition" "this" {
   family                   = var.name
-  requires_compatibilities = ["FARGATE", "EC2"]
+  requires_compatibilities = var.requires_compatibilities
   network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = var.cpu
+  memory                   = var.memory
   execution_role_arn       = aws_iam_role.this_execution.arn
   task_role_arn            = aws_iam_role.this_task.arn
   volume {
