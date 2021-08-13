@@ -30,6 +30,27 @@ resource "aws_ecs_task_definition" "this" {
   execution_role_arn       = aws_iam_role.this_execution.arn
   container_definitions = jsonencode([
     {
+      name             = "datadog-agent"
+      image            = "datadog/agent:latest"
+      essential        = true
+      logConfiguration = var.log_configuration
+      environment = [
+        {
+          name  = "DD_API_KEY"
+          value = var.datadog_api_key
+        },
+        {
+          name  = "ECS_FARGATE"
+          value = "true"
+        }
+      ]
+      dockerLabels = {
+        "com.datadoghq.ad.check_names"  = "[\"openmetrics\"]"
+        "com.datadoghq.ad.init_configs" = "[{}]"
+        "com.datadoghq.ad.instances"    = "[{\"prometheus_url\":\"http://%%host%%:9102/metrics\",\"namespace\":\"slow_cooker\",\"metrics\":[\"go_*\",\"latency*\",\"requests\",\"successes\",\"process*\"]}]"
+      }
+    },
+    {
       name             = "consul-acl-controller"
       image            = var.consul_ecs_image
       essential        = true
