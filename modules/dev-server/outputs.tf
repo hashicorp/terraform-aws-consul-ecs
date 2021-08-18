@@ -27,3 +27,8 @@ output "server_dns" {
   description = "The DNS name of the Consul server service in AWS CloudMap."
   value       = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
 }
+
+output "bootstrap_token_secret_arn" {
+  description = "The ARN of the ACL bootstrap token secret."
+  value       = var.acls ? aws_secretsmanager_secret.bootstrap_token[0].arn : null
+}

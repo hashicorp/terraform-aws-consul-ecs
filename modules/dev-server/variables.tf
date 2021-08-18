@@ -90,3 +90,9 @@ variable "gossip_key_secret_arn" {
   type        = string
   default     = ""
 }
+
+variable "acls" {
+  description = "Whether to enable ACLs on the server."
+  type        = bool
+  default     = false
+}
