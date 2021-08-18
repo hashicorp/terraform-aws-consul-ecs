@@ -24,5 +24,6 @@ output "ca_key_arn" {
 }
 
 output "server_dns" {
-  value = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
+  description = "The DNS name of the Consul server service in AWS CloudMap."
+  value       = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
 }
