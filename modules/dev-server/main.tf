@@ -68,6 +68,10 @@ resource "aws_ecs_service" "this" {
     assign_public_ip = var.assign_public_ip
   }
   launch_type = var.launch_type
+  service_registries {
+    registry_arn   = aws_service_discovery_service.server.arn
+    container_name = "consul-server"
+  }
   dynamic "load_balancer" {
     for_each = local.load_balancer
     content {
@@ -247,6 +251,25 @@ resource "aws_iam_role" "this_task" {
   }
 }
 
+resource "aws_service_discovery_private_dns_namespace" "server" {
+  name        = "consul"
+  description = "The namespace for the Consul dev server."
+  vpc         = var.vpc_id
+}
+
+resource "aws_service_discovery_service" "server" {
+  name = var.name
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.server.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+  }
+}
+
 locals {
   consul_server_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
@@ -318,7 +341,7 @@ resource "aws_lb_target_group" "this" {
   name                 = var.name
   port                 = 8500
   protocol             = "HTTP"
-  vpc_id               = var.lb_vpc_id
+  vpc_id               = var.vpc_id
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
@@ -353,7 +376,7 @@ resource "aws_lb_listener" "this" {
 resource "aws_security_group" "load_balancer" {
   count  = var.lb_enabled ? 1 : 0
   name   = var.name
-  vpc_id = var.lb_vpc_id
+  vpc_id = var.vpc_id
 
   ingress {
     description     = "Access to Consul dev server HTTP API and UI."

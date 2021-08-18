@@ -83,7 +83,7 @@ module "example_client_app" {
     mountPoints = []
     volumesFrom = []
   }]
-  consul_server_service_name = module.dev_consul_server.ecs_service_name
+  retry_join = module.dev_consul_server.server_dns
 }
 
 # The server app is part of the service mesh. It's called
@@ -118,7 +118,7 @@ module "example_server_app" {
       }
     ]
   }]
-  consul_server_service_name = module.dev_consul_server.ecs_service_name
+  retry_join = module.dev_consul_server.server_dns
 }
 
 resource "aws_lb" "example_client_app" {

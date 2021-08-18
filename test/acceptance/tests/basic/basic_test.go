@@ -16,21 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test the validation that if either consul_server_service_name or retry_join_url
-// must be set.
-func TestValidation_RetryJoinRequired(t *testing.T) {
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/retry-join-validate",
-		NoColor:      true,
-	})
-	t.Cleanup(func() {
-		_, _ = terraform.DestroyE(t, terraformOptions)
-	})
-	_, err := terraform.InitAndPlanE(t, terraformOptions)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: either consul_server_service_name or retry_join must be set so that Consul clients can join the cluster")
-}
-
 // Test the validation that if TLS is enabled, Consul's CA certificate must also be provided.
 func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{

@@ -72,16 +72,9 @@ variable "upstreams" {
   default = []
 }
 
-variable "consul_server_service_name" {
-  description = "Name of Consul server ECS service when using dev server. This or retry_join must be set."
-  type        = string
-  default     = ""
-}
-
 variable "retry_join" {
   description = "Argument to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
   type        = string
-  default     = ""
 }
 
 variable "tags" {

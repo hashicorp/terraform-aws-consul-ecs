@@ -14,10 +14,9 @@ variable "lb_enabled" {
   default     = false
 }
 
-variable "lb_vpc_id" {
-  description = "VPC ID for ALB."
+variable "vpc_id" {
+  description = "The ID of the VPC."
   type        = string
-  default     = null
 }
 
 variable "lb_subnets" {

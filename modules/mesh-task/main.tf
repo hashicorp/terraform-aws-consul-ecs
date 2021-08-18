@@ -1,27 +1,6 @@
 locals {
-  dev_server_enabled        = var.consul_server_service_name != ""
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
-  discover_server_container = {
-    name      = "discover-servers"
-    image     = var.consul_ecs_image
-    essential = false
-    user      = "root"
-    command = [
-      "discover-servers",
-      "-service-name=${var.consul_server_service_name}",
-      "-out=/consul/server-ip"
-    ]
-    mountPoints = [
-      local.consul_data_mount
-    ]
-    environment      = []
-    cpu              = 0
-    portMappings     = []
-    volumesFrom      = []
-    logConfiguration = var.log_configuration
-  }
-  discover_servers_containers = local.dev_server_enabled ? [local.discover_server_container] : []
-  consul_data_volume_name     = "consul_data"
+  consul_data_volume_name   = "consul_data"
   consul_data_mount = {
     sourceVolume  = local.consul_data_volume_name
     containerPath = "/consul"
@@ -76,18 +55,6 @@ resource "aws_iam_role" "task" {
 {
   "Version": "2012-10-17",
   "Statement": [
-%{if local.dev_server_enabled~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ecs:ListTasks",
-        "ecs:DescribeTasks"
-      ],
-      "Resource": [
-        "*"
-      ]
-    },
-%{endif~}
     {
       "Effect": "Allow",
       "Action": [
@@ -205,7 +172,6 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = jsonencode(
     flatten(
       concat(
-        local.discover_servers_containers,
         local.container_defs_with_depends_on,
         [
           {
@@ -223,12 +189,6 @@ resource "aws_ecs_task_definition" "this" {
             mountPoints = [
               local.consul_data_mount
             ]
-            dependsOn = local.dev_server_enabled ? [
-              {
-                containerName = "discover-servers"
-                condition     = "SUCCESS"
-              },
-            ] : []
             cpu          = 0
             volumesFrom  = []
             environment  = []
@@ -256,7 +216,6 @@ resource "aws_ecs_task_definition" "this" {
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
-                  dev_server_enabled        = local.dev_server_enabled
                   gossip_encryption_enabled = local.gossip_encryption_enabled
                   retry_join                = var.retry_join
                   tls                       = var.tls
@@ -269,10 +228,6 @@ resource "aws_ecs_task_definition" "this" {
             linuxParameters = {
               initProcessEnabled = true
             }
-            dependsOn = local.dev_server_enabled ? [{
-              containerName = "discover-servers"
-              condition     = "SUCCESS"
-            }] : []
             cpu         = 0
             volumesFrom = []
             environment = []
