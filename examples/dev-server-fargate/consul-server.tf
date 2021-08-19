@@ -4,7 +4,7 @@ module "dev_consul_server" {
   source                      = "../../modules/dev-server"
   ecs_cluster_arn             = aws_ecs_cluster.this.arn
   subnet_ids                  = module.vpc.private_subnets
-  lb_vpc_id                   = module.vpc.vpc_id
+  vpc_id                      = module.vpc.vpc_id
   lb_enabled                  = true
   lb_subnets                  = module.vpc.public_subnets
   lb_ingress_rule_cidr_blocks = ["${var.lb_ingress_ip}/32"]

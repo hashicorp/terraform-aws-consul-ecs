@@ -8,7 +8,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  outbound_only              = true
-  consul_server_service_name = "test"
-  tls                        = true
+  outbound_only = true
+  retry_join    = "test"
+  tls           = true
 }

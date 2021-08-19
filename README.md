@@ -17,7 +17,6 @@ additional containers known as sidecar containers to your task definition.
 
 Specifically, it adds the following containers:
 
-* `discover-servers` – Runs at startup to discover the IP address of the Consul server.
 * `consul-ecs-mesh-init` – Runs at startup to set up initial configuration for Consul and Envoy.
 * `consul-client` – Runs for the full lifecycle of the task. This container runs a
   [Consul client](https://www.consul.io/docs/architecture) that connects with

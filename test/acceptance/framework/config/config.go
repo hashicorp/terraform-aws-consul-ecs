@@ -7,6 +7,7 @@ type TestConfig struct {
 	Subnets            interface{}
 	Suffix             string
 	Region             string
+	VpcID              string `json:"vpc_id"`
 	LogGroupName       string `json:"log_group_name"`
 	Tags               interface{}
 }
@@ -17,6 +18,7 @@ func (t TestConfig) TFVars() map[string]interface{} {
 		"subnets":         t.Subnets,
 		"region":          t.Region,
 		"log_group_name":  t.LogGroupName,
+		"vpc_id":          t.VpcID,
 	}
 
 	// If the flag is an empty string or object then terratest

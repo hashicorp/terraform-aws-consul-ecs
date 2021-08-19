@@ -99,7 +99,7 @@ jobs:
       # Restore go module cache if there is one
       - restore_cache:
           keys:
-            - consul-ecs-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+            - consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
 
       - run: mkdir -p $TEST_RESULTS
 

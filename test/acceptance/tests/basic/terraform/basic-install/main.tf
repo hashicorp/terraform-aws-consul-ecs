@@ -3,6 +3,11 @@ variable "ecs_cluster_arn" {
   description = "Cluster ARN of ECS cluster."
 }
 
+variable "vpc_id" {
+  description = "The ID of the VPC for all resources."
+  type        = string
+}
+
 variable "subnets" {
   type        = list(string)
   description = "Subnets to deploy into."
@@ -63,6 +68,7 @@ module "consul_server" {
   lb_enabled      = false
   ecs_cluster_arn = var.ecs_cluster_arn
   subnet_ids      = var.subnets
+  vpc_id          = var.vpc_id
   name            = "consul_server_${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
@@ -112,7 +118,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  consul_server_service_name = module.consul_server.ecs_service_name
+  retry_join = module.consul_server.server_dns
   upstreams = [
     {
       destination_name = "test_server_${var.suffix}"
@@ -157,7 +163,7 @@ module "test_server" {
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
     essential = true
   }]
-  consul_server_service_name = module.consul_server.ecs_service_name
+  retry_join = module.consul_server.server_dns
   log_configuration = {
     logDriver = "awslogs"
     options = {

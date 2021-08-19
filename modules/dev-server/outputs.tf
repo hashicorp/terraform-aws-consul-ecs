@@ -22,3 +22,8 @@ output "ca_key_arn" {
   description = "The ARN of the CA key secret for the Consul server."
   value       = var.tls ? aws_secretsmanager_secret.ca_key[0].arn : null
 }
+
+output "server_dns" {
+  description = "The DNS name of the Consul server service in AWS CloudMap."
+  value       = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
+}
