@@ -52,7 +52,13 @@ variable "log_configuration" {
 variable "name" {
   description = "Name to be used on all the resources as identifier."
   type        = string
-  default     = "consul-server"
+  default     = "server"
+}
+
+variable "service_discovery_namespace" {
+  description = "The namespace where the Consul server service will be registered with AWS CloudMap."
+  type        = string
+  default     = "consul"
 }
 
 variable "tags" {

@@ -252,7 +252,7 @@ resource "aws_iam_role" "this_task" {
 }
 
 resource "aws_service_discovery_private_dns_namespace" "server" {
-  name        = "consul"
+  name        = var.service_discovery_namespace
   description = "The namespace for the Consul dev server."
   vpc         = var.vpc_id
 }
