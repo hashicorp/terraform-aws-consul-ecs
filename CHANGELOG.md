@@ -4,9 +4,16 @@ BREAKING CHANGES
   The mesh-task now creates those roles and instead accepts `additional_task_role_policies`
   and `additional_execution_role_policies` to modify the execution and task roles and allow
   more permissions. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+* modules/mesh-task: `retry_join` is now a required variable and `consul_server_service_name`
+  has been removed because we're now using AWS CloudMap to discover the dev server instead of
+  the `discover-servers` container. [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
 
 FEATURES
 * Enable TLS for the Consul service mesh control plane. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+
+IMPROVEMENTS
+* Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.
+  [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
 
 ## 0.1.1 (May 26, 2021)
 
