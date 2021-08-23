@@ -272,7 +272,7 @@ resource "aws_service_discovery_service" "server" {
 
 locals {
   consul_server_command = <<EOF
-ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
+ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 
 exec consul agent -server \
   -bootstrap \
@@ -302,7 +302,7 @@ EOF
   // because we need to add the IP of the task as a SAN to the certificate, and we don't know that
   // IP ahead of time.
   consul_server_tls_init_command = <<EOF
-ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI | jq -r '.Networks[0].IPv4Addresses[0]')
+ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 cd /consul
 echo "$CONSUL_CACERT" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
