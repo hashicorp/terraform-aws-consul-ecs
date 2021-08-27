@@ -106,7 +106,7 @@ module "test_client" {
   family = "test_client_${var.suffix}"
   container_definitions = [{
     name      = "basic"
-    image     = "ghcr.io/lkysow/fake-service:v0.21.0"
+    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
     environment = [
       {
@@ -160,7 +160,7 @@ module "test_server" {
   family = "test_server_${var.suffix}"
   container_definitions = [{
     name      = "basic"
-    image     = "ghcr.io/lkysow/fake-service:v0.21.0"
+    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
   }]
   retry_join = module.consul_server.server_dns

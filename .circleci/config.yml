@@ -4,7 +4,7 @@ orbs:
 executors:
   consul-ecs-test:
     docker:
-      - image: ghcr.io/pglass/consul-ecs-test:latest
+      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.2.0
     environment:
       TEST_RESULTS: &TEST_RESULTS /tmp/test-results # path to where test results are saved
 
@@ -73,6 +73,7 @@ jobs:
       - checkout
 
       - run:
+          # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
           name: configure aws
           command: |
             aws configure --profile ecs_user set aws_access_key_id "$AWS_ACCESS_KEY_ID"
