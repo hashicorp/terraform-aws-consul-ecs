@@ -168,9 +168,11 @@ resource "aws_ecs_task_definition" "this" {
   volume {
     name = local.consul_data_volume_name
   }
-  tags = {
+
+  tags = merge(var.tags, {
     "consul.hashicorp.com/mesh" = "true"
-  }
+  })
+
   container_definitions = jsonencode(
     flatten(
       concat(
