@@ -1,3 +1,12 @@
+data "aws_ssm_parameter" "ecs_optimized_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+}
+
+locals {
+  // TF marks SSM Parameter values as sensitive by default. No need to hide this AMI ID though.
+  esc_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
+}
+
 resource "aws_iam_role" "instance_role" {
   name = "${var.name}-consul-ecs-instance-role"
 
@@ -29,10 +38,7 @@ resource "aws_launch_configuration" "launch_config" {
   // https://github.com/hashicorp/terraform-provider-aws/issues/8485
   name_prefix = "${var.name}-consul-ecs"
 
-  // DEPRECATED: This is an ECS-Optimized Amazon Linux 2 ami, which is no longer supported.
-  // We should use a standard image and install the ecs agent on it.
-  // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html
-  image_id             = "ami-09d2c35d7664ddd48"
+  image_id             = local.esc_optimized_ami
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
   security_groups      = [data.aws_security_group.vpc_default.id]
 
@@ -72,7 +78,9 @@ resource "aws_autoscaling_group" "scaling_group" {
   // https://docs.aws.amazon.com/autoscaling/ec2/userguide/healthcheck.html
   health_check_grace_period = 60
   health_check_type         = "EC2"
-  wait_for_capacity_timeout = "2m"
+  instance_refresh {
+    strategy = "Rolling"
+  }
 }
 
 resource "aws_ecs_cluster" "this" {
