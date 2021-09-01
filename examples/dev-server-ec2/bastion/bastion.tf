@@ -1,11 +1,20 @@
 // Bastion server to SSH into container instances in a private subnet
+data "aws_ami" "bastion" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+  owners = ["amazon"]
+}
+
 resource "aws_key_pair" "pubkey" {
   key_name   = "${var.name}-key"
   public_key = file(pathexpand(var.public_ssh_key))
 }
 
 resource "aws_instance" "bastion" {
-  ami                    = "ami-0c2b8ca1dad447f8a"
+  ami                    = data.aws_ami.bastion.id
   instance_type          = "t2.micro"
   key_name               = aws_key_pair.pubkey.key_name
   subnet_id              = var.subnet_id
