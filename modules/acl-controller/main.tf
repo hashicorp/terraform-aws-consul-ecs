@@ -35,7 +35,7 @@ resource "aws_ecs_task_definition" "this" {
       logConfiguration = var.log_configuration,
       command = [
         "controller",
-        "-agent-secret-arn", aws_secretsmanager_secret.client_token.arn,
+        "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
         "-secret-name-prefix", var.name_prefix,
       ]
       linuxParameters = {
