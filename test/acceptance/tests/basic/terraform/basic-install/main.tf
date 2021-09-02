@@ -104,7 +104,7 @@ module "acl_controller" {
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
-  secret_name_prefix                = var.suffix
+  name_prefix                       = var.suffix
 }
 
 resource "aws_ecs_service" "test_client" {

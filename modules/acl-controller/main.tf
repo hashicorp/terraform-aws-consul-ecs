@@ -1,5 +1,5 @@
 resource "aws_secretsmanager_secret" "client_token" {
-  name = "${var.secret_name_prefix}-consul-client-token"
+  name = "${var.name_prefix}-consul-client-token"
 }
 
 resource "aws_secretsmanager_secret_version" "client_token" {
@@ -7,36 +7,36 @@ resource "aws_secretsmanager_secret_version" "client_token" {
   secret_string = jsonencode({})
 }
 
-resource "aws_ecs_service" "consul-controller" {
+resource "aws_ecs_service" "this" {
   name            = "consul-acl-controller"
   cluster         = var.ecs_cluster_arn
-  task_definition = aws_ecs_task_definition.consul-controller.arn
+  task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   enable_execute_command = true
 }
 
-resource "aws_ecs_task_definition" "consul-controller" {
-  family                   = "consul-acl-controller"
+resource "aws_ecs_task_definition" "this" {
+  family                   = "${var.name_prefix}-consul-acl-controller"
   requires_compatibilities = var.requires_compatibilities
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512
-  task_role_arn            = aws_iam_role.consul-controller.arn
-  execution_role_arn       = aws_iam_role.consul-controller-execution.arn
+  task_role_arn            = aws_iam_role.this_task.arn
+  execution_role_arn       = aws_iam_role.this_execution.arn
   container_definitions = jsonencode([
     {
-      name             = "consul-controller"
+      name             = "consul-acl-controller"
       image            = var.consul_ecs_image
       essential        = true
       logConfiguration = var.log_configuration,
       command = [
         "controller",
         "-agent-secret-arn", aws_secretsmanager_secret.client_token.arn,
-        "-secret-name-prefix", var.secret_name_prefix,
+        "-secret-name-prefix", var.name_prefix,
       ]
       linuxParameters = {
         initProcessEnabled = true
@@ -62,8 +62,8 @@ resource "aws_ecs_task_definition" "consul-controller" {
   ])
 }
 
-resource "aws_iam_role" "consul-controller" {
-  name = "consul-controller"
+resource "aws_iam_role" "this_task" {
+  name = "${var.name_prefix}-consul-acl-controller-task"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -102,15 +102,15 @@ resource "aws_iam_role" "consul-controller" {
             "secretsmanager:GetSecretValue",
             "secretsmanager:UpdateSecret"
           ]
-          Resource = "arn:aws:secretsmanager:${var.region}:*:secret:${var.secret_name_prefix}-*"
+          Resource = "arn:aws:secretsmanager:${var.region}:*:secret:${var.name_prefix}-*"
         }
       ]
     })
   }
 }
 
-resource "aws_iam_policy" "consul-controller-execution" {
-  name        = "consul-controller"
+resource "aws_iam_policy" "this_execution" {
+  name        = "${var.name_prefix}-consul-acl-controller-execution"
   path        = "/ecs/"
   description = "Consul controller execution"
 
@@ -151,8 +151,8 @@ resource "aws_iam_policy" "consul-controller-execution" {
 EOF
 }
 
-resource "aws_iam_role" "consul-controller-execution" {
-  name = "consul-controller-execution"
+resource "aws_iam_role" "this_execution" {
+  name = "${var.name_prefix}-consul-acl-controller-execution"
   path = "/ecs/"
 
   assume_role_policy = <<EOF
@@ -173,6 +173,6 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "consul-controller-execution" {
-  role       = aws_iam_role.consul-controller-execution.id
-  policy_arn = aws_iam_policy.consul-controller-execution.arn
+  role       = aws_iam_role.this_execution.id
+  policy_arn = aws_iam_policy.this_execution.arn
 }

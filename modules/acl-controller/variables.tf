@@ -20,6 +20,12 @@ variable "requires_compatibilities" {
   default     = ["EC2", "FARGATE"]
 }
 
+variable "launch_type" {
+  description = "Launch type on which to run service. Valid values are EC2 and FARGATE."
+  type        = string
+  default     = "FARGATE"
+}
+
 variable "consul_bootstrap_token_secret_arn" {
   description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least 'acl:write' privileges in Consul."
   type        = string
@@ -41,8 +47,8 @@ variable "consul_server_http_addr" {
   type        = string
 }
 
-variable "secret_name_prefix" {
-  description = "The prefix that will be used for all secret names created by this module. Must be non-empty."
+variable "name_prefix" {
+  description = "The prefix that will be used for all resources created by this module, including AWS Secrets. Must be non-empty."
   type        = string
 }
 
