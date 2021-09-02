@@ -14,6 +14,12 @@ variable "region" {
   type        = string
 }
 
+variable "requires_compatibilities" {
+  description = "Set of launch types required by the task."
+  type        = list(string)
+  default     = ["EC2", "FARGATE"]
+}
+
 variable "consul_bootstrap_token_secret_arn" {
   description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least 'acl:write' privileges in Consul."
   type        = string

@@ -20,8 +20,8 @@ resource "aws_ecs_service" "consul-controller" {
 }
 
 resource "aws_ecs_task_definition" "consul-controller" {
-  family                   = "consul-controller"
-  requires_compatibilities = ["FARGATE"]
+  family                   = "consul-acl-controller"
+  requires_compatibilities = var.requires_compatibilities
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512
