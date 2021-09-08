@@ -41,6 +41,11 @@ variable "secure" {
   default     = false
 }
 
+variable "launch_type" {
+  description = "Whether to launch tasks on Fargate or EC2"
+  type        = string
+}
+
 provider "aws" {
   region = var.region
 }
@@ -78,7 +83,7 @@ module "consul_server" {
       awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
-  launch_type = "FARGATE"
+  launch_type = var.launch_type
 
   tags = var.tags
 
@@ -94,7 +99,7 @@ resource "aws_ecs_service" "test_client" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
@@ -148,7 +153,7 @@ resource "aws_ecs_service" "test_server" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 

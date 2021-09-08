@@ -13,3 +13,15 @@ variable "tags" {
   default     = {}
   description = "Tags to attach to the created resources."
 }
+
+variable "instance_count" {
+  description = "Number of EC2 instances to create for ECS cluster capacity."
+  type        = number
+  default     = 3
+}
+
+variable "instance_type" {
+  description = "The instance type for EC2 instances."
+  type        = string
+  default     = "t3a.micro"
+}

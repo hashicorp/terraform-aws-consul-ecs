@@ -32,32 +32,89 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 
 func TestBasic(t *testing.T) {
 	cases := []bool{false, true}
+	launchTypes := []string{"FARGATE", "EC2"}
 
 	for _, secure := range cases {
-		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
-			randomSuffix := strings.ToLower(random.UniqueId())
-			tfVars := suite.Config().TFVars()
-			tfVars["secure"] = secure
-			tfVars["suffix"] = randomSuffix
-			terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./terraform/basic-install",
-				Vars:         tfVars,
-				NoColor:      true,
-			})
+		for _, launchType := range launchTypes {
+			testName := fmt.Sprintf("launch_type:%s,secure:%t", launchType, secure)
+			t.Run(testName, func(t *testing.T) {
+				randomSuffix := strings.ToLower(random.UniqueId())
+				tfVars := suite.Config().TFVars()
+				tfVars["secure"] = secure
+				tfVars["suffix"] = randomSuffix
+				tfVars["launch_type"] = launchType
+				terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+					TerraformDir: "./terraform/basic-install",
+					Vars:         tfVars,
+					NoColor:      true,
+				})
 
-			defer func() {
-				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
-				} else {
-					terraform.Destroy(t, terraformOptions)
-				}
-			}()
-			terraform.InitAndApply(t, terraformOptions)
+				defer func() {
+					if suite.Config().NoCleanupOnFailure && t.Failed() {
+						logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
+					} else {
+						terraform.Destroy(t, terraformOptions)
+					}
+				}()
+				terraform.InitAndApply(t, terraformOptions)
 
-			// Wait for consul server to be up.
-			var consulServerTaskARN string
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+				// Wait for consul server to be up.
+				var consulServerTaskARN string
+				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+					taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"list-tasks",
+							"--region",
+							suite.Config().Region,
+							"--cluster",
+							suite.Config().ECSClusterARN,
+							"--family",
+							fmt.Sprintf("consul_server_%s", randomSuffix),
+						},
+					})
+					r.Check(err)
+
+					var tasks listTasksResponse
+					r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
+					if len(tasks.TaskARNs) != 1 {
+						r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
+						return
+					}
+
+					consulServerTaskARN = tasks.TaskARNs[0]
+				})
+
+				// Wait for both tasks to be registered in Consul.
+				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+					out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"execute-command",
+							"--region",
+							suite.Config().Region,
+							"--cluster",
+							suite.Config().ECSClusterARN,
+							"--task",
+							consulServerTaskARN,
+							"--container=consul-server",
+							"--command",
+							`/bin/sh -c "consul catalog services"`,
+							"--interactive",
+						},
+						Logger: terratestLogger.New(logger.TestLogger{}),
+					})
+					r.Check(err)
+					if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
+						!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
+						r.Errorf("services not yet registered, got %q", out)
+					}
+				})
+
+				// use aws exec to curl between the apps
+				taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
 					Command: "aws",
 					Args: []string{
 						"ecs",
@@ -67,94 +124,42 @@ func TestBasic(t *testing.T) {
 						"--cluster",
 						suite.Config().ECSClusterARN,
 						"--family",
-						fmt.Sprintf("consul_server_%s", randomSuffix),
+						fmt.Sprintf("test_client_%s", randomSuffix),
 					},
 				})
-				r.Check(err)
 
 				var tasks listTasksResponse
-				r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
-				if len(tasks.TaskARNs) != 1 {
-					r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
-					return
-				}
+				require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
+				require.Len(t, tasks.TaskARNs, 1)
 
-				consulServerTaskARN = tasks.TaskARNs[0]
-			})
-
-			// Wait for both tasks to be registered in Consul.
-			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						consulServerTaskARN,
-						"--container=consul-server",
-						"--command",
-						`/bin/sh -c "consul catalog services"`,
-						"--interactive",
-					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
+				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+					curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"execute-command",
+							"--region",
+							suite.Config().Region,
+							"--cluster",
+							suite.Config().ECSClusterARN,
+							"--task",
+							tasks.TaskARNs[0],
+							"--container=basic",
+							"--command",
+							`/bin/sh -c "curl localhost:1234"`,
+							"--interactive",
+						},
+						Logger: terratestLogger.New(logger.TestLogger{}),
+					})
+					r.Check(err)
+					if !strings.Contains(curlOut, `"code": 200`) {
+						r.Errorf("response was unexpected: %q", curlOut)
+					}
 				})
-				r.Check(err)
-				if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
-					!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
-					r.Errorf("services not yet registered, got %q", out)
-				}
+
+				logger.Log(t, "Test successful!")
 			})
-
-			// use aws exec to curl between the apps
-			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-				Command: "aws",
-				Args: []string{
-					"ecs",
-					"list-tasks",
-					"--region",
-					suite.Config().Region,
-					"--cluster",
-					suite.Config().ECSClusterARN,
-					"--family",
-					fmt.Sprintf("test_client_%s", randomSuffix),
-				},
-			})
-
-			var tasks listTasksResponse
-			require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
-			require.Len(t, tasks.TaskARNs, 1)
-
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						tasks.TaskARNs[0],
-						"--container=basic",
-						"--command",
-						`/bin/sh -c "curl localhost:1234"`,
-						"--interactive",
-					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
-				})
-				r.Check(err)
-				if !strings.Contains(curlOut, `"code": 200`) {
-					r.Errorf("response was unexpected: %q", curlOut)
-				}
-			})
-
-			logger.Log(t, "Test successful!")
-		})
+		}
 	}
 }
 
