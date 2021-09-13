@@ -33,8 +33,8 @@ module "vpc" {
   tags                 = var.tags
 }
 
-resource "aws_ecs_cluster" "this" {
-  name               = local.name
+resource "aws_ecs_cluster" "fargate" {
+  name               = "${local.name}-fargate"
   capacity_providers = ["FARGATE"]
   tags               = var.tags
 }

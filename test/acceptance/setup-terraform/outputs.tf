@@ -1,5 +1,9 @@
-output "ecs_cluster_arn" {
-  value = aws_ecs_cluster.this.arn
+output "ecs_cluster_arn_fargate" {
+  value = aws_ecs_cluster.fargate.arn
+}
+
+output "ecs_cluster_arn_ec2" {
+  value = aws_ecs_cluster.ec2.arn
 }
 
 output "vpc_id" {

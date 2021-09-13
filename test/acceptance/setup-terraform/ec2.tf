@@ -50,10 +50,15 @@ resource "aws_instance" "instances" {
 
   user_data = <<EOF
 #!/bin/bash
-echo ECS_CLUSTER=${aws_ecs_cluster.this.name} >> /etc/ecs/ecs.config
+echo ECS_CLUSTER=${aws_ecs_cluster.ec2.name} >> /etc/ecs/ecs.config
 EOF
 
   tags = merge(var.tags, {
     Name = local.name
   })
+}
+
+resource "aws_ecs_cluster" "ec2" {
+  name = "${local.name}-ec2"
+  tags = var.tags
 }

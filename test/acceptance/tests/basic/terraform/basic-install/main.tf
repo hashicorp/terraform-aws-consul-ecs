@@ -83,7 +83,8 @@ module "consul_server" {
       awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
-  launch_type = var.launch_type
+  launch_type                 = var.launch_type
+  service_discovery_namespace = "consul-${var.suffix}"
 
   tags = var.tags
 
