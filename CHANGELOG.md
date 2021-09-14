@@ -14,6 +14,7 @@ FEATURES
 IMPROVEMENTS
 * Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.
   [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
+* Increase file descriptor limit for the sidecar-proxy container. [[GH-34](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/34)]
 
 ## 0.1.1 (May 26, 2021)
 
