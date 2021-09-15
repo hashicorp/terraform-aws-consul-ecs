@@ -1,6 +1,6 @@
 # Consul AWS ECS Modules
 
-⚠️ **IMPORTANT:** This is a tech preview of Consul on AWS ECS. It does not yet support production workloads. ⚠️
+⚠️ **IMPORTANT:** This is a beta version of Consul on AWS ECS. It does not yet support production workloads. ⚠️
 
 This repo contains a set of modules for deploying Consul Service Mesh on
 AWS ECS (Elastic Container Service).
@@ -10,6 +10,7 @@ AWS ECS (Elastic Container Service).
 See https://www.consul.io/docs/ecs for full documentation.
 
 ## Architecture
+
 ![Architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/architecture.png?raw=true)
 
 Each task is created via the `mesh-task` module. This module adds
@@ -26,8 +27,13 @@ Specifically, it adds the following containers:
   service mesh traffic. All requests to and from the application run through
   the sidecar proxy.
 
+The `acl-controller` modules runs a controller that automatically provisions ACL tokens
+for tasks on the mesh.
+
 The `dev-server` module runs a development/testing-only Consul server as an
 ECS task.
+
+Please see our [Architecture](https://www.consul.io/docs/ecs/architecture) docs for more details.
 
 ## Usage
 
@@ -41,9 +47,12 @@ See https://www.consul.io/docs/ecs.
 * [dev-server](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
   for development/testing purposes. The server does not have persistent storage and so is not suitable for production deployments.
 
+* [acl-controller](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/acl-controller): This modules deploys a controller that automatically provisions ACL tokens
+  for services on the Consul service mesh.
+
 ## Roadmap
 
-- Support for running Consul servers in HashiCorp Cloud Platform
+Please refer to our roadmap [here](https://github.com/hashicorp/consul-ecs/projects/1).
 
 ## License
 
