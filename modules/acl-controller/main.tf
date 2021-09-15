@@ -34,7 +34,7 @@ resource "aws_ecs_task_definition" "this" {
       essential        = true
       logConfiguration = var.log_configuration,
       command = [
-        "controller",
+        "acl-controller",
         "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
         "-secret-name-prefix", var.name_prefix,
       ]
