@@ -101,6 +101,18 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
+%{if var.acls~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.consul_client_token_secret_arn}",
+        "${aws_secretsmanager_secret.service_token[0].arn}"
+      ]
+    },
+%{endif~}
 %{if local.gossip_encryption_enabled~}
     {
       "Effect": "Allow",
@@ -157,6 +169,17 @@ resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
   policy_arn = var.additional_execution_role_policies[count.index]
 }
 
+resource "aws_secretsmanager_secret" "service_token" {
+  count = var.acls ? 1 : 0
+  name  = "${var.acl_secret_name_prefix}-${var.family}"
+}
+
+resource "aws_secretsmanager_secret_version" "service_token" {
+  count         = var.acls ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.service_token[count.index].id
+  secret_string = jsonencode({})
+}
+
 resource "aws_ecs_task_definition" "this" {
   family                   = var.family
   requires_compatibilities = var.requires_compatibilities
@@ -195,6 +218,12 @@ resource "aws_ecs_task_definition" "this" {
             volumesFrom  = []
             environment  = []
             portMappings = []
+            secrets = var.acls ? [
+              {
+                name      = "CONSUL_HTTP_TOKEN",
+                valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
+              }
+            ] : [],
           },
           {
             name      = "consul-client"
@@ -221,6 +250,7 @@ resource "aws_ecs_task_definition" "this" {
                   gossip_encryption_enabled = local.gossip_encryption_enabled
                   retry_join                = var.retry_join
                   tls                       = var.tls
+                  acls                      = var.acls
                 }
               ), "\r", "")
             ]
@@ -244,6 +274,12 @@ resource "aws_ecs_task_definition" "this" {
                 {
                   name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
                   valueFrom = var.gossip_key_secret_arn
+                }
+              ] : [],
+              var.acls ? [
+                {
+                  name      = "AGENT_TOKEN",
+                  valueFrom = "${var.consul_client_token_secret_arn}:token::"
                 }
               ] : [],
             )

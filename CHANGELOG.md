@@ -10,6 +10,7 @@ BREAKING CHANGES
 
 FEATURES
 * Enable TLS for the Consul service mesh control plane. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+* Add new ACL controller module and enable ACLs for other components. [[GH-31](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/31)]
 
 IMPROVEMENTS
 * Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.

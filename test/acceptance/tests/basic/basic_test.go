@@ -109,7 +109,7 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			// use aws exec to curl between the apps
+			// Use aws exec to curl between the apps.
 			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
 				Command: "aws",
 				Args: []string{
@@ -127,6 +127,56 @@ func TestBasic(t *testing.T) {
 			var tasks listTasksResponse
 			require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
 			require.Len(t, tasks.TaskARNs, 1)
+
+			// Create an intention.
+			if secure {
+				// First check that connection between apps in unsuccessful.
+				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+					curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"execute-command",
+							"--region",
+							suite.Config().Region,
+							"--cluster",
+							suite.Config().ECSClusterARN,
+							"--task",
+							tasks.TaskARNs[0],
+							"--container=basic",
+							"--command",
+							`/bin/sh -c "curl localhost:1234"`,
+							"--interactive",
+						},
+						Logger: terratestLogger.New(logger.TestLogger{}),
+					})
+					r.Check(err)
+					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
+						r.Errorf("response was unexpected: %q", curlOut)
+					}
+				})
+				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+					_, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"execute-command",
+							"--region",
+							suite.Config().Region,
+							"--cluster",
+							suite.Config().ECSClusterARN,
+							"--task",
+							consulServerTaskARN,
+							"--container=consul-server",
+							"--command",
+							fmt.Sprintf(`/bin/sh -c "consul intention create test_client_%s test_server_%s"`, randomSuffix, randomSuffix),
+							"--interactive",
+						},
+						Logger: terratestLogger.New(logger.TestLogger{}),
+					})
+					r.Check(err)
+				})
+			}
 
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{

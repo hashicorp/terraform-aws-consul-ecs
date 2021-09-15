@@ -41,6 +41,12 @@ variable "secure" {
   default     = false
 }
 
+variable "consul_ecs_image" {
+  description = "Consul ECS image to use."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+}
+
 provider "aws" {
   region = var.region
 }
@@ -84,6 +90,28 @@ module "consul_server" {
 
   tls                   = var.secure
   gossip_key_secret_arn = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                  = var.secure
+}
+
+module "acl_controller" {
+  count  = var.secure ? 1 : 0
+  source = "../../../../../../modules/acl-controller"
+  log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = var.log_group_name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "consul-acl-controller"
+    }
+  }
+  consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
+  consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
+  consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
+  ecs_cluster_arn                   = var.ecs_cluster_arn
+  region                            = var.region
+  subnets                           = var.subnets
+  name_prefix                       = var.suffix
+  consul_ecs_image                  = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -135,9 +163,13 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                       = var.secure
-  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  tls                            = var.secure
+  consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                           = var.secure
+  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
+  acl_secret_name_prefix         = var.suffix
+  consul_ecs_image               = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -174,7 +206,11 @@ module "test_server" {
   }
   port = 9090
 
-  tls                       = var.secure
-  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  tls                            = var.secure
+  consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                           = var.secure
+  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
+  acl_secret_name_prefix         = var.suffix
+  consul_ecs_image               = var.consul_ecs_image
 }
