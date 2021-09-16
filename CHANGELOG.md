@@ -1,4 +1,5 @@
 ## Unreleased
+
 BREAKING CHANGES
 * modules/mesh-task: `execution_role_arn` and `task_role_arn` variables have been removed.
   The mesh-task now creates those roles and instead accepts `additional_task_role_policies`
@@ -9,13 +10,19 @@ BREAKING CHANGES
   the `discover-servers` container. [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
 
 FEATURES
-* Enable TLS for the Consul service mesh control plane. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
-* Add new ACL controller module and enable ACLs for other components. [[GH-31](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/31)]
+* modules/mesh-task: Enable gossip encryption for the Consul service mesh control plane. [[GH-21](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/21)]
+* modules/mesh-task: Enable TLS for the Consul service mesh control plane. [[GH-19](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/19)]
+* modules/acl-controller: Add new ACL controller module and enable ACLs for other components. [[GH-31](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/31)]
 
 IMPROVEMENTS
-* Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.
+* modules/dev-server: Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.
   [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
-* Increase file descriptor limit for the sidecar-proxy container. [[GH-34](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/34)]
+* modules/mesh-task: Increase file descriptor limit for the sidecar-proxy container. 
+  [[GH-34](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/34)]
+* Support deployments on the ECS launch type. [[GH-25](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/25)]
+
+BUG FIXES
+* Use `ECS_CONTAINER_METADATA_URI_V4` url. [[GH-23](https://github.com/hashicorp/terraform-aws-consul-ecs/issues/23)]
 
 ## 0.1.1 (May 26, 2021)
 
