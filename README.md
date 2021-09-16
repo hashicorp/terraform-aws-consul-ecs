@@ -27,7 +27,7 @@ Specifically, it adds the following containers:
   service mesh traffic. All requests to and from the application run through
   the sidecar proxy.
 
-The `acl-controller` modules runs a controller that automatically provisions ACL tokens
+The `acl-controller` module runs a controller that automatically provisions ACL tokens
 for tasks on the mesh.
 
 The `dev-server` module runs a development/testing-only Consul server as an
