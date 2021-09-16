@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.0-beta (Sep 16, 2021) 
 
 BREAKING CHANGES
 * modules/mesh-task: `execution_role_arn` and `task_role_arn` variables have been removed.
