@@ -38,7 +38,7 @@ resource "aws_iam_instance_profile" "instance_profile" {
 }
 
 resource "aws_instance" "instances" {
-  count = var.instance_count
+  count = local.ec2_enabled ? var.instance_count : 0
 
   ami                  = local.esc_optimized_ami
   instance_type        = var.instance_type

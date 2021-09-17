@@ -70,7 +70,7 @@ jobs:
   acceptance:
     executor: consul-ecs-test
     parameters:
-      terraform_apply_args:
+      terraform_apply_vars:
         default: ""
         type: string
     steps:
@@ -94,7 +94,7 @@ jobs:
           command: |
             terraform init
 
-            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve <<parameters.terraform_apply_args>>
+            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve <<parameters.terraform_apply_vars>>
 
       # Restore go module cache if there is one
       - restore_cache:
@@ -119,7 +119,7 @@ jobs:
           name: terraform destroy
           working_directory: test/acceptance/setup-terraform
           command: |
-            terraform destroy -auto-approve
+            terraform destroy -auto-approve <<parameters.terraform_apply_vars>>
           when: always
 
 acceptance-common: &ACCEPTANCE_COMMON
@@ -138,9 +138,9 @@ workflows:
       - terraform-fmt
       - acceptance:
           name: "acceptance-fargate"
-          terraform_apply_args: -var launch_type=FARGATE
+          terraform_apply_vars: -var launch_type=FARGATE
           <<: *ACCEPTANCE_COMMON
       - acceptance:
           name: "acceptance-ec2"
-          terraform_apply_args: -var launch_type=EC2
+          terraform_apply_vars: -var launch_type=EC2
           <<: *ACCEPTANCE_COMMON
