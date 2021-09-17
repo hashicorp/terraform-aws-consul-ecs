@@ -1,13 +1,13 @@
-output "ecs_cluster_arn_fargate" {
-  value = aws_ecs_cluster.fargate.arn
-}
-
-output "ecs_cluster_arn_ec2" {
-  value = aws_ecs_cluster.ec2.arn
+output "ecs_cluster_arn" {
+  value = aws_ecs_cluster.this.arn
 }
 
 output "vpc_id" {
   value = module.vpc.vpc_id
+}
+
+output "launch_type" {
+  value = var.launch_type
 }
 
 output "subnets" {

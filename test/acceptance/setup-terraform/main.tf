@@ -33,9 +33,9 @@ module "vpc" {
   tags                 = var.tags
 }
 
-resource "aws_ecs_cluster" "fargate" {
-  name               = "${local.name}-fargate"
-  capacity_providers = ["FARGATE"]
+resource "aws_ecs_cluster" "this" {
+  name               = local.name
+  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
   tags               = var.tags
 }
 

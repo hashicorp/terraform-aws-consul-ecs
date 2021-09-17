@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	flagNoCleanupOnFailure    = "no-cleanup-on-failure"
-	flagECSClusterARN_Fargate = "ecs-cluster-arn-fargate"
-	flagECSClusterARN_EC2     = "ecs-cluster-arn-ec2"
-	flagSubnets               = "subnets"
-	flagRegion                = "region"
-	flagLogGroupName          = "log-group-name"
+	flagNoCleanupOnFailure = "no-cleanup-on-failure"
+	flagECSClusterARN      = "ecs-cluster-arn"
+	flagLaunchType         = "launch-type"
+	flagSubnets            = "subnets"
+	flagRegion             = "region"
+	flagLogGroupName       = "log-group-name"
 	// flagTFTags is named to disambiguate from the --tags flags used
 	// by go test to specify build tags.
 	flagTFTags      = "tf-tags"
@@ -26,14 +26,14 @@ const (
 )
 
 type TestFlags struct {
-	flagNoCleanupOnFailure    bool
-	flagECSClusterARN_Fargate string
-	flagECSClusterARN_EC2     string
-	flagSubnets               string
-	flagRegion                string
-	flagLogGroupName          string
-	flagTFTags                string
-	flagTFOutputDir           string
+	flagNoCleanupOnFailure bool
+	flagECSClusterARN      string
+	flagLaunchType         string
+	flagSubnets            string
+	flagRegion             string
+	flagLogGroupName       string
+	flagTFTags             string
+	flagTFOutputDir        string
 
 	once sync.Once
 }
@@ -49,8 +49,8 @@ func (t *TestFlags) init() {
 	flag.BoolVar(&t.flagNoCleanupOnFailure, flagNoCleanupOnFailure, false,
 		"If true, the tests will not clean up resources they create when they finish running."+
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
-	flag.StringVar(&t.flagECSClusterARN_Fargate, flagECSClusterARN_Fargate, "", "ECS Cluster ARN for Fargate launch type.")
-	flag.StringVar(&t.flagECSClusterARN_EC2, flagECSClusterARN_EC2, "", "ECS Cluster ARN for the EC2 launch type.")
+	flag.StringVar(&t.flagECSClusterARN, flagECSClusterARN, "", "ECS Cluster ARN.")
+	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: Fargate or EC2.")
 	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
@@ -109,13 +109,13 @@ func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 		}
 	} else {
 		cfg = config.TestConfig{
-			NoCleanupOnFailure:    t.flagNoCleanupOnFailure,
-			ECSClusterARN_Fargate: t.flagECSClusterARN_Fargate,
-			ECSClusterARN_EC2:     t.flagECSClusterARN_EC2,
-			Subnets:               t.flagSubnets,
-			Region:                t.flagRegion,
-			LogGroupName:          t.flagLogGroupName,
-			Tags:                  t.flagTFTags,
+			NoCleanupOnFailure: t.flagNoCleanupOnFailure,
+			ECSClusterARN:      t.flagECSClusterARN,
+			LaunchType:         t.flagLaunchType,
+			Subnets:            t.flagSubnets,
+			Region:             t.flagRegion,
+			LogGroupName:       t.flagLogGroupName,
+			Tags:               t.flagTFTags,
 		}
 	}
 
