@@ -58,7 +58,7 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorp/consul:1.9.5"
+  default     = "public.ecr.aws/hashicorp/consul:1.10.2"
 }
 
 variable "log_configuration" {
@@ -107,4 +107,10 @@ variable "gossip_key_secret_arn" {
   description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
   type        = string
   default     = ""
+}
+
+variable "acls" {
+  description = "Whether to enable ACLs on the server."
+  type        = bool
+  default     = false
 }

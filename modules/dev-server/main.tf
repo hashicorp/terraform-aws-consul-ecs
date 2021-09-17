@@ -134,12 +134,20 @@ resource "aws_ecs_task_definition" "this" {
             condition     = "SUCCESS"
           },
         ] : []
-        secrets = local.gossip_encryption_enabled ? [
-          {
-            name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
-            valueFrom = var.gossip_key_secret_arn
-          },
-        ] : []
+        secrets = concat(
+          local.gossip_encryption_enabled ? [
+            {
+              name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+              valueFrom = var.gossip_key_secret_arn
+            },
+          ] : [],
+          var.acls ? [
+            {
+              name      = "CONSUL_HTTP_TOKEN",
+              valueFrom = aws_secretsmanager_secret.bootstrap_token[0].arn
+            },
+          ] : [],
+        )
       }
   ]))
 }
@@ -162,6 +170,17 @@ resource "aws_iam_policy" "this_execution" {
       "Resource": [
         "${aws_secretsmanager_secret.ca_cert[0].arn}",
         "${aws_secretsmanager_secret.ca_key[0].arn}"
+      ]
+    },
+%{endif~}
+%{if var.acls~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${aws_secretsmanager_secret.bootstrap_token[0].arn}"
       ]
     },
 %{endif~}
@@ -270,7 +289,23 @@ resource "aws_service_discovery_service" "server" {
   }
 }
 
+resource "random_uuid" "bootstrap_token" {
+  count = var.acls ? 1 : 0
+}
+
+resource "aws_secretsmanager_secret" "bootstrap_token" {
+  count = var.acls ? 1 : 0
+  name  = "${var.name}-bootstrap-token"
+}
+
+resource "aws_secretsmanager_secret_version" "bootstrap_token" {
+  count         = var.acls ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.bootstrap_token[count.index].id
+  secret_string = random_uuid.bootstrap_token[count.index].result
+}
+
 locals {
+  consul_dns_name       = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
   consul_server_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 
@@ -296,6 +331,10 @@ exec consul agent -server \
   -hcl='verify_outgoing = true' \
   -hcl='verify_server_hostname = true' \
 %{endif~}
+%{if var.acls~}
+  -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
+  -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
+%{endif~}
 EOF
 
   // We use this command to generate the server certs dynamically before the servers start
@@ -306,7 +345,7 @@ ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addr
 cd /consul
 echo "$CONSUL_CACERT" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
-consul tls cert create -server -additional-ipaddress=$ECS_IPV4
+consul tls cert create -server -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name}
 EOF
 
   tls_init_container = {

@@ -26,3 +26,7 @@ exec consul agent \
   -hcl "auto_encrypt = {ip_san = [\"$ECS_IPV4\"]}" \
   -hcl 'verify_outgoing = true' \
 %{ endif ~}
+%{ if acls ~}
+  -hcl='acl {enabled = true, default_policy = "deny", down_policy = "async-cache"}' \
+  -hcl="acl { tokens { agent = \"$AGENT_TOKEN\" } }" \
+%{ endif ~}
