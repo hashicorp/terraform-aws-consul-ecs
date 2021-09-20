@@ -90,6 +90,11 @@ variable "upstreams" {
   default = []
 }
 
+variable "checks" {
+  type    = list(any)
+  default = []
+}
+
 variable "retry_join" {
   description = "Argument to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
   type        = string
