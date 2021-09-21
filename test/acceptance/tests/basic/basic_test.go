@@ -3,6 +3,7 @@ package basic
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -109,6 +110,38 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
+			// Wait for passing health check for test_server
+			tokenHeader := ""
+			if secure {
+				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
+			}
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"ecs",
+						"execute-command",
+						"--region",
+						suite.Config().Region,
+						"--cluster",
+						suite.Config().ECSClusterARN,
+						"--task",
+						consulServerTaskARN,
+						"--container=consul-server",
+						"--command",
+						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/test_server_%s'`, tokenHeader, randomSuffix),
+						"--interactive",
+					},
+					Logger: terratestLogger.New(logger.TestLogger{}),
+				})
+				r.Check(err)
+
+				statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
+				if statusRegex.FindAllString(out, 1) == nil {
+					r.Errorf("Check status not yet passing")
+				}
+			})
+
 			// Use aws exec to curl between the apps.
 			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
 				Command: "aws",
@@ -130,7 +163,7 @@ func TestBasic(t *testing.T) {
 
 			// Create an intention.
 			if secure {
-				// First check that connection between apps in unsuccessful.
+				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 					curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
 						Command: "aws",

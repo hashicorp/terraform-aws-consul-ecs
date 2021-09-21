@@ -169,7 +169,7 @@ module "test_client" {
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
+  consul_ecs_image               = "hashicorpdev/consul-ecs:d1afd83"
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -204,6 +204,16 @@ module "test_server" {
       awslogs-stream-prefix = "test_server_${var.suffix}"
     }
   }
+  checks = [
+    {
+      checkid  = "server-http"
+      name     = "HTTP health check on port 9090"
+      http     = "http://localhost:9090/health"
+      method   = "GET"
+      timeout  = "10s"
+      interval = "2s"
+    }
+  ]
   port = 9090
 
   tls                            = var.secure
@@ -212,5 +222,5 @@ module "test_server" {
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
+  consul_ecs_image               = "hashicorpdev/consul-ecs:d1afd83"
 }
