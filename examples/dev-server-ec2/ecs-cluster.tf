@@ -4,7 +4,7 @@ data "aws_ssm_parameter" "ecs_optimized_ami" {
 
 locals {
   // TF marks SSM Parameter values as sensitive by default. No need to hide this AMI ID though.
-  esc_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
+  ecs_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
 }
 
 resource "aws_iam_role" "instance_role" {
