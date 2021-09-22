@@ -38,7 +38,7 @@ resource "aws_launch_configuration" "launch_config" {
   // https://github.com/hashicorp/terraform-provider-aws/issues/8485
   name_prefix = "${var.name}-consul-ecs"
 
-  image_id             = local.esc_optimized_ami
+  image_id             = local.ecs_optimized_ami
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
   security_groups      = [data.aws_security_group.vpc_default.id]
 
