@@ -45,13 +45,14 @@ func TestBasic(t *testing.T) {
 				NoColor:      true,
 			})
 
-			defer func() {
+			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
 					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
 				} else {
 					terraform.Destroy(t, terraformOptions)
 				}
-			}()
+			})
+
 			terraform.InitAndApply(t, terraformOptions)
 
 			// Wait for consul server to be up.
@@ -80,6 +81,49 @@ func TestBasic(t *testing.T) {
 				}
 
 				consulServerTaskARN = tasks.TaskARNs[0]
+			})
+
+			t.Cleanup(func() {
+				if secure {
+					if suite.Config().NoCleanupOnFailure && t.Failed() {
+						logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
+					} else {
+						// First destroy just the service mesh services.
+						terraformOptions.Targets = []string{
+							"aws_ecs_service.test_server",
+							"aws_ecs_service.test_client",
+							"module.test_server",
+							"module.test_client",
+						}
+						terraform.Destroy(t, terraformOptions)
+
+						// Check that the ACL tokens are deleted from Consul.
+						retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+							out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+								Command: "aws",
+								Args: []string{
+									"ecs",
+									"execute-command",
+									"--region",
+									suite.Config().Region,
+									"--cluster",
+									suite.Config().ECSClusterARN,
+									"--task",
+									consulServerTaskARN,
+									"--container=consul-server",
+									"--command",
+									`/bin/sh -c "consul acl token list"`,
+									"--interactive",
+								},
+								Logger: terratestLogger.New(logger.TestLogger{}),
+							})
+							require.NoError(r, err)
+							require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
+							require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
+						})
+						terraformOptions.Targets = nil
+					}
+				}
 			})
 
 			// Wait for both tasks to be registered in Consul.
