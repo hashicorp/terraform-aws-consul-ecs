@@ -31,6 +31,34 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 	require.Contains(t, err.Error(), "ERROR: consul_server_ca_cert_arn must be set if tls is true")
 }
 
+// Test the validation that if ACLs are enabled, Consul client token must also be provided.
+func TestValidation_ConsulClientTokenIsRequiredIfACLsIsEnabled(t *testing.T) {
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/consul-client-token-validate",
+		NoColor:      true,
+	})
+	t.Cleanup(func() {
+		_, _ = terraform.DestroyE(t, terraformOptions)
+	})
+	_, err := terraform.InitAndPlanE(t, terraformOptions)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ERROR: consul_client_token_secret_arn must be set if acls is true")
+}
+
+// Test the validation that if ACLs are enabled, ACL secret name prefix must also be provided.
+func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/acl-secret-name-prefix-validate",
+		NoColor:      true,
+	})
+	t.Cleanup(func() {
+		_, _ = terraform.DestroyE(t, terraformOptions)
+	})
+	_, err := terraform.InitAndPlanE(t, terraformOptions)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ERROR: acl_secret_name_prefix must be set if acls is true")
+}
+
 func TestBasic(t *testing.T) {
 	cases := []bool{false, true}
 
