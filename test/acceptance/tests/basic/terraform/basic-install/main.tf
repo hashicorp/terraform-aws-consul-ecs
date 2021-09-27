@@ -169,7 +169,7 @@ module "test_client" {
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = "hashicorpdev/consul-ecs:d1afd83"
+  consul_ecs_image               = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -222,5 +222,5 @@ module "test_server" {
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = "hashicorpdev/consul-ecs:d1afd83"
+  consul_ecs_image               = var.consul_ecs_image
 }

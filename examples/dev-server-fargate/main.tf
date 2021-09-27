@@ -47,10 +47,9 @@ resource "aws_ecs_service" "example_client_app" {
 }
 
 module "example_client_app" {
-  source           = "../../modules/mesh-task"
-  consul_ecs_image = "hashicorpdev/consul-ecs:d1afd83"
-  family           = "${var.name}-example-client-app"
-  port             = "9090"
+  source = "../../modules/mesh-task"
+  family = "${var.name}-example-client-app"
+  port   = "9090"
   upstreams = [
     {
       destination_name = "${var.name}-example-server-app"
@@ -58,16 +57,6 @@ module "example_client_app" {
     }
   ]
   log_configuration = local.example_client_app_log_config
-  checks = [
-    {
-      CheckID  = "api"
-      Name     = "HTTP API on port 9090"
-      HTTP     = "http://localhost:9090/health"
-      Method   = "GET"
-      Interval = "10s"
-      Timeout  = "1s"
-    }
-  ]
   container_definitions = [{
     name             = "example-client-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -114,7 +103,6 @@ resource "aws_ecs_service" "example_server_app" {
 
 module "example_server_app" {
   source            = "../../modules/mesh-task"
-  consul_ecs_image  = "hashicorpdev/consul-ecs:d1afd83"
   family            = "${var.name}-example-server-app"
   port              = "9090"
   log_configuration = local.example_server_app_log_config
