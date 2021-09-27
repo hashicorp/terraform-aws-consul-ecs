@@ -91,7 +91,7 @@ variable "upstreams" {
 }
 
 variable "checks" {
-  description = "A list of maps defining Consul checks for this service (https://www.consul.io/api-docs/agent/check#register-check)"
+  description = "A list of maps defining Consul checks for this service (https://www.consul.io/api-docs/agent/check#register-check)."
   type        = list(any)
   default     = []
 }
