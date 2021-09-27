@@ -26,7 +26,7 @@ variable "instance_count" {
 }
 
 variable "instance_type" {
-  description = "The instance type for EC2 instances."
+  description = "The instance type for EC2 instances if launch type is EC2."
   type        = string
   default     = "t3a.micro"
 }

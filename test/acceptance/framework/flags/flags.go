@@ -50,7 +50,7 @@ func (t *TestFlags) init() {
 		"If true, the tests will not clean up resources they create when they finish running."+
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
 	flag.StringVar(&t.flagECSClusterARN, flagECSClusterARN, "", "ECS Cluster ARN.")
-	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: Fargate or EC2.")
+	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: 'FARGATE' or 'EC2'.")
 	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
