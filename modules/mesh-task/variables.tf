@@ -90,6 +90,12 @@ variable "upstreams" {
   default = []
 }
 
+variable "checks" {
+  description = "A list of maps defining Consul checks for this service (https://www.consul.io/api-docs/agent/check#register-check)."
+  type        = list(any)
+  default     = []
+}
+
 variable "retry_join" {
   description = "Argument to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
   type        = string
