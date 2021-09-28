@@ -10,7 +10,5 @@
 - [ ] Tests added
 - [ ] CHANGELOG entry added 
 
-[//]: # ( 
-   HashiCorp engineers only. Community PRs should not add a changelog entry.
-   Changelog entries should use present tense, e.g. "Add support for..."
-)
+    [HashiCorp engineers only. Community PRs should not add a changelog entry.]::
+    [Changelog entries should use present tense, e.g. "Add support for..."]::
