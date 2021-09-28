@@ -140,27 +140,27 @@ func TestBasic(t *testing.T) {
 			// Check that the ACL tokens for services are deleted
 			// when services are destroyed.
 			if secure {
-				if suite.Config().NoCleanupOnFailure && t.Failed() {
-					logger.Log(t, "skipping ACL token delete test because -no-cleanup-on-failure=true")
-				} else {
-					// First, destroy just the service mesh services.
-					terraformOptions.Targets = []string{
+				// First, destroy just the service mesh services.
+				tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+					TerraformDir: "./terraform/basic-install",
+					Vars:         tfVars,
+					NoColor:      true,
+					Targets: []string{
 						"aws_ecs_service.test_server",
 						"aws_ecs_service.test_client",
 						"module.test_server",
 						"module.test_client",
-					}
-					terraform.Destroy(t, terraformOptions)
+					},
+				})
+				terraform.Destroy(t, tfOptions)
 
-					// Check that the ACL tokens are deleted from Consul.
-					retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-						out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
-						require.NoError(r, err)
-						require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
-						require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
-					})
-					terraformOptions.Targets = nil
-				}
+				// Check that the ACL tokens are deleted from Consul.
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+					out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
+					require.NoError(r, err)
+					require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
+					require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
+				})
 			}
 
 			logger.Log(t, "Test successful!")
