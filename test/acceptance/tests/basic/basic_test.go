@@ -74,13 +74,14 @@ func TestBasic(t *testing.T) {
 				NoColor:      true,
 			})
 
-			defer func() {
+			t.Cleanup(func() {
 				if suite.Config().NoCleanupOnFailure && t.Failed() {
 					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
 				} else {
 					terraform.Destroy(t, terraformOptions)
 				}
-			}()
+			})
+
 			terraform.InitAndApply(t, terraformOptions)
 
 			// Wait for consul server to be up.
@@ -113,24 +114,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for both tasks to be registered in Consul.
 			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						consulServerTaskARN,
-						"--container=consul-server",
-						"--command",
-						`/bin/sh -c "consul catalog services"`,
-						"--interactive",
-					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
-				})
+				out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
 				r.Check(err)
 				if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
 					!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
@@ -193,76 +177,52 @@ func TestBasic(t *testing.T) {
 			if secure {
 				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-					curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-						Command: "aws",
-						Args: []string{
-							"ecs",
-							"execute-command",
-							"--region",
-							suite.Config().Region,
-							"--cluster",
-							suite.Config().ECSClusterARN,
-							"--task",
-							tasks.TaskARNs[0],
-							"--container=basic",
-							"--command",
-							`/bin/sh -c "curl localhost:1234"`,
-							"--interactive",
-						},
-						Logger: terratestLogger.New(logger.TestLogger{}),
-					})
+					curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
 					r.Check(err)
 					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
 						r.Errorf("response was unexpected: %q", curlOut)
 					}
 				})
 				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-					_, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-						Command: "aws",
-						Args: []string{
-							"ecs",
-							"execute-command",
-							"--region",
-							suite.Config().Region,
-							"--cluster",
-							suite.Config().ECSClusterARN,
-							"--task",
-							consulServerTaskARN,
-							"--container=consul-server",
-							"--command",
-							fmt.Sprintf(`/bin/sh -c "consul intention create test_client_%s test_server_%s"`, randomSuffix, randomSuffix),
-							"--interactive",
-						},
-						Logger: terratestLogger.New(logger.TestLogger{}),
-					})
+					consulCmd := fmt.Sprintf(`/bin/sh -c "consul intention create test_client_%s test_server_%s"`, randomSuffix, randomSuffix)
+					_, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", consulCmd)
 					r.Check(err)
 				})
 			}
 
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						tasks.TaskARNs[0],
-						"--container=basic",
-						"--command",
-						`/bin/sh -c "curl localhost:1234"`,
-						"--interactive",
-					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
-				})
+				curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
 				r.Check(err)
 				if !strings.Contains(curlOut, `"code": 200`) {
 					r.Errorf("response was unexpected: %q", curlOut)
 				}
 			})
+
+			// Check that the ACL tokens for services are deleted
+			// when services are destroyed.
+			if secure {
+				// First, destroy just the service mesh services.
+				tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+					TerraformDir: "./terraform/basic-install",
+					Vars:         tfVars,
+					NoColor:      true,
+					Targets: []string{
+						"aws_ecs_service.test_server",
+						"aws_ecs_service.test_client",
+						"module.test_server",
+						"module.test_client",
+					},
+				})
+				terraform.Destroy(t, tfOptions)
+
+				// Check that the ACL tokens are deleted from Consul.
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+					out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
+					require.NoError(r, err)
+					require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
+					require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
+				})
+			}
 
 			logger.Log(t, "Test successful!")
 		})
@@ -271,4 +231,27 @@ func TestBasic(t *testing.T) {
 
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
+}
+
+// executeRemoteCommand executes a command inside a container in the task specified
+// by taskARN.
+func executeRemoteCommand(t *testing.T, taskARN, container, command string) (string, error) {
+	return shell.RunCommandAndGetOutputE(t, shell.Command{
+		Command: "aws",
+		Args: []string{
+			"ecs",
+			"execute-command",
+			"--region",
+			suite.Config().Region,
+			"--cluster",
+			suite.Config().ECSClusterARN,
+			"--task",
+			taskARN,
+			fmt.Sprintf("--container=%s", container),
+			"--command",
+			command,
+			"--interactive",
+		},
+		Logger: terratestLogger.New(logger.TestLogger{}),
+	})
 }
