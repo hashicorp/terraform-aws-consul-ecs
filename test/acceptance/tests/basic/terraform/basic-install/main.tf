@@ -210,6 +210,16 @@ module "test_server" {
       awslogs-stream-prefix = "test_server_${var.suffix}"
     }
   }
+  checks = [
+    {
+      checkid  = "server-http"
+      name     = "HTTP health check on port 9090"
+      http     = "http://localhost:9090/health"
+      method   = "GET"
+      timeout  = "10s"
+      interval = "2s"
+    }
+  ]
   port = 9090
 
   tls                            = var.secure

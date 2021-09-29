@@ -4,7 +4,7 @@ data "aws_ssm_parameter" "ecs_optimized_ami" {
 
 locals {
   // TF marks SSM Parameter values as sensitive by default. No need to hide this AMI ID though.
-  esc_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
+  ecs_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
 }
 
 resource "aws_iam_role" "instance_role" {
@@ -38,7 +38,7 @@ resource "aws_launch_configuration" "launch_config" {
   // https://github.com/hashicorp/terraform-provider-aws/issues/8485
   name_prefix = "${var.name}-consul-ecs"
 
-  image_id             = local.esc_optimized_ami
+  image_id             = local.ecs_optimized_ami
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
   security_groups      = [data.aws_security_group.vpc_default.id]
 

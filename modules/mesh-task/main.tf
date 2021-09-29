@@ -209,6 +209,7 @@ resource "aws_ecs_task_definition" "this" {
               "-envoy-bootstrap-file=/consul/envoy-bootstrap.json",
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
+              "-checks=${jsonencode(var.checks)}"
             ]
             user = "root"
             mountPoints = [
