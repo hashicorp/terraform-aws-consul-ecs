@@ -44,7 +44,7 @@ variable "secure" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "ishustava/consul-ecs-dev:delete-acl"
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
 provider "aws" {
