@@ -72,6 +72,23 @@ module "example_client_app" {
         value = "http://localhost:1234"
       }
     ]
+    entryPoint = ["/bin/sh", "-c", <<EOT
+/app/fake-service &
+export PID=$!
+
+trap "{ echo 'on exit'; kill $PID; }" 0
+
+function onterm() {
+	echo "caught sigterm. sleeping 5s..."
+	sleep 5
+	echo "terminating app"
+	exit 0
+}
+
+trap onterm SIGTERM
+wait $PID
+EOT
+    ]
     portMappings = [
       {
         containerPort = 9090
