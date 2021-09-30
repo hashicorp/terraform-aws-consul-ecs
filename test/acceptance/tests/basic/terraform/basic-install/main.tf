@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "hashicorpdev/consul-ecs:09fc13f"
 }
 
 provider "aws" {
@@ -137,8 +137,9 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_client_${var.suffix}"
+  source           = "../../../../../../modules/mesh-task"
+  consul_ecs_image = var.consul_ecs_image
+  family           = "test_client_${var.suffix}"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -151,6 +152,12 @@ module "test_client" {
     ]
     linuxParameters = {
       initProcessEnabled = true
+    }
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/ || exit 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
     }
   }]
   retry_join = module.consul_server.server_dns
@@ -176,7 +183,6 @@ module "test_client" {
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "test_server" {
