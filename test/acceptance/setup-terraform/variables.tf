@@ -22,7 +22,7 @@ variable "launch_type" {
 variable "instance_count" {
   description = "Number of EC2 instances to create for the EC2 launch type (if enabled)."
   type        = number
-  default     = 3
+  default     = 4
 }
 
 variable "instance_type" {
