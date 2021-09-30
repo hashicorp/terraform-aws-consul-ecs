@@ -110,7 +110,7 @@ module "acl_controller" {
       awslogs-stream-prefix = "consul-acl-controller"
     }
   }
-  launch_type = var.launch_type
+  launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
   consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
   consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
