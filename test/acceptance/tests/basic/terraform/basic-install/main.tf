@@ -152,6 +152,12 @@ module "test_client" {
     linuxParameters = {
       initProcessEnabled = true
     }
+    healthCheck = {
+      command  = ["CMD-SHELL", "echo 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
   }]
   retry_join = module.consul_server.server_dns
   upstreams = [

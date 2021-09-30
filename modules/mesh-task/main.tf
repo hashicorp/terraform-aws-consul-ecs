@@ -33,6 +33,10 @@ locals {
       }
     )
   ]
+
+  defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
+  if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
+
   upstreams_flag = join(",", [for upstream in var.upstreams : "${upstream["destination_name"]}:${upstream["local_bind_port"]}"])
 }
 
@@ -211,7 +215,8 @@ resource "aws_ecs_task_definition" "this" {
               "-envoy-bootstrap-file=/consul/envoy-bootstrap.json",
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
-              "-checks=${jsonencode(var.checks)}"
+              "-checks=${jsonencode(var.checks)}",
+              "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
             ]
             user = "root"
             mountPoints = [
@@ -331,8 +336,34 @@ resource "aws_ecs_task_definition" "this" {
               softLimit = 1048576
               hardLimit = 1048576
             }]
-          }
-        ]
+          },
+        ],
+        length(local.defaulted_check_containers) > 0 ? [{
+          name             = "consul-ecs-health-sync"
+          image            = var.consul_ecs_image
+          essential        = false
+          logConfiguration = var.log_configuration
+          command = [
+            "health-sync",
+            "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
+          ]
+          cpu          = 0
+          volumesFrom  = []
+          environment  = []
+          portMappings = []
+          dependsOn = [
+            {
+              containerName = "consul-ecs-mesh-init"
+              condition     = "SUCCESS"
+            },
+          ]
+          secrets = var.acls ? [
+            {
+              name      = "CONSUL_HTTP_TOKEN",
+              valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
+            }
+          ] : []
+        }] : [],
       )
     )
   )
