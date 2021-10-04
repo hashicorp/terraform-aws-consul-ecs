@@ -5,7 +5,7 @@ data "aws_ssm_parameter" "ecs_optimized_ami" {
 
 locals {
   ec2_enabled       = var.launch_type == "EC2"
-  esc_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
+  ecs_optimized_ami = nonsensitive(data.aws_ssm_parameter.ecs_optimized_ami.value)
 }
 
 resource "aws_iam_role" "instance_role" {
@@ -40,7 +40,7 @@ resource "aws_iam_instance_profile" "instance_profile" {
 resource "aws_instance" "instances" {
   count = local.ec2_enabled ? var.instance_count : 0
 
-  ami                  = local.esc_optimized_ami
+  ami                  = local.ecs_optimized_ami
   instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.instance_profile[0].name
   // Spread instances across subnets
