@@ -41,6 +41,11 @@ variable "secure" {
   default     = false
 }
 
+variable "launch_type" {
+  description = "Whether to launch tasks on Fargate or EC2"
+  type        = string
+}
+
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
@@ -84,7 +89,8 @@ module "consul_server" {
       awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
-  launch_type = "FARGATE"
+  launch_type                 = var.launch_type
+  service_discovery_namespace = "consul-${var.suffix}"
 
   tags = var.tags
 
@@ -104,6 +110,7 @@ module "acl_controller" {
       awslogs-stream-prefix = "consul-acl-controller"
     }
   }
+  launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
   consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
   consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
@@ -122,7 +129,7 @@ resource "aws_ecs_service" "test_client" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
@@ -180,7 +187,7 @@ resource "aws_ecs_service" "test_server" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 

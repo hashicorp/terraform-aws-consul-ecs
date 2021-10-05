@@ -35,7 +35,7 @@ module "vpc" {
 
 resource "aws_ecs_cluster" "this" {
   name               = local.name
-  capacity_providers = ["FARGATE"]
+  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
   tags               = var.tags
 }
 

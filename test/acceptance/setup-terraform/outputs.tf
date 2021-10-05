@@ -6,6 +6,10 @@ output "vpc_id" {
   value = module.vpc.vpc_id
 }
 
+output "launch_type" {
+  value = var.launch_type
+}
+
 output "subnets" {
   value = module.vpc.private_subnets
 }

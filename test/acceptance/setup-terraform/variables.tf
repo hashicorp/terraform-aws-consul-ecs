@@ -13,3 +13,20 @@ variable "tags" {
   default     = {}
   description = "Tags to attach to the created resources."
 }
+
+variable "launch_type" {
+  type        = string
+  description = "The ECS launch type for the cluster. Either EC2 or FARGATE."
+}
+
+variable "instance_count" {
+  description = "Number of EC2 instances to create for the EC2 launch type (if enabled)."
+  type        = number
+  default     = 4
+}
+
+variable "instance_type" {
+  description = "The instance type for EC2 instances if launch type is EC2."
+  type        = string
+  default     = "t3a.micro"
+}

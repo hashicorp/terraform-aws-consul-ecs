@@ -4,6 +4,7 @@ package config
 type TestConfig struct {
 	NoCleanupOnFailure bool
 	ECSClusterARN      string `json:"ecs_cluster_arn"`
+	LaunchType         string `json:"launch_type"`
 	Subnets            interface{}
 	Suffix             string
 	Region             string
@@ -15,6 +16,7 @@ type TestConfig struct {
 func (t TestConfig) TFVars() map[string]interface{} {
 	vars := map[string]interface{}{
 		"ecs_cluster_arn": t.ECSClusterARN,
+		"launch_type":     t.LaunchType,
 		"subnets":         t.Subnets,
 		"region":          t.Region,
 		"log_group_name":  t.LogGroupName,
