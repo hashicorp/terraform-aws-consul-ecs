@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 0.2.0-beta2 (Sep 30, 2021) 
+
 FEATURES
 * modules/mesh-task: Add `checks` variable to define Consul native checks.
   [[GH-41](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/41)]
