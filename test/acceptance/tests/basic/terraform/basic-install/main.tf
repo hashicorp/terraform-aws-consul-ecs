@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorpdev/consul-ecs:09fc13f"
+  default     = "hashicorpdev/consul-ecs:4a258e5"
 }
 
 provider "aws" {
@@ -154,7 +154,7 @@ module "test_client" {
       initProcessEnabled = true
     }
     healthCheck = {
-      command  = ["CMD-SHELL", "curl -f http://localhost:9090/ || exit 1"]
+      command  = ["CMD-SHELL", "echo 1"]
       interval = 30
       retries  = 3
       timeout  = 5

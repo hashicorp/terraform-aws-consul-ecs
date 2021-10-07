@@ -47,9 +47,10 @@ resource "aws_ecs_service" "example_client_app" {
 }
 
 module "example_client_app" {
-  source = "../../modules/mesh-task"
-  family = "${var.name}-example-client-app"
-  port   = "9090"
+  source           = "../../modules/mesh-task"
+  family           = "${var.name}-example-client-app"
+  consul_ecs_image = "hashicorpdev/consul-ecs:4a258e5"
+  port             = "9090"
   upstreams = [
     {
       destination_name = "${var.name}-example-server-app"
@@ -82,6 +83,12 @@ module "example_client_app" {
     cpu         = 0
     mountPoints = []
     volumesFrom = []
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/ || exit 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
   }]
   retry_join = module.dev_consul_server.server_dns
 }
@@ -103,6 +110,7 @@ resource "aws_ecs_service" "example_server_app" {
 
 module "example_server_app" {
   source            = "../../modules/mesh-task"
+  consul_ecs_image  = "hashicorpdev/consul-ecs:4a258e5"
   family            = "${var.name}-example-server-app"
   port              = "9090"
   log_configuration = local.example_server_app_log_config
@@ -117,6 +125,12 @@ module "example_server_app" {
         value = "${var.name}-example-server-app"
       }
     ]
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/ || exit 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
   }]
   retry_join = module.dev_consul_server.server_dns
 }
