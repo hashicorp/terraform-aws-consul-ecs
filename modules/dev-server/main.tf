@@ -1,7 +1,13 @@
 locals {
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
-  load_balancer = var.lb_enabled ? [{
-    target_group_arn = aws_lb_target_group.this[0].arn
+
+  # If create_lb=true, create a load balancer.
+  # Else, if a target group is provided, use it.
+  # Otherwise, no load balancer is attached.
+
+  lb_arn = var.create_lb ? aws_lb_target_group.this[0].arn : var.lb_target_group_arn
+  lb_target_groups = local.lb_arn != null ? [{
+    target_group_arn = local.lb_arn
     container_name   = "consul-server"
     container_port   = 8500
   }] : []
@@ -73,7 +79,7 @@ resource "aws_ecs_service" "this" {
     container_name = "consul-server"
   }
   dynamic "load_balancer" {
-    for_each = local.load_balancer
+    for_each = local.lb_target_groups
     content {
       target_group_arn = load_balancer.value["target_group_arn"]
       container_name   = load_balancer.value["container_name"]
@@ -376,7 +382,7 @@ EOF
 }
 
 resource "aws_lb_target_group" "this" {
-  count                = var.lb_enabled ? 1 : 0
+  count                = var.create_lb ? 1 : 0
   name                 = var.name
   port                 = 8500
   protocol             = "HTTP"
@@ -393,7 +399,7 @@ resource "aws_lb_target_group" "this" {
 }
 
 resource "aws_lb" "this" {
-  count              = var.lb_enabled ? 1 : 0
+  count              = var.create_lb ? 1 : 0
   name               = var.name
   internal           = false
   load_balancer_type = "application"
@@ -402,7 +408,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_listener" "this" {
-  count             = var.lb_enabled ? 1 : 0
+  count             = var.create_lb ? 1 : 0
   load_balancer_arn = aws_lb.this[count.index].arn
   port              = "8500"
   protocol          = "HTTP"
@@ -413,7 +419,7 @@ resource "aws_lb_listener" "this" {
 }
 
 resource "aws_security_group" "load_balancer" {
-  count  = var.lb_enabled ? 1 : 0
+  count  = var.create_lb ? 1 : 0
   name   = var.name
   vpc_id = var.vpc_id
 

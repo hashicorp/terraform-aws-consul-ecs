@@ -52,6 +52,11 @@ variable "consul_ecs_image" {
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
+variable "lb_arn" {
+  description = "Load balancer ARN, used for ingress to the Consul server and test app."
+  type        = string
+}
+
 provider "aws" {
   region = var.region
 }
@@ -74,13 +79,40 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
   secret_string = random_id.gossip_encryption_key[0].b64_std
 }
 
+resource "aws_lb_listener" "consul_server" {
+  load_balancer_arn = var.lb_arn
+  port              = "8500"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.consul_server.arn
+  }
+}
+
+resource "aws_lb_target_group" "consul_server" {
+  name                 = "consul-server-${var.suffix}"
+  port                 = 8500
+  protocol             = "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "ip"
+  deregistration_delay = 10
+  health_check {
+    path                = "/v1/status/leader"
+    healthy_threshold   = 2
+    unhealthy_threshold = 10
+    timeout             = 30
+    interval            = 60
+  }
+}
+
 module "consul_server" {
-  source          = "../../../../../../modules/dev-server"
-  lb_enabled      = false
-  ecs_cluster_arn = var.ecs_cluster_arn
-  subnet_ids      = var.subnets
-  vpc_id          = var.vpc_id
-  name            = "consul_server_${var.suffix}"
+  source              = "../../../../../../modules/dev-server"
+  create_lb           = false
+  lb_target_group_arn = aws_lb_target_group.consul_server.arn
+  ecs_cluster_arn     = var.ecs_cluster_arn
+  subnet_ids          = var.subnets
+  vpc_id              = var.vpc_id
+  name                = "consul_server_${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -129,11 +161,43 @@ resource "aws_ecs_service" "test_client" {
   network_configuration {
     subnets = var.subnets
   }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.test_client.arn
+    container_name   = "basic"
+    container_port   = 9090
+  }
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
   tags = var.tags
+}
+
+resource "aws_lb_target_group" "test_client" {
+  # alphanumeric + hypens only
+  name                 = "test-client-${var.suffix}"
+  port                 = 9090
+  protocol             = "HTTP"
+  vpc_id               = var.vpc_id
+  target_type          = "ip"
+  deregistration_delay = 10
+  health_check {
+    path                = "/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 10
+    timeout             = 30
+    interval            = 60
+  }
+}
+
+resource "aws_lb_listener" "test_client" {
+  load_balancer_arn = var.lb_arn
+  port              = "9090"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.test_client.arn
+  }
 }
 
 module "test_client" {
@@ -152,6 +216,13 @@ module "test_client" {
     linuxParameters = {
       initProcessEnabled = true
     }
+    portMappings = [
+      {
+        containerPort = 9090
+        hostPort      = 9090
+        protocol      = "tcp"
+      }
+    ]
   }]
   retry_join = module.consul_server.server_dns
   upstreams = [

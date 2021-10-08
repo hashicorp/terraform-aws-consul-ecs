@@ -26,10 +26,16 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "lb_enabled" {
+variable "create_lb" {
   description = "Whether to create an ALB for the server task. Useful for accessing the UI."
   type        = bool
   default     = false
+}
+
+variable "lb_target_group_arn" {
+  description = "An existing target group to attach to the ECS service. Ignored if create_lb=true."
+  type        = string
+  default     = null
 }
 
 variable "vpc_id" {
@@ -38,19 +44,19 @@ variable "vpc_id" {
 }
 
 variable "lb_subnets" {
-  description = "Subnet IDs to attach to the load balancer. NOTE: These must be public subnets if you wish to access the load balancer externally."
+  description = "Subnet IDs to attach to the load balancer, if create_lb=true. NOTE: These must be public subnets if you wish to access the load balancer externally."
   type        = list(string)
   default     = null
 }
 
 variable "lb_ingress_rule_cidr_blocks" {
-  description = "CIDR blocks that are allowed access to the load balancer."
+  description = "CIDR blocks that are allowed access to the load balancer, if create_lb=true."
   type        = list(string)
   default     = null
 }
 
 variable "lb_ingress_rule_security_groups" {
-  description = "Security groups that are allowed access to the load balancer."
+  description = "Security groups that are allowed access to the load balancer, if create_lb=true."
   type        = list(string)
   default     = null
 }

@@ -14,6 +14,8 @@ const (
 	flagNoCleanupOnFailure = "no-cleanup-on-failure"
 	flagECSClusterARN      = "ecs-cluster-arn"
 	flagLaunchType         = "launch-type"
+	flagLbAddress          = "lb-address"
+	flagLbARN              = "lb-arn"
 	flagSubnets            = "subnets"
 	flagRegion             = "region"
 	flagLogGroupName       = "log-group-name"
@@ -29,6 +31,8 @@ type TestFlags struct {
 	flagNoCleanupOnFailure bool
 	flagECSClusterARN      string
 	flagLaunchType         string
+	flagLbAddress          string
+	flagLbARN              string
 	flagSubnets            string
 	flagRegion             string
 	flagLogGroupName       string
@@ -51,6 +55,8 @@ func (t *TestFlags) init() {
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
 	flag.StringVar(&t.flagECSClusterARN, flagECSClusterARN, "", "ECS Cluster ARN.")
 	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: 'FARGATE' or 'EC2'.")
+	flag.StringVar(&t.flagLbAddress, flagLbAddress, "", "The address of the load balancer used for ingress to tasks.")
+	flag.StringVar(&t.flagLbARN, flagLbARN, "", "The ARN of the load balancer used for ingress to tasks.")
 	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
@@ -111,6 +117,8 @@ func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 		cfg = config.TestConfig{
 			NoCleanupOnFailure: t.flagNoCleanupOnFailure,
 			ECSClusterARN:      t.flagECSClusterARN,
+			LbAddress:          t.flagLbAddress,
+			LbARN:              t.flagLbARN,
 			LaunchType:         t.flagLaunchType,
 			Subnets:            t.flagSubnets,
 			Region:             t.flagRegion,

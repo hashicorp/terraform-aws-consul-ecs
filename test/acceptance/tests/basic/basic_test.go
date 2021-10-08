@@ -3,15 +3,14 @@ package basic
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"strings"
+	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
-	terratestLogger "github.com/gruntwork-io/terratest/modules/logger"
-	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -64,7 +63,8 @@ func TestBasic(t *testing.T) {
 
 	for _, secure := range cases {
 		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
-			randomSuffix := strings.ToLower(random.UniqueId())
+			// randomSuffix := strings.ToLower(random.UniqueId())
+			randomSuffix := "kt4j6f"
 			tfVars := suite.Config().TFVars()
 			tfVars["secure"] = secure
 			tfVars["suffix"] = randomSuffix
@@ -84,7 +84,7 @@ func TestBasic(t *testing.T) {
 
 			terraform.InitAndApply(t, terraformOptions)
 
-			// Wait for consul server to be up.
+			t.Log("Wait for consul server to be up.")
 			var consulServerTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 				taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
@@ -110,92 +110,98 @@ func TestBasic(t *testing.T) {
 				}
 
 				consulServerTaskARN = tasks.TaskARNs[0]
+				t.Logf("consul server task arn = %s", consulServerTaskARN)
 			})
 
-			// Wait for both tasks to be registered in Consul.
-			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
-				r.Check(err)
-				if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
-					!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
-					r.Errorf("services not yet registered, got %q", out)
-				}
-			})
-
-			// Wait for passing health check for test_server
-			tokenHeader := ""
+			var bootstrapToken string
 			if secure {
-				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
-			}
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+				t.Logf("Fetching consul client bootstrap token since ACLs are enabled.")
+				secretValueOut := shell.RunCommandAndGetOutput(t, shell.Command{
 					Command: "aws",
 					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						consulServerTaskARN,
-						"--container=consul-server",
-						"--command",
-						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/test_server_%s'`, tokenHeader, randomSuffix),
-						"--interactive",
+						"secretsmanager",
+						"get-secret-value",
+						"--region", suite.Config().Region,
+						"--secret-id", fmt.Sprintf("consul_server_%s-bootstrap-token", randomSuffix),
 					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
 				})
-				r.Check(err)
+				var secret map[string]interface{}
+				require.NoError(t, json.Unmarshal([]byte(secretValueOut), &secret))
+				bootstrapToken = secret["SecretString"].(string)
+			}
 
-				statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
-				if statusRegex.FindAllString(out, 1) == nil {
-					r.Errorf("Check status not yet passing")
+			consulClient, err := api.NewClient(&api.Config{
+				Address: fmt.Sprintf("%s:8500", suite.Config().LbAddress),
+				Token:   bootstrapToken,
+			})
+			require.NoError(t, err)
+
+			t.Log("Wait for tasks to be registered in Consul")
+			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+				services, _, err := consulClient.Catalog().Services(nil)
+				t.Logf("consul service catalog: %v", services)
+				require.NoError(r, err)
+				require.Contains(r, services, fmt.Sprintf("test_client_%s", randomSuffix))
+				require.Contains(r, services, fmt.Sprintf("test_server_%s", randomSuffix))
+			})
+
+			t.Log("Wait for passing Consul-native health check in test_server")
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+				checks, _, err := consulClient.Health().Checks(fmt.Sprintf("test_server_%s", randomSuffix), nil)
+				t.Logf("consul checks for test_server:")
+				for _, check := range checks {
+					t.Logf(" - check: %#v", check)
 				}
+				require.NoError(r, err)
+				require.Len(r, checks, 1)
+				require.Equal(r, "server-http", checks[0].CheckID)
+				require.Equal(r, api.HealthPassing, checks[0].Status)
 			})
 
-			// Use aws exec to curl between the apps.
-			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-				Command: "aws",
-				Args: []string{
-					"ecs",
-					"list-tasks",
-					"--region",
-					suite.Config().Region,
-					"--cluster",
-					suite.Config().ECSClusterARN,
-					"--family",
-					fmt.Sprintf("test_client_%s", randomSuffix),
-				},
-			})
-
-			var tasks listTasksResponse
-			require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
-			require.Len(t, tasks.TaskARNs, 1)
+			// Setup http client for the test client app
+			testClientAddress := fmt.Sprintf("%s:9090", suite.Config().LbAddress)
+			client := &http.Client{Timeout: 10 * time.Second}
 
 			// Create an intention.
 			if secure {
 				// First check that connection between apps is unsuccessful.
+				t.Log("Check for unsuccessful connection between apps (due to default deny)")
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-					curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
-					r.Check(err)
-					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
-						r.Errorf("response was unexpected: %q", curlOut)
-					}
+					resp, err := httpGetToFakeService(client, testClientAddress)
+					require.NoError(r, err)
+					t.Logf("GET %s -> %d", testClientAddress, resp.Code)
+					require.Equal(r, 500, resp.Code)
+					require.Equal(r, -1, resp.UpstreamCalls["http://localhost:1234"].Code)
 				})
-				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-					consulCmd := fmt.Sprintf(`/bin/sh -c "consul intention create test_client_%s test_server_%s"`, randomSuffix, randomSuffix)
-					_, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", consulCmd)
-					r.Check(err)
+
+				t.Log("Create intention to allow traffic from client to server")
+				intention := &api.Intention{
+					Description:     "Created by acceptance test to allow client app -> server app",
+					SourceName:      fmt.Sprintf("test_client_%s", randomSuffix),
+					DestinationName: fmt.Sprintf("test_server_%s", randomSuffix),
+					Action:          api.IntentionActionAllow,
+				}
+				_, err := consulClient.Connect().IntentionUpsert(intention, nil)
+				require.NoError(t, err)
+				t.Logf("created intention: %#v", intention)
+
+				t.Cleanup(func() {
+					t.Log("Cleanup intention from client to server")
+					_, _ = consulClient.Connect().IntentionDeleteExact(
+						fmt.Sprintf("test_client_%s", randomSuffix),
+						fmt.Sprintf("test_server_%s", randomSuffix),
+						nil,
+					)
 				})
 			}
 
+			t.Log("Check for successful connection between apps")
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
-				r.Check(err)
-				if !strings.Contains(curlOut, `"code": 200`) {
-					r.Errorf("response was unexpected: %q", curlOut)
-				}
+				resp, err := httpGetToFakeService(client, testClientAddress)
+				require.NoError(r, err)
+				t.Logf("GET %s -> %d", testClientAddress, resp.Code)
+				require.Equal(r, 200, resp.Code)
+				require.Equal(r, 200, resp.UpstreamCalls["http://localhost:1234"].Code)
 			})
 
 			// TODO: The token deletion check is disabled due to a race condition.
@@ -239,25 +245,28 @@ type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
 }
 
-// executeRemoteCommand executes a command inside a container in the task specified
-// by taskARN.
-func executeRemoteCommand(t *testing.T, taskARN, container, command string) (string, error) {
-	return shell.RunCommandAndGetOutputE(t, shell.Command{
-		Command: "aws",
-		Args: []string{
-			"ecs",
-			"execute-command",
-			"--region",
-			suite.Config().Region,
-			"--cluster",
-			suite.Config().ECSClusterARN,
-			"--task",
-			taskARN,
-			fmt.Sprintf("--container=%s", container),
-			"--command",
-			command,
-			"--interactive",
-		},
-		Logger: terratestLogger.New(logger.TestLogger{}),
-	})
+type fakeServiceResponse struct {
+	Name          string
+	Body          string
+	UpstreamCalls map[string]fakeServiceResponse `json:"upstream_calls"`
+	Code          int
+}
+
+func httpGetToFakeService(client *http.Client, url string) (*fakeServiceResponse, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var fakeResp fakeServiceResponse
+	err = json.Unmarshal(respBody, &fakeResp)
+	if err != nil {
+		return nil, err
+	}
+	return &fakeResp, nil
 }

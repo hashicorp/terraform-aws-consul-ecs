@@ -29,3 +29,15 @@ output "region" {
 output "tags" {
   value = var.tags
 }
+
+output "ingress_ip" {
+  value = local.ingress_ip
+}
+
+output "lb_arn" {
+  value = aws_lb.this.arn
+}
+
+output "lb_address" {
+  value = "http://${aws_lb.this.dns_name}"
+}

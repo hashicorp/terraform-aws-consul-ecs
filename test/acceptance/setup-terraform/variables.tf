@@ -30,3 +30,9 @@ variable "instance_type" {
   type        = string
   default     = "t3a.micro"
 }
+
+variable "ingress_ip" {
+  description = "The ingress IP, used as source IP in security groups to restrict incoming requests."
+  type        = string
+  default     = ""
+}
