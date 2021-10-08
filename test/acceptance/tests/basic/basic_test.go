@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	terratestLogger "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
@@ -154,7 +156,7 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			// Use aws exec to curl between the apps.
+			// Find the TaskARN and TaskID for the client app
 			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
 				Command: "aws",
 				Args: []string{
@@ -172,12 +174,15 @@ func TestBasic(t *testing.T) {
 			var tasks listTasksResponse
 			require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
 			require.Len(t, tasks.TaskARNs, 1)
+			testClientTaskARN := tasks.TaskARNs[0]
+			arnParts := strings.Split(testClientTaskARN, "/")
+			testClientTaskID := arnParts[len(arnParts)-1]
 
 			// Create an intention.
 			if secure {
 				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-					curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
+					curlOut, err := executeRemoteCommand(t, testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 					r.Check(err)
 					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
 						r.Errorf("response was unexpected: %q", curlOut)
@@ -191,12 +196,86 @@ func TestBasic(t *testing.T) {
 			}
 
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				curlOut, err := executeRemoteCommand(t, tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
+				curlOut, err := executeRemoteCommand(t, testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 				r.Check(err)
 				if !strings.Contains(curlOut, `"code": 200`) {
 					r.Errorf("response was unexpected: %q", curlOut)
 				}
 			})
+
+			// Check the client app can reach its upstream for about 10s after its task is stopped.
+			//
+			// For this test,
+			// * the client app has a custom entrypoint to ignore the term signal, and
+			// * mesh-init is responsible for ensuring Envoy ignores the term signal.
+			//
+			// Since this is timing dependent, we check logs after the fact to validate when containers exited.
+			shell.RunCommandAndGetOutput(t, shell.Command{
+				Command: "aws",
+				Args: []string{
+					"ecs",
+					"stop-task",
+					"--region", suite.Config().Region,
+					"--cluster", suite.Config().ECSClusterARN,
+					"--task", testClientTaskARN,
+					"--reason", "Stopped to validate graceful shutdown in acceptance tests",
+				},
+			})
+			// It will be at least 10 seconds before the client container exits.
+			time.Sleep(10 * time.Second)
+
+			// Wait for the task to stop
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 15 * time.Second}, t, func(r *retry.R) {
+				describeTasksOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+					Command: "aws",
+					Args: []string{
+						"ecs",
+						"describe-tasks",
+						"--region", suite.Config().Region,
+						"--cluster", suite.Config().ECSClusterARN,
+						"--task", testClientTaskARN,
+					},
+				})
+				r.Check(err)
+
+				var describeTasks ecs.DescribeTasksOutput
+				r.Check(json.Unmarshal([]byte(describeTasksOut), &describeTasks))
+				require.Len(r, describeTasks.Tasks, 1)
+				require.NotEqual(r, "RUNNING", describeTasks.Tasks[0].LastStatus)
+			})
+
+			// Check logs to see that the application ignored the TERM signal and exited about 10s later.
+			appEvents := getCloudWatchLogEvents(t, suite.Config().LogGroupName, fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID))
+			var filteredEvents []logEvent
+			for _, event := range appEvents {
+				if strings.Contains(event.Message, "TEST LOG:") {
+					filteredEvents = append(filteredEvents, event)
+				}
+			}
+			require.Len(t, filteredEvents, 2)
+			require.Equal(t, filteredEvents[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
+			require.Equal(t, filteredEvents[1].Message, "TEST LOG: on exit")
+			require.GreaterOrEqual(t, filteredEvents[1].Timestamp, filteredEvents[0].Timestamp)
+			appShutdownTime := time.Duration(int64(time.Millisecond) * (filteredEvents[1].Timestamp - filteredEvents[0].Timestamp))
+			require.InDelta(t, 10, appShutdownTime.Seconds(), 1)
+
+			// Check that Envoy ignored the sigterm.
+			envoyEvents := getCloudWatchLogEvents(t, suite.Config().LogGroupName, fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID))
+			filteredEvents = nil
+			for _, event := range envoyEvents {
+				if strings.Contains(event.Message, "Ignored sigterm to support graceful task shutdown.") { //|| event.Message == "Finished graceful shutdown." {
+					filteredEvents = append(filteredEvents, event)
+				}
+			}
+			require.Len(t, filteredEvents, 1)
+			require.Equal(t, filteredEvents[0].Message, "Ignored sigterm to support graceful task shutdown.")
+			// This isn't reliable if the container runs to the end of the task. We don't get an "on exit" log.
+			// TODO: Figure out a good check for this.
+			//
+			// require.Equal(t, filteredEvents[1].Message, "Finished graceful shutdown.")
+			// require.GreaterOrEqual(t, filteredEvents[1].Timestamp, filteredEvents[0].Timestamp)
+			// envoyShutdownTime := time.Duration(int64(time.Millisecond) * (filteredEvents[1].Timestamp - filteredEvents[0].Timestamp))
+			// require.Greater(t, envoyShutdownTime.Seconds(), 10)
 
 			// TODO: The token deletion check is disabled due to a race condition.
 			// If the service still exists in Consul after a Task stops, the controller skips
@@ -260,4 +339,66 @@ func executeRemoteCommand(t *testing.T, taskARN, container, command string) (str
 		},
 		Logger: terratestLogger.New(logger.TestLogger{}),
 	})
+}
+
+func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEvent {
+	getLogs := func(nextToken string) listLogEventsResponse {
+		args := []string{
+			"aws", "logs", "get-log-events",
+			"--region", suite.Config().Region,
+			"--log-group-name", groupName,
+			"--log-stream-name", streamName,
+		}
+		if nextToken != "" {
+			args = append(args, "--next-token", nextToken)
+		}
+		getLogEventsOut := shell.RunCommandAndGetOutput(t, shell.Command{Command: args[0], Args: args[1:]})
+
+		var resp listLogEventsResponse
+		err := json.Unmarshal([]byte(getLogEventsOut), &resp)
+		require.NoError(t, err)
+		return resp
+	}
+
+	resp := getLogs("")
+
+	events := resp.Events
+	forwardToken := resp.NextForwardToken
+	backwardToken := resp.NextBackwardToken
+
+	// Collect log events in the backwards direction
+	for {
+		resp = getLogs(backwardToken)
+		events = append(resp.Events, events...)
+		// "If you have reached the end of the stream, it returns the same token you passed in."
+		if backwardToken == resp.NextBackwardToken {
+			break
+		}
+		backwardToken = resp.NextBackwardToken
+	}
+
+	// Collect log events in the forwards direction
+	for {
+		resp = getLogs(forwardToken)
+		events = append(events, resp.Events...)
+		// "If you have reached the end of the stream, it returns the same token you passed in."
+		if forwardToken == resp.NextForwardToken {
+			break
+		}
+		forwardToken = resp.NextForwardToken
+	}
+	sort.Slice(events, func(i, j int) bool { return events[i].Timestamp < events[j].Timestamp })
+	return events
+}
+
+type logEvent struct {
+	Timestamp int64  `json:"timestamp"`
+	Message   string `json:"message"`
+	Ingestion int64  `json:"ingestion"`
+}
+
+type listLogEventsResponse struct {
+	Events            []logEvent `json:"events"`
+	NextForwardToken  string     `json:"nextForwardToken"`
+	NextBackwardToken string     `json:"nextBackwardToken"`
 }

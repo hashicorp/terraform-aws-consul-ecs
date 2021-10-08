@@ -140,9 +140,10 @@ module "test_client" {
   source = "../../../../../../modules/mesh-task"
   family = "test_client_${var.suffix}"
   container_definitions = [{
-    name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
+    name             = "basic"
+    image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+    essential        = true
+    logConfiguration = local.test_client_log_configuration
     environment = [
       {
         name  = "UPSTREAM_URIS"
@@ -152,6 +153,20 @@ module "test_client" {
     linuxParameters = {
       initProcessEnabled = true
     }
+    # Keep the client running for 10 seconds to validate graceful shutdown behavior.
+    entryPoint = ["/bin/sh", "-c", <<EOT
+/app/fake-service &
+export PID=$!
+trap "{ echo 'TEST LOG: on exit'; kill $PID; }" 0
+function onterm() {
+       echo "TEST LOG: Caught sigterm. Sleeping 10s..."
+       sleep 10
+       exit 0
+}
+trap onterm TERM
+wait $PID
+EOT
+    ]
   }]
   retry_join = module.consul_server.server_dns
   upstreams = [
@@ -160,15 +175,8 @@ module "test_client" {
       local_bind_port  = 1234
     }
   ]
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = var.log_group_name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "test_client_${var.suffix}"
-    }
-  }
-  outbound_only = true
+  log_configuration = local.test_client_log_configuration
+  outbound_only     = true
 
   tls                            = var.secure
   consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
@@ -198,19 +206,13 @@ module "test_server" {
   source = "../../../../../../modules/mesh-task"
   family = "test_server_${var.suffix}"
   container_definitions = [{
-    name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
+    name             = "basic"
+    image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+    essential        = true
+    logConfiguration = local.test_server_log_configuration
   }]
-  retry_join = module.consul_server.server_dns
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = var.log_group_name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "test_server_${var.suffix}"
-    }
-  }
+  retry_join        = module.consul_server.server_dns
+  log_configuration = local.test_server_log_configuration
   checks = [
     {
       checkid  = "server-http"
@@ -230,4 +232,24 @@ module "test_server" {
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+}
+
+locals {
+  test_server_log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = var.log_group_name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "test_server_${var.suffix}"
+    }
+  }
+
+  test_client_log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = var.log_group_name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "test_client_${var.suffix}"
+    }
+  }
 }
