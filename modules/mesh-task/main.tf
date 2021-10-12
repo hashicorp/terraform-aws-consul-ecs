@@ -6,7 +6,12 @@ locals {
   consul_data_mount = {
     sourceVolume  = local.consul_data_volume_name
     containerPath = "/consul"
+    readOnly      = true
   }
+  consul_data_mount_read_write = merge(
+    local.consul_data_mount,
+    { readOnly = false },
+  )
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
@@ -218,9 +223,8 @@ resource "aws_ecs_task_definition" "this" {
               "-checks=${jsonencode(var.checks)}",
               "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
             ]
-            user = "root"
             mountPoints = [
-              local.consul_data_mount
+              local.consul_data_mount_read_write
             ]
             cpu          = 0
             volumesFrom  = []
@@ -263,7 +267,7 @@ resource "aws_ecs_task_definition" "this" {
               ), "\r", "")
             ]
             mountPoints = [
-              local.consul_data_mount
+              local.consul_data_mount_read_write
             ]
             linuxParameters = {
               initProcessEnabled = true

@@ -5,6 +5,11 @@ FEATURES
   ECS health checks are defined and there aren't any Consul health checks
   [[GH-45](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/45)]
 
+IMPROVEMENTS
+* modules/mesh-task: Run the `consul-ecs-mesh-init` container with the
+  `consul-ecs` user instead of `root`
+  [[GH-52](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/52)]
+
 ## 0.2.0-beta2 (Sep 30, 2021)
 
 FEATURES
