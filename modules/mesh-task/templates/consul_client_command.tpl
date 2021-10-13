@@ -6,6 +6,7 @@ echo "$CONSUL_CACERT" > /tmp/consul-ca-cert.pem
 
 exec consul agent \
   -advertise "$ECS_IPV4" \
+  -datacenter "$CONSUL_DATACENTER" \
   -data-dir /consul/data \
   -client 0.0.0.0 \
 %{ if gossip_encryption_enabled ~}
