@@ -144,7 +144,7 @@ variable "acl_secret_name_prefix" {
 }
 
 variable "consul_datacenter" {
-  type = string
+  type        = string
   description = "The name of the Consul datacenter the client belongs to"
-  default = "dc1"
+  default     = "dc1"
 }

@@ -215,11 +215,11 @@ resource "aws_ecs_task_definition" "this" {
             mountPoints = [
               local.consul_data_mount
             ]
-            cpu          = 0
-            volumesFrom  = []
-            environment  = [
+            cpu         = 0
+            volumesFrom = []
+            environment = [
               {
-                name = "CONSUL_DATACENTER"
+                name  = "CONSUL_DATACENTER"
                 value = var.consul_datacenter
               }
             ]
