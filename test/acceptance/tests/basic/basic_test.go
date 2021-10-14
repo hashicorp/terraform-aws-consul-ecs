@@ -14,6 +14,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	terratestTesting "github.com/gruntwork-io/terratest/modules/testing"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -221,10 +222,8 @@ func TestBasic(t *testing.T) {
 					"--reason", "Stopped to validate graceful shutdown in acceptance tests",
 				},
 			})
-			// It will be at least 10 seconds before the client container exits.
-			time.Sleep(10 * time.Second)
 
-			// Wait for the task to stop
+			// Wait for the task to stop (~30 seconds)
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 15 * time.Second}, t, func(r *retry.R) {
 				describeTasksOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
 					Command: "aws",
@@ -245,37 +244,54 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Check logs to see that the application ignored the TERM signal and exited about 10s later.
-			appEvents := getCloudWatchLogEvents(t, suite.Config().LogGroupName, fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID))
-			var filteredEvents []logEvent
-			for _, event := range appEvents {
-				if strings.Contains(event.Message, "TEST LOG:") {
-					filteredEvents = append(filteredEvents, event)
-				}
-			}
-			require.Len(t, filteredEvents, 2)
-			require.Equal(t, filteredEvents[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
-			require.Equal(t, filteredEvents[1].Message, "TEST LOG: on exit")
-			require.GreaterOrEqual(t, filteredEvents[1].Timestamp, filteredEvents[0].Timestamp)
-			appShutdownTime := time.Duration(int64(time.Millisecond) * (filteredEvents[1].Timestamp - filteredEvents[0].Timestamp))
-			require.InDelta(t, 10, appShutdownTime.Seconds(), 1)
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				appLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+					fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID),
+				)
+				require.NoError(r, err)
+
+				appLogs = appLogs.Filter("TEST LOG:")
+				require.Len(r, appLogs, 2)
+				require.Equal(r, appLogs[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
+				require.Equal(r, appLogs[1].Message, "TEST LOG: on exit")
+				require.InDelta(r, 10, appLogs.Duration().Seconds(), 1)
+			})
 
 			// Check that Envoy ignored the sigterm.
-			envoyEvents := getCloudWatchLogEvents(t, suite.Config().LogGroupName, fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID))
-			filteredEvents = nil
-			for _, event := range envoyEvents {
-				if strings.Contains(event.Message, "Ignored sigterm to support graceful task shutdown.") { //|| event.Message == "Finished graceful shutdown." {
-					filteredEvents = append(filteredEvents, event)
-				}
-			}
-			require.Len(t, filteredEvents, 1)
-			require.Equal(t, filteredEvents[0].Message, "Ignored sigterm to support graceful task shutdown.")
-			// This isn't reliable if the container runs to the end of the task. We don't get an "on exit" log.
-			// TODO: Figure out a good check for this.
-			//
-			// require.Equal(t, filteredEvents[1].Message, "Finished graceful shutdown.")
-			// require.GreaterOrEqual(t, filteredEvents[1].Timestamp, filteredEvents[0].Timestamp)
-			// envoyShutdownTime := time.Duration(int64(time.Millisecond) * (filteredEvents[1].Timestamp - filteredEvents[0].Timestamp))
-			// require.Greater(t, envoyShutdownTime.Seconds(), 10)
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				envoyLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+					fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID),
+				)
+				require.NoError(r, err)
+				envoyLogs = envoyLogs.Filter("Ignored sigterm")
+				require.Len(r, envoyLogs, 1)
+				require.Equal(r, envoyLogs[0].Message, "Ignored sigterm to support graceful task shutdown.")
+			})
+
+			// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				monitorLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+					fmt.Sprintf("test_client_%s/shutdown-monitor/%s", randomSuffix, testClientTaskID))
+				require.NoError(r, err)
+
+				// Check how long after shutdown the upstream was reachable.
+				upstreamOkLogs := monitorLogs.Filter(
+					"Signal received: signal=terminated",
+					"upstream: [OK] GET http://localhost:1234",
+				)
+				// The client app is configured to run for about 10 seconds after Task shutdown.
+				require.GreaterOrEqual(r, len(upstreamOkLogs.Filter("upstream: [OK]")), 7)
+				require.GreaterOrEqual(r, upstreamOkLogs.Duration().Seconds(), 8.0)
+
+				// Double-check the application was still functional for about 10 seconds into Task shutdown.
+				// The FakeService makes requests to the upstream, so this further validates Envoy allows outgoing requests.
+				applicationOkLogs := monitorLogs.Filter(
+					"Signal received: signal=terminated",
+					"application: [OK] GET http://localhost:9090",
+				)
+				require.GreaterOrEqual(r, len(applicationOkLogs.Filter("application: [OK]")), 7)
+				require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
+			})
 
 			// TODO: The token deletion check is disabled due to a race condition.
 			// If the service still exists in Consul after a Task stops, the controller skips
@@ -341,8 +357,9 @@ func executeRemoteCommand(t *testing.T, taskARN, container, command string) (str
 	})
 }
 
-func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEvent {
-	getLogs := func(nextToken string) listLogEventsResponse {
+// getCloudWatchLogEvents fetch all log events for the given log stream.
+func getCloudWatchLogEvents(t terratestTesting.TestingT, groupName, streamName string) (LogMessages, error) {
+	getLogs := func(nextToken string) (listLogEventsResponse, error) {
 		args := []string{
 			"aws", "logs", "get-log-events",
 			"--region", suite.Config().Region,
@@ -352,15 +369,20 @@ func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEve
 		if nextToken != "" {
 			args = append(args, "--next-token", nextToken)
 		}
-		getLogEventsOut := shell.RunCommandAndGetOutput(t, shell.Command{Command: args[0], Args: args[1:]})
-
 		var resp listLogEventsResponse
-		err := json.Unmarshal([]byte(getLogEventsOut), &resp)
-		require.NoError(t, err)
-		return resp
+		getLogEventsOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{Command: args[0], Args: args[1:]})
+		if err != nil {
+			return resp, err
+		}
+
+		err = json.Unmarshal([]byte(getLogEventsOut), &resp)
+		return resp, err
 	}
 
-	resp := getLogs("")
+	resp, err := getLogs("")
+	if err != nil {
+		return nil, err
+	}
 
 	events := resp.Events
 	forwardToken := resp.NextForwardToken
@@ -368,7 +390,10 @@ func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEve
 
 	// Collect log events in the backwards direction
 	for {
-		resp = getLogs(backwardToken)
+		resp, err = getLogs(backwardToken)
+		if err != nil {
+			return nil, err
+		}
 		events = append(resp.Events, events...)
 		// "If you have reached the end of the stream, it returns the same token you passed in."
 		if backwardToken == resp.NextBackwardToken {
@@ -379,7 +404,10 @@ func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEve
 
 	// Collect log events in the forwards direction
 	for {
-		resp = getLogs(forwardToken)
+		resp, err = getLogs(forwardToken)
+		if err != nil {
+			return nil, err
+		}
 		events = append(events, resp.Events...)
 		// "If you have reached the end of the stream, it returns the same token you passed in."
 		if forwardToken == resp.NextForwardToken {
@@ -387,8 +415,9 @@ func getCloudWatchLogEvents(t *testing.T, groupName, streamName string) []logEve
 		}
 		forwardToken = resp.NextForwardToken
 	}
-	sort.Slice(events, func(i, j int) bool { return events[i].Timestamp < events[j].Timestamp })
-	return events
+	result := LogMessages(events)
+	result.Sort()
+	return result, nil
 }
 
 type logEvent struct {
@@ -401,4 +430,37 @@ type listLogEventsResponse struct {
 	Events            []logEvent `json:"events"`
 	NextForwardToken  string     `json:"nextForwardToken"`
 	NextBackwardToken string     `json:"nextBackwardToken"`
+}
+
+type LogMessages []logEvent
+
+// Sort will sort these log events by timestamp.
+func (lm LogMessages) Sort() {
+	sort.Slice(lm, func(i, j int) bool { return lm[i].Timestamp < lm[j].Timestamp })
+}
+
+// Filter return those log events that contain any of the filterStrings.
+func (lm LogMessages) Filter(filterStrings ...string) LogMessages {
+	var result []logEvent
+	for _, event := range lm {
+		for _, filterStr := range filterStrings {
+			if strings.Contains(event.Message, filterStr) {
+				result = append(result, event)
+			}
+		}
+	}
+	return result
+}
+
+// Duration returns the difference between the max and min log timestamps.
+// Returns a zero duration if there are zero or one log events.
+func (lm LogMessages) Duration() time.Duration {
+	if len(lm) < 2 {
+		return 0
+	}
+	lm.Sort() // Ensure sorted by timestamp first
+	last := lm[len(lm)-1]
+	first := lm[0]
+	// CloudWatch timestamps are in milliseconds
+	return time.Duration(int64(time.Millisecond) * (last.Timestamp - first.Timestamp))
 }

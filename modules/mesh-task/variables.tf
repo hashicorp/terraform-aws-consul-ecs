@@ -71,7 +71,7 @@ variable "log_configuration" {
 
 variable "container_definitions" {
   description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
-  type        = list(any)
+  type        = any
 }
 
 variable "upstreams" {

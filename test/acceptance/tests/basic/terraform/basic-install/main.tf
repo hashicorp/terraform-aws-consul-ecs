@@ -139,35 +139,57 @@ resource "aws_ecs_service" "test_client" {
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
   family = "test_client_${var.suffix}"
-  container_definitions = [{
-    name             = "basic"
-    image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential        = true
-    logConfiguration = local.test_client_log_configuration
-    environment = [
-      {
-        name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
+  container_definitions = [
+    {
+      name             = "basic"
+      image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+      essential        = true
+      logConfiguration = local.test_client_log_configuration
+      environment = [
+        {
+          name  = "UPSTREAM_URIS"
+          value = "http://localhost:1234"
+        }
+      ]
+      linuxParameters = {
+        initProcessEnabled = true
       }
-    ]
-    linuxParameters = {
-      initProcessEnabled = true
-    }
-    # Keep the client running for 10 seconds to validate graceful shutdown behavior.
-    entryPoint = ["/bin/sh", "-c", <<EOT
+      # Keep the client running for 10 seconds to validate graceful shutdown behavior.
+      entryPoint = ["/bin/sh", "-c", <<EOT
 /app/fake-service &
 export PID=$!
 trap "{ echo 'TEST LOG: on exit'; kill $PID; }" 0
 function onterm() {
-       echo "TEST LOG: Caught sigterm. Sleeping 10s..."
-       sleep 10
-       exit 0
+    echo "TEST LOG: Caught sigterm. Sleeping 10s..."
+    sleep 10
+    exit 0
 }
 trap onterm TERM
 wait $PID
 EOT
-    ]
-  }]
+      ]
+    },
+    {
+      # Inject an additional container to monitor apps during task shutdown.
+      name             = "shutdown-monitor"
+      image            = "docker.mirror.hashicorp.services/golang:1.17-alpine"
+      essential        = false
+      logConfiguration = local.test_client_log_configuration
+      # AWS: "We do not enforce a size limit on the environment variables..."
+      # Then, the max environment var length is ~32k
+      environment = [{
+        name  = "GOLANG_MAIN_B64"
+        value = base64encode(file("${path.module}/shutdown-monitor.go"))
+      }]
+      # NOTE: `go run <file>` signal handling is different: https://github.com/golang/go/issues/40467
+      entryPoint = ["/bin/sh", "-c", <<EOT
+echo "$GOLANG_MAIN_B64" | base64 -d > main.go
+go build main.go
+exec ./main
+EOT
+      ]
+    }
+  ]
   retry_join = module.consul_server.server_dns
   upstreams = [
     {

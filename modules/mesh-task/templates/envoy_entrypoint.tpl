@@ -1,10 +1,3 @@
-onexit() {
-    echo "Finished graceful shutdown."
-    if [ "$ENVOY_PID"]; then
-        kill $ENVOY_PID
-    fi
-}
-
 onterm() {
     echo "Ignored sigterm to support graceful task shutdown."
     if [ "$ENVOY_PID" ]; then
@@ -15,7 +8,6 @@ onterm() {
 }
 
 trap onterm TERM
-trap onexit EXIT
 
 # Note: We cannot exec here, because that loses our traps.
 $0 "$@" &
