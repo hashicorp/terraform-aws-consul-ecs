@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+* modules/mesh-task: Keep Envoy running into Task shutdown to allow outgoing requests in order to allow
+  applications to shut down gracefully. [[GH-48](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/48)]
+
 ## 0.2.0-beta2 (Sep 30, 2021) 
 
 FEATURES
