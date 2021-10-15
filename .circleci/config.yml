@@ -123,19 +123,23 @@ jobs:
           when: always
 
 acceptance-common: &ACCEPTANCE_COMMON
-  filters:
-    branches:
-      # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-      ignore: /pull\/[0-9]+|docs\/.*/
   requires:
     - go-fmt-and-lint-acceptance
+    - approve-acceptance-tests
 
 workflows:
-  version: 2
+  version: 2.1
   test-and-build:
     jobs:
       - go-fmt-and-lint-acceptance
       - terraform-fmt
+      - approve-acceptance-tests:
+          type: approval
+          branches:
+            only:
+              - asdf
+          requires:
+            - go-fmt-and-lint-acceptance
       - acceptance:
           name: "acceptance-fargate"
           terraform_apply_vars: -var launch_type=FARGATE
