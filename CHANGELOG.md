@@ -1,12 +1,17 @@
 ## UNRELEASED
 
-## 0.2.0-beta2 (Sep 30, 2021) 
+FEATURES
+* modules/mesh-task: Run a health-sync container for essential containers when
+  ECS health checks are defined and there aren't any Consul health checks
+  [[GH-45](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/45)]
+
+## 0.2.0-beta2 (Sep 30, 2021)
 
 FEATURES
 * modules/mesh-task: Add `checks` variable to define Consul native checks.
   [[GH-41](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/41)]
 
-## 0.2.0-beta1 (Sep 16, 2021) 
+## 0.2.0-beta1 (Sep 16, 2021)
 
 BREAKING CHANGES
 * modules/mesh-task: `execution_role_arn` and `task_role_arn` variables have been removed.
@@ -25,7 +30,7 @@ FEATURES
 IMPROVEMENTS
 * modules/dev-server: Use AWS CloudMap to discover the dev server instead running the `discover-servers` container.
   [[GH-24](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/24)]
-* modules/mesh-task: Increase file descriptor limit for the sidecar-proxy container. 
+* modules/mesh-task: Increase file descriptor limit for the sidecar-proxy container.
   [[GH-34](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/34)]
 * Support deployments on the ECS launch type. [[GH-25](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/25)]
 

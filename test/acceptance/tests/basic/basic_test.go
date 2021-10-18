@@ -122,37 +122,32 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			// Wait for passing health check for test_server
+			// Wait for passing health check for test_server and test_client
 			tokenHeader := ""
 			if secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"execute-command",
-						"--region",
-						suite.Config().Region,
-						"--cluster",
-						suite.Config().ECSClusterARN,
-						"--task",
-						consulServerTaskARN,
-						"--container=consul-server",
-						"--command",
-						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/test_server_%s'`, tokenHeader, randomSuffix),
-						"--interactive",
-					},
-					Logger: terratestLogger.New(logger.TestLogger{}),
-				})
-				r.Check(err)
 
-				statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
-				if statusRegex.FindAllString(out, 1) == nil {
-					r.Errorf("Check status not yet passing")
-				}
-			})
+			// test_server has a Consul native HTTP check
+			// test_client has a check synced from ECS
+			services := []string{"test_server", "test_client"}
+			for _, serviceName := range services {
+				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+					out, err := executeRemoteCommand(
+						t,
+						consulServerTaskARN,
+						"consul-server",
+						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/%s_%s'`, tokenHeader, serviceName, randomSuffix),
+					)
+					r.Check(err)
+
+					statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
+					if statusRegex.FindAllString(out, 1) == nil {
+						r.Errorf("Check status not yet passing")
+					}
+				})
+
+			}
 
 			// Use aws exec to curl between the apps.
 			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
