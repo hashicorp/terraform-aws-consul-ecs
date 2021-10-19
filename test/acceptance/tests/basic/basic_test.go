@@ -65,7 +65,7 @@ func TestBasic(t *testing.T) {
 	for _, secure := range cases {
 		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
 			randomSuffix := strings.ToLower(random.UniqueId())
-			tfVars := suite.Config().TFVars()
+			tfVars := suite.Config().TFVars("route_table_ids")
 			tfVars["secure"] = secure
 			tfVars["suffix"] = randomSuffix
 			terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{

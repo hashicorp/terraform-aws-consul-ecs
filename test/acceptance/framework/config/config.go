@@ -14,7 +14,7 @@ type TestConfig struct {
 	Tags               interface{}
 }
 
-func (t TestConfig) TFVars() map[string]interface{} {
+func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 	vars := map[string]interface{}{
 		"ecs_cluster_arn": t.ECSClusterARN,
 		"launch_type":     t.LaunchType,
@@ -31,6 +31,10 @@ func (t TestConfig) TFVars() map[string]interface{} {
 	// Terraform uses the variable's default which works.
 	if t.Tags != "" && t.Tags != "{}" {
 		vars["tags"] = t.Tags
+	}
+
+	for _, v := range ignoreVars {
+		delete(vars, v)
 	}
 	return vars
 }
