@@ -108,7 +108,7 @@ jobs:
           working_directory: test/acceptance/tests
           no_output_timeout: 1h
           command: |
-            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 30m -v -failfast
+            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 1h -v -failfast
 
       - store_test_results:
           path: *TEST_RESULTS
