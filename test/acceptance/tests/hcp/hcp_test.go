@@ -13,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/helpers"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
@@ -56,8 +57,8 @@ func TestHCP(t *testing.T) {
 	logger.Log(t, "checking if services are registered")
 	retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 		services, _, err := consulClient.Catalog().Services(nil)
-		logger.Logf(t, "Consul services: %v", services)
 		r.Check(err)
+		logger.Logf(t, "Consul services: %v", services)
 		require.Contains(r, services, serverServiceName)
 		require.Contains(r, services, clientServiceName)
 	})
@@ -93,24 +94,7 @@ func TestHCP(t *testing.T) {
 
 	// First check that connection between apps is unsuccessful without an intention.
 	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-			Command: "aws",
-			Args: []string{
-				"ecs",
-				"execute-command",
-				"--region",
-				suite.Config().Region,
-				"--cluster",
-				suite.Config().ECSClusterARN,
-				"--task",
-				tasks.TaskARNs[0],
-				"--container=basic",
-				"--command",
-				`/bin/sh -c "curl localhost:1234"`,
-				"--interactive",
-			},
-			Logger: terratestLogger.New(logger.TestLogger{}),
-		})
+		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
 		r.Check(err)
 		if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
 			r.Errorf("response was unexpected: %q", curlOut)
@@ -129,24 +113,7 @@ func TestHCP(t *testing.T) {
 
 	// Now check that the connection succeeds.
 	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		curlOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-			Command: "aws",
-			Args: []string{
-				"ecs",
-				"execute-command",
-				"--region",
-				suite.Config().Region,
-				"--cluster",
-				suite.Config().ECSClusterARN,
-				"--task",
-				tasks.TaskARNs[0],
-				"--container=basic",
-				"--command",
-				`/bin/sh -c "curl localhost:1234"`,
-				"--interactive",
-			},
-			Logger: terratestLogger.New(logger.TestLogger{}),
-		})
+		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
 		r.Check(err)
 		if !strings.Contains(curlOut, `"code": 200`) {
 			r.Errorf("response was unexpected: %q", curlOut)
