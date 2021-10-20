@@ -89,6 +89,7 @@ module "acl_controller" {
       awslogs-stream-prefix = "consul-acl-controller"
     }
   }
+  launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
   consul_server_http_addr           = hcp_consul_cluster.this.consul_private_endpoint_url
   ecs_cluster_arn                   = var.ecs_cluster_arn
@@ -148,6 +149,8 @@ module "test_client" {
   }
   outbound_only = true
 
+  launch_type = var.launch_type
+
   tls                            = true
   consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
   gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
@@ -200,6 +203,8 @@ module "test_server" {
     }
   ]
   port = 9090
+
+  launch_type = var.launch_type
 
   tls                            = true
   consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn

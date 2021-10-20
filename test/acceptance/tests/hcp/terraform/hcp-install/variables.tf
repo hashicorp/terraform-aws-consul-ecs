@@ -18,6 +18,11 @@ variable "subnets" {
   description = "Subnets to deploy into."
 }
 
+variable "launch_type" {
+  description = "Whether to launch tasks on Fargate or EC2"
+  type        = string
+}
+
 variable "suffix" {
   type        = string
   default     = "nosuffix"
