@@ -4,7 +4,7 @@ provider "aws" {
 
 // Create HCP resources.
 resource "hcp_hvn" "server" {
-  hvn_id         = "main-hvn"
+  hvn_id         = "${var.suffix}-hvn"
   cloud_provider = "aws"
   region         = var.region
   cidr_block     = "172.25.16.0/20"
@@ -45,7 +45,8 @@ resource "aws_route" "peering" {
 }
 
 resource "hcp_consul_cluster" "this" {
-  cluster_id      = "dc1"
+  cluster_id      = "${var.suffix}-server"
+  datacenter      = "dc1"
   hvn_id          = hcp_hvn.server.hvn_id
   tier            = "development"
   public_endpoint = true
