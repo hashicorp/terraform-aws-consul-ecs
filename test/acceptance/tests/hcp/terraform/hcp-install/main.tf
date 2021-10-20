@@ -109,7 +109,7 @@ resource "aws_ecs_service" "test_client" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
@@ -150,8 +150,6 @@ module "test_client" {
   }
   outbound_only = true
 
-  launch_type = var.launch_type
-
   tls                            = true
   consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
   gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
@@ -169,7 +167,7 @@ resource "aws_ecs_service" "test_server" {
   network_configuration {
     subnets = var.subnets
   }
-  launch_type            = "FARGATE"
+  launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
@@ -204,8 +202,6 @@ module "test_server" {
     }
   ]
   port = 9090
-
-  launch_type = var.launch_type
 
   tls                            = true
   consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
