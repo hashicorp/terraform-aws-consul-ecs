@@ -73,6 +73,8 @@ jobs:
       launch_type:
         default: ""
         type: string
+      consul_version:
+        type: string
     steps:
       - checkout
 
@@ -94,7 +96,7 @@ jobs:
           command: |
             terraform init
 
-            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve -var launch_type=<<parameters.launch_type>>
+            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve -var launch_type=<<parameters.launch_type>> -var consul_image=public.ecr.aws/hashicorp/consul:<<parameters.consul_version>>
 
       # Restore go module cache if there is one
       - restore_cache:
@@ -134,9 +136,29 @@ workflows:
               launch_type:
                 - FARGATE
                 - EC2
+              consul_version:
+                - "1.10"
           filters:
             branches:
               # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
               ignore: /pull\/[0-9]+|docs\/.*/
           requires:
             - go-fmt-and-lint-acceptance
+  nightly:
+    # triggers:
+    #   - schedule:
+    #     cron: "0 0 * * 1-5"
+    #     filters:
+    #       branches:
+    #         only:
+    #           - main
+    jobs:
+      - acceptance:
+          matrix:
+            parameters:
+              launch_type:
+                - FARGATE
+                - EC2
+              consul_version:
+                - "1.10"
+                - "1.9"

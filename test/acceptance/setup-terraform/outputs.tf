@@ -33,3 +33,7 @@ output "tags" {
 output "route_table_ids" {
   value = [module.vpc.public_route_table_ids[0], module.vpc.private_route_table_ids[0]]
 }
+
+output "consul_image" {
+  value = var.consul_image
+}

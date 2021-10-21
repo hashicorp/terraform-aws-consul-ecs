@@ -157,6 +157,7 @@ module "test_client" {
   consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+  consul_image                   = var.consul_image
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -210,4 +211,5 @@ module "test_server" {
   consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+  consul_image                   = var.consul_image
 }

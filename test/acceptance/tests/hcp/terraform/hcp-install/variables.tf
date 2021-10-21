@@ -50,3 +50,8 @@ variable "consul_ecs_image" {
   type        = string
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
+
+variable "consul_image" {
+  description = "Consul Docker image."
+  type        = string
+}

@@ -52,6 +52,11 @@ variable "consul_ecs_image" {
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
+variable "consul_image" {
+  description = "Consul Docker image."
+  type        = string
+}
+
 provider "aws" {
   region = var.region
 }
@@ -183,6 +188,7 @@ module "test_client" {
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+  consul_image                   = var.consul_image
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -236,4 +242,5 @@ module "test_server" {
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+  consul_image                   = var.consul_image
 }

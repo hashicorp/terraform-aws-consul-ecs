@@ -30,3 +30,8 @@ variable "instance_type" {
   type        = string
   default     = "t3a.micro"
 }
+
+variable "consul_image" {
+  description = "Consul Docker image."
+  type        = string
+}
