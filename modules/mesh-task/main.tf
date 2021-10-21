@@ -13,6 +13,8 @@ locals {
     { readOnly = false },
   )
 
+  consul_binary_volume_name = "consul_binary"
+
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
@@ -201,6 +203,10 @@ resource "aws_ecs_task_definition" "this" {
     name = local.consul_data_volume_name
   }
 
+  volume {
+    name = local.consul_binary_volume_name
+  }
+
   tags = merge(var.tags, {
     "consul.hashicorp.com/mesh" = "true"
   })
@@ -224,7 +230,12 @@ resource "aws_ecs_task_definition" "this" {
               "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
             ]
             mountPoints = [
-              local.consul_data_mount_read_write
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+                readOnly      = true
+              }
             ]
             cpu          = 0
             volumesFrom  = []
@@ -267,7 +278,11 @@ resource "aws_ecs_task_definition" "this" {
               ), "\r", "")
             ]
             mountPoints = [
-              local.consul_data_mount_read_write
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+              }
             ]
             linuxParameters = {
               initProcessEnabled = true

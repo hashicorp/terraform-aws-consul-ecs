@@ -1,3 +1,5 @@
+cp /bin/consul /bin/consul-inject/consul
+
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 
 %{ if tls }

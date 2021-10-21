@@ -9,6 +9,10 @@ IMPROVEMENTS
 * modules/mesh-task: Run the `consul-ecs-mesh-init` container with the
   `consul-ecs` user instead of `root`
   [[GH-52](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/52)]
+* modules/mesh-task: The Consul binary is now inserted into
+  `consul-ecs-mesh-init` from the `consul-client` container. This means that
+  each release of `consul-ecs` will work with multiple Consul versions.
+  [[GH-53](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/53)]
 
 ## 0.2.0-beta2 (Sep 30, 2021)
 
