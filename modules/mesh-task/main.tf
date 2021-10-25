@@ -74,7 +74,8 @@ resource "aws_iam_role" "task" {
         "ssmmessages:CreateControlChannel",
         "ssmmessages:CreateDataChannel",
         "ssmmessages:OpenControlChannel",
-        "ssmmessages:OpenDataChannel"
+        "ssmmessages:OpenDataChannel",
+        "ecs:ListTagsForResource"
       ],
       "Resource": [
         "*"
@@ -139,7 +140,8 @@ resource "aws_iam_policy" "execution" {
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogStream",
-        "logs:PutLogEvents"
+        "logs:PutLogEvents",
+        "ecs:ListTagsForResource"
       ],
       "Resource": "*"
     }
@@ -227,7 +229,10 @@ resource "aws_ecs_task_definition" "this" {
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
               "-checks=${jsonencode(var.checks)}",
-              "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
+              "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
+              "-tags=${join(",", var.consul_tags)}",
+              "-meta=${jsonencode(var.meta)}",
+              "-service-name=${var.service_name}"
             ]
             mountPoints = [
               local.consul_data_mount_read_write,

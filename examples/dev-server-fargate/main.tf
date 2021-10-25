@@ -47,7 +47,14 @@ resource "aws_ecs_service" "example_client_app" {
 }
 
 module "example_client_app" {
-  source = "../../modules/mesh-task"
+  source           = "../../modules/mesh-task"
+  consul_ecs_image = "hashicorpdev/consul-ecs:8fffd51"
+  service_name     = "client_app"
+  consul_tags      = ["tag1", "tag2"]
+  meta = {
+    tag1 = "value1"
+    tag2 = "value2"
+  }
   family = "${var.name}-example-client-app"
   port   = "9090"
   upstreams = [
@@ -103,6 +110,8 @@ resource "aws_ecs_service" "example_server_app" {
 
 module "example_server_app" {
   source            = "../../modules/mesh-task"
+  consul_ecs_image  = "hashicorpdev/consul-ecs:8fffd51"
+  service_name      = "server_app"
   family            = "${var.name}-example-server-app"
   port              = "9090"
   log_configuration = local.example_server_app_log_config
