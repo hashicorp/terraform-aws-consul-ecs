@@ -64,6 +64,11 @@ func TestBasic(t *testing.T) {
 	randomSuffix := strings.ToLower(random.UniqueId())
 	tfVars := suite.Config().TFVars("route_table_ids")
 	tfVars["suffix"] = randomSuffix
+	serverServiceName := "custom_test_server"
+	// This uses the explicitly passed service name rather than the task's family name.
+	tfVars["server_service_name"] = serverServiceName
+	clientServiceName := "test_client"
+
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "./terraform/basic-install",
 		Vars:         tfVars,
@@ -112,16 +117,16 @@ func TestBasic(t *testing.T) {
 	retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 		out, err := helpers.ExecuteRemoteCommand(t, suite.Config(), consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
 		r.Check(err)
-		if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
-			!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
+		if !strings.Contains(out, fmt.Sprintf("%s_%s", serverServiceName, randomSuffix)) ||
+			!strings.Contains(out, fmt.Sprintf("%s_%s", clientServiceName, randomSuffix)) {
 			r.Errorf("services not yet registered, got %q", out)
 		}
 	})
 
-	// Wait for passing health check for test_server and test_client
-	// test_server has a Consul native HTTP check
-	// test_client has a check synced from ECS
-	services := []string{"test_server", "test_client"}
+	// Wait for passing health check for `serverServiceName` and `clientServiceName`.
+	// `serverServiceName` has a Consul native HTTP check.
+	// `clientServiceName`  has a check synced from ECS.
+	services := []string{serverServiceName, clientServiceName}
 	for _, serviceName := range services {
 		retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 			out, err := helpers.ExecuteRemoteCommand(

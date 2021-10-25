@@ -4,6 +4,11 @@ FEATURES
 * modules/mesh-task: Run a health-sync container for essential containers when
   ECS health checks are defined and there aren't any Consul health checks
   [[GH-45](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/45)]
+* modules/mesh-task: Add `consul_service_tags`, `consul_service_meta` and
+  `consul_service_name` input variables to the mesh-task. When
+  `consul_service_name` is unset, the ECS task family name is used for the
+  Consul service name.
+  [[GH-58](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/58)]
 
 IMPROVEMENTS
 * modules/mesh-task: Run the `consul-ecs-mesh-init` container with the
