@@ -225,7 +225,7 @@ resource "aws_ecs_task_definition" "this" {
             logConfiguration = var.log_configuration
             command = [
               "mesh-init",
-              "-envoy-bootstrap-file=/consul/envoy-bootstrap.json",
+              "-envoy-bootstrap-dir=/consul",
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
               "-checks=${jsonencode(var.checks)}",
@@ -326,7 +326,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.envoy_image
             essential        = false
             logConfiguration = var.log_configuration
-            entrypoint       = ["/bin/sh", "-c", templatefile("${path.module}/templates/envoy_entrypoint.tpl", {})]
+            entrypoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
             portMappings = [
               {
