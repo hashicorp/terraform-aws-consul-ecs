@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
-	terratestTesting "github.com/gruntwork-io/terratest/modules/testing"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/helpers"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
@@ -211,7 +209,7 @@ func TestBasic(t *testing.T) {
 
 	// Check logs to see that the application ignored the TERM signal and exited about 10s later.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		appLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
 			fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID),
 		)
 		require.NoError(r, err)
@@ -225,7 +223,7 @@ func TestBasic(t *testing.T) {
 
 	// Check that Envoy ignored the sigterm.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		envoyLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
 			fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID),
 		)
 		require.NoError(r, err)
@@ -236,7 +234,7 @@ func TestBasic(t *testing.T) {
 
 	// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		monitorLogs, err := getCloudWatchLogEvents(t, suite.Config().LogGroupName,
+		monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
 			fmt.Sprintf("test_client_%s/shutdown-monitor/%s", randomSuffix, testClientTaskID))
 		require.NoError(r, err)
 
@@ -264,112 +262,4 @@ func TestBasic(t *testing.T) {
 
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
-}
-
-// getCloudWatchLogEvents fetch all log events for the given log stream.
-func getCloudWatchLogEvents(t terratestTesting.TestingT, groupName, streamName string) (LogMessages, error) {
-	getLogs := func(nextToken string) (listLogEventsResponse, error) {
-		args := []string{
-			"aws", "logs", "get-log-events",
-			"--region", suite.Config().Region,
-			"--log-group-name", groupName,
-			"--log-stream-name", streamName,
-		}
-		if nextToken != "" {
-			args = append(args, "--next-token", nextToken)
-		}
-		var resp listLogEventsResponse
-		getLogEventsOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{Command: args[0], Args: args[1:]})
-		if err != nil {
-			return resp, err
-		}
-
-		err = json.Unmarshal([]byte(getLogEventsOut), &resp)
-		return resp, err
-	}
-
-	resp, err := getLogs("")
-	if err != nil {
-		return nil, err
-	}
-
-	events := resp.Events
-	forwardToken := resp.NextForwardToken
-	backwardToken := resp.NextBackwardToken
-
-	// Collect log events in the backwards direction
-	for {
-		resp, err = getLogs(backwardToken)
-		if err != nil {
-			return nil, err
-		}
-		events = append(resp.Events, events...)
-		// "If you have reached the end of the stream, it returns the same token you passed in."
-		if backwardToken == resp.NextBackwardToken {
-			break
-		}
-		backwardToken = resp.NextBackwardToken
-	}
-
-	// Collect log events in the forwards direction
-	for {
-		resp, err = getLogs(forwardToken)
-		if err != nil {
-			return nil, err
-		}
-		events = append(events, resp.Events...)
-		// "If you have reached the end of the stream, it returns the same token you passed in."
-		if forwardToken == resp.NextForwardToken {
-			break
-		}
-		forwardToken = resp.NextForwardToken
-	}
-	result := LogMessages(events)
-	result.Sort()
-	return result, nil
-}
-
-type logEvent struct {
-	Timestamp int64  `json:"timestamp"`
-	Message   string `json:"message"`
-	Ingestion int64  `json:"ingestion"`
-}
-
-type listLogEventsResponse struct {
-	Events            []logEvent `json:"events"`
-	NextForwardToken  string     `json:"nextForwardToken"`
-	NextBackwardToken string     `json:"nextBackwardToken"`
-}
-
-type LogMessages []logEvent
-
-// Sort will sort these log events by timestamp.
-func (lm LogMessages) Sort() {
-	sort.Slice(lm, func(i, j int) bool { return lm[i].Timestamp < lm[j].Timestamp })
-}
-
-// Filter return those log events that contain any of the filterStrings.
-func (lm LogMessages) Filter(filterStrings ...string) LogMessages {
-	var result []logEvent
-	for _, event := range lm {
-		for _, filterStr := range filterStrings {
-			if strings.Contains(event.Message, filterStr) {
-				result = append(result, event)
-			}
-		}
-	}
-	return result
-}
-
-// Duration returns the difference between the max and min log timestamps.
-// Returns a zero duration if there are zero or one log events.
-func (lm LogMessages) Duration() time.Duration {
-	if len(lm) < 2 {
-		return 0
-	}
-	lm.Sort() // Ensure sorted by timestamp first
-	last := lm[len(lm)-1]
-	first := lm[0]
-	// CloudWatch timestamps are in milliseconds
-	return time.Duration(int64(time.Millisecond) * (last.Timestamp - first.Timestamp))
 }
