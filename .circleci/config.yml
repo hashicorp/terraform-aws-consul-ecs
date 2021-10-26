@@ -70,7 +70,7 @@ jobs:
   acceptance:
     executor: consul-ecs-test
     parameters:
-      terraform_apply_vars:
+      launch_type:
         default: ""
         type: string
     steps:
@@ -94,7 +94,7 @@ jobs:
           command: |
             terraform init
 
-            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve <<parameters.terraform_apply_vars>>
+            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve -var launch_type=<<parameters.launch_type>>
 
       # Restore go module cache if there is one
       - restore_cache:
@@ -108,7 +108,7 @@ jobs:
           working_directory: test/acceptance/tests
           no_output_timeout: 1h
           command: |
-            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 30m -v -failfast
+            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 1h -v -failfast
 
       - store_test_results:
           path: *TEST_RESULTS
@@ -119,28 +119,24 @@ jobs:
           name: terraform destroy
           working_directory: test/acceptance/setup-terraform
           command: |
-            terraform destroy -auto-approve <<parameters.terraform_apply_vars>>
+            terraform destroy -auto-approve -var launch_type=<<parameters.launch_type>>
           when: always
 
-acceptance-common: &ACCEPTANCE_COMMON
-  filters:
-    branches:
-      # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-      ignore: /pull\/[0-9]+|docs\/.*/
-  requires:
-    - go-fmt-and-lint-acceptance
-
 workflows:
-  version: 2
+  version: 2.1
   test-and-build:
     jobs:
       - go-fmt-and-lint-acceptance
       - terraform-fmt
       - acceptance:
-          name: "acceptance-fargate"
-          terraform_apply_vars: -var launch_type=FARGATE
-          <<: *ACCEPTANCE_COMMON
-      - acceptance:
-          name: "acceptance-ec2"
-          terraform_apply_vars: -var launch_type=EC2
-          <<: *ACCEPTANCE_COMMON
+          matrix:
+            parameters:
+              launch_type:
+                - FARGATE
+                - EC2
+          filters:
+            branches:
+              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+              ignore: /pull\/[0-9]+|docs\/.*/
+          requires:
+            - go-fmt-and-lint-acceptance

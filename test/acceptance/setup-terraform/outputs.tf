@@ -29,3 +29,7 @@ output "region" {
 output "tags" {
   value = var.tags
 }
+
+output "route_table_ids" {
+  value = [module.vpc.public_route_table_ids[0], module.vpc.private_route_table_ids[0]]
+}

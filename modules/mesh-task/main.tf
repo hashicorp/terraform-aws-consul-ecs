@@ -6,7 +6,14 @@ locals {
   consul_data_mount = {
     sourceVolume  = local.consul_data_volume_name
     containerPath = "/consul"
+    readOnly      = true
   }
+  consul_data_mount_read_write = merge(
+    local.consul_data_mount,
+    { readOnly = false },
+  )
+
+  consul_binary_volume_name = "consul_binary"
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
@@ -33,6 +40,10 @@ locals {
       }
     )
   ]
+
+  defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
+  if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
+
   upstreams_flag = join(",", [for upstream in var.upstreams : "${upstream["destination_name"]}:${upstream["local_bind_port"]}"])
 }
 
@@ -191,9 +202,15 @@ resource "aws_ecs_task_definition" "this" {
   volume {
     name = local.consul_data_volume_name
   }
-  tags = {
-    "consul.hashicorp.com/mesh" = "true"
+
+  volume {
+    name = local.consul_binary_volume_name
   }
+
+  tags = merge(var.tags, {
+    "consul.hashicorp.com/mesh" = "true"
+  })
+
   container_definitions = jsonencode(
     flatten(
       concat(
@@ -209,11 +226,16 @@ resource "aws_ecs_task_definition" "this" {
               "-envoy-bootstrap-file=/consul/envoy-bootstrap.json",
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
-              "-checks=${jsonencode(var.checks)}"
+              "-checks=${jsonencode(var.checks)}",
+              "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
             ]
-            user = "root"
             mountPoints = [
-              local.consul_data_mount
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+                readOnly      = true
+              }
             ]
             cpu          = 0
             volumesFrom  = []
@@ -256,14 +278,23 @@ resource "aws_ecs_task_definition" "this" {
               ), "\r", "")
             ]
             mountPoints = [
-              local.consul_data_mount
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+              }
             ]
             linuxParameters = {
               initProcessEnabled = true
             }
             cpu         = 0
             volumesFrom = []
-            environment = []
+            environment = [
+              {
+                name  = "CONSUL_DATACENTER"
+                value = var.consul_datacenter
+              }
+            ]
             secrets = concat(
               var.tls ? [
                 {
@@ -325,8 +356,34 @@ resource "aws_ecs_task_definition" "this" {
               softLimit = 1048576
               hardLimit = 1048576
             }]
-          }
-        ]
+          },
+        ],
+        length(local.defaulted_check_containers) > 0 ? [{
+          name             = "consul-ecs-health-sync"
+          image            = var.consul_ecs_image
+          essential        = false
+          logConfiguration = var.log_configuration
+          command = [
+            "health-sync",
+            "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
+          ]
+          cpu          = 0
+          volumesFrom  = []
+          environment  = []
+          portMappings = []
+          dependsOn = [
+            {
+              containerName = "consul-ecs-mesh-init"
+              condition     = "SUCCESS"
+            },
+          ]
+          secrets = var.acls ? [
+            {
+              name      = "CONSUL_HTTP_TOKEN",
+              valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
+            }
+          ] : []
+        }] : [],
       )
     )
   )

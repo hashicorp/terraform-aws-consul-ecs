@@ -168,6 +168,12 @@ trap onterm TERM
 wait $PID
 EOT
       ]
+      healthCheck = {
+        command  = ["CMD-SHELL", "echo 1"]
+        interval = 30
+        retries  = 3
+        timeout  = 5
+      }
     },
     {
       # Inject an additional container to monitor apps during task shutdown.
