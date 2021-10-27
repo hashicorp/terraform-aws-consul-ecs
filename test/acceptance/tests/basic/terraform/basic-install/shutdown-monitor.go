@@ -1,4 +1,4 @@
-// This is code intended to run as an additional container in Task
+// This code is intended to run as an additional container in Task
 // to help us monitor shutdown behavior of applications.
 //
 // It will wait until it receives a SIGTERM. Then, it will spawn

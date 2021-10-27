@@ -93,7 +93,7 @@ func (lm LogMessages) Sort() {
 	sort.Slice(lm, func(i, j int) bool { return lm[i].Timestamp < lm[j].Timestamp })
 }
 
-// Filter return those log events that contain any of the filterStrings.
+// Filter returns those log events that contain any of the filterStrings.
 func (lm LogMessages) Filter(filterStrings ...string) LogMessages {
 	var result []LogEvent
 	for _, event := range lm {
