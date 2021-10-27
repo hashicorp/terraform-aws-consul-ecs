@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -157,6 +158,9 @@ func TestBasic(t *testing.T) {
 	var tasks listTasksResponse
 	require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
 	require.Len(t, tasks.TaskARNs, 1)
+	testClientTaskARN := tasks.TaskARNs[0]
+	arnParts := strings.Split(testClientTaskARN, "/")
+	testClientTaskID := arnParts[len(arnParts)-1]
 
 	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
@@ -164,6 +168,93 @@ func TestBasic(t *testing.T) {
 		if !strings.Contains(curlOut, `"code": 200`) {
 			r.Errorf("response was unexpected: %q", curlOut)
 		}
+	})
+
+	// Validate graceful shutdown behavior. We check the client app can reach its upstream after the task is stopped.
+	// This relies on a couple of helpers:
+	// * a custom entrypoint for the client app that keeps it running for 10s into Task shutdown, and
+	// * an additional "shutdown-monitor" container that makes requests to the client app
+	// Since this is timing dependent, we check logs after the fact to validate when the containers exited.
+	shell.RunCommandAndGetOutput(t, shell.Command{
+		Command: "aws",
+		Args: []string{
+			"ecs",
+			"stop-task",
+			"--region", suite.Config().Region,
+			"--cluster", suite.Config().ECSClusterARN,
+			"--task", testClientTaskARN,
+			"--reason", "Stopped to validate graceful shutdown in acceptance tests",
+		},
+	})
+
+	// Wait for the task to stop (~30 seconds)
+	retry.RunWith(&retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+		describeTasksOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
+			Command: "aws",
+			Args: []string{
+				"ecs",
+				"describe-tasks",
+				"--region", suite.Config().Region,
+				"--cluster", suite.Config().ECSClusterARN,
+				"--task", testClientTaskARN,
+			},
+		})
+		r.Check(err)
+
+		var describeTasks ecs.DescribeTasksOutput
+		r.Check(json.Unmarshal([]byte(describeTasksOut), &describeTasks))
+		require.Len(r, describeTasks.Tasks, 1)
+		require.NotEqual(r, "RUNNING", describeTasks.Tasks[0].LastStatus)
+	})
+
+	// Check logs to see that the application ignored the TERM signal and exited about 10s later.
+	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
+			fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID),
+		)
+		require.NoError(r, err)
+
+		appLogs = appLogs.Filter("TEST LOG:")
+		require.Len(r, appLogs, 2)
+		require.Equal(r, appLogs[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
+		require.Equal(r, appLogs[1].Message, "TEST LOG: on exit")
+		require.InDelta(r, 10, appLogs.Duration().Seconds(), 1)
+	})
+
+	// Check that Envoy ignored the sigterm.
+	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
+			fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID),
+		)
+		require.NoError(r, err)
+		envoyLogs = envoyLogs.Filter("Ignored sigterm")
+		require.Len(r, envoyLogs, 1)
+		require.Equal(r, envoyLogs[0].Message, "Ignored sigterm to support graceful task shutdown.")
+	})
+
+	// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
+	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+		monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
+			fmt.Sprintf("test_client_%s/shutdown-monitor/%s", randomSuffix, testClientTaskID))
+		require.NoError(r, err)
+
+		// Check how long after shutdown the upstream was reachable.
+		upstreamOkLogs := monitorLogs.Filter(
+			"Signal received: signal=terminated",
+			"upstream: [OK] GET http://localhost:1234 (200)",
+		)
+		// The client app is configured to run for about 10 seconds after Task shutdown.
+		require.GreaterOrEqual(r, len(upstreamOkLogs.Filter("upstream: [OK]")), 7)
+		require.GreaterOrEqual(r, upstreamOkLogs.Duration().Seconds(), 8.0)
+
+		// Double-check the application was still functional for about 10 seconds into Task shutdown.
+		// The FakeService makes requests to the upstream, so this further validates Envoy allows outgoing requests.
+		applicationOkLogs := monitorLogs.Filter(
+			"Signal received: signal=terminated",
+			"application: [OK] GET http://localhost:9090 (200)",
+		)
+		require.GreaterOrEqual(r, len(applicationOkLogs.Filter("application: [OK]")), 7)
+		require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
 	})
 
 	logger.Log(t, "Test successful!")

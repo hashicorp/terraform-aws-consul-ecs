@@ -71,7 +71,8 @@ variable "log_configuration" {
 
 variable "container_definitions" {
   description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
-  type        = list(any)
+  # This is `any` on purpose. Using `list(any)` is too restrictive. It requires maps in the list to have the same key set, and same value types.
+  type = any
 }
 
 variable "upstreams" {

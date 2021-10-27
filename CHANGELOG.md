@@ -13,6 +13,8 @@ IMPROVEMENTS
   `consul-ecs-mesh-init` from the `consul-client` container. This means that
   each release of `consul-ecs` will work with multiple Consul versions.
   [[GH-53](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/53)]
+* modules/mesh-task: Keep Envoy running into Task shutdown to allow outgoing requests
+  so that applications can shut down gracefully. [[GH-48](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/48)]
 
 ## 0.2.0-beta2 (Sep 30, 2021)
 

@@ -321,6 +321,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.envoy_image
             essential        = false
             logConfiguration = var.log_configuration
+            entrypoint       = ["/bin/sh", "-c", templatefile("${path.module}/templates/envoy_entrypoint.tpl", {})]
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
             portMappings = [
               {
