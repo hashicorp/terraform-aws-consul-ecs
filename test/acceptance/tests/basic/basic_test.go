@@ -241,7 +241,7 @@ func TestBasic(t *testing.T) {
 		// Check how long after shutdown the upstream was reachable.
 		upstreamOkLogs := monitorLogs.Filter(
 			"Signal received: signal=terminated",
-			"upstream: [OK] GET http://localhost:1234",
+			"upstream: [OK] GET http://localhost:1234 (200)",
 		)
 		// The client app is configured to run for about 10 seconds after Task shutdown.
 		require.GreaterOrEqual(r, len(upstreamOkLogs.Filter("upstream: [OK]")), 7)
@@ -251,7 +251,7 @@ func TestBasic(t *testing.T) {
 		// The FakeService makes requests to the upstream, so this further validates Envoy allows outgoing requests.
 		applicationOkLogs := monitorLogs.Filter(
 			"Signal received: signal=terminated",
-			"application: [OK] GET http://localhost:9090",
+			"application: [OK] GET http://localhost:9090 (200)",
 		)
 		require.GreaterOrEqual(r, len(applicationOkLogs.Filter("application: [OK]")), 7)
 		require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
