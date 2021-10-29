@@ -1,18 +1,14 @@
 package basic
 
 import (
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/helpers"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -80,181 +76,70 @@ func TestBasic(t *testing.T) {
 
 	terraform.InitAndApply(t, terraformOptions)
 
-	// Wait for consul server to be up.
-	var consulServerTaskARN string
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-			Command: "aws",
-			Args: []string{
-				"ecs",
-				"list-tasks",
-				"--region",
-				suite.Config().Region,
-				"--cluster",
-				suite.Config().ECSClusterARN,
-				"--family",
-				fmt.Sprintf("consul_server_%s", randomSuffix),
-			},
-		})
-		r.Check(err)
+	outputs := terraform.OutputAll(t, terraformOptions)
 
-		var tasks listTasksResponse
-		r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
-		if len(tasks.TaskARNs) != 1 {
-			r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
-			return
-		}
+	cfg := api.DefaultConfig()
+	cfg.Address = outputs["consul_server_url"].(string)
+	consulClient, err := api.NewClient(cfg)
+	require.NoError(t, err)
 
-		consulServerTaskARN = tasks.TaskARNs[0]
-	})
+	serverServiceName := fmt.Sprintf("test_server_%s", randomSuffix)
+	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
 
 	// Wait for both tasks to be registered in Consul.
-	retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-		out, err := helpers.ExecuteRemoteCommand(t, suite.Config(), consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
-		r.Check(err)
-		if !strings.Contains(out, fmt.Sprintf("test_client_%s", randomSuffix)) ||
-			!strings.Contains(out, fmt.Sprintf("test_server_%s", randomSuffix)) {
-			r.Errorf("services not yet registered, got %q", out)
-		}
-	})
+	helpers.WaitForConsulServices(t, consulClient, serverServiceName, clientServiceName)
 
 	// Wait for passing health check for test_server and test_client
 	// test_server has a Consul native HTTP check
 	// test_client has a check synced from ECS
-	services := []string{"test_server", "test_client"}
-	for _, serviceName := range services {
-		retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-			out, err := helpers.ExecuteRemoteCommand(
-				t,
-				suite.Config(),
-				consulServerTaskARN,
-				"consul-server",
-				fmt.Sprintf(`/bin/sh -c 'curl localhost:8500/v1/health/checks/%s_%s'`, serviceName, randomSuffix),
-			)
-			r.Check(err)
-
-			statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
-			if statusRegex.FindAllString(out, 1) == nil {
-				r.Errorf("Check status not yet passing")
-			}
-		})
-	}
+	helpers.WaitForConsulHealthChecks(t, consulClient, api.HealthPassing, serverServiceName, clientServiceName)
 
 	// Use aws exec to curl between the apps.
-	taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-		Command: "aws",
-		Args: []string{
-			"ecs",
-			"list-tasks",
-			"--region",
-			suite.Config().Region,
-			"--cluster",
-			suite.Config().ECSClusterARN,
-			"--family",
-			fmt.Sprintf("test_client_%s", randomSuffix),
-		},
-	})
+	tasks := helpers.ListECSTasks(t, suite.Config(), clientServiceName)
+	require.Len(t, tasks.TaskArns, 1)
+	clientTaskARN := tasks.TaskArns[0]
+	arnParts := strings.Split(clientTaskARN, "/")
+	clientTaskId := arnParts[len(arnParts)-1]
 
-	var tasks listTasksResponse
-	require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
-	require.Len(t, tasks.TaskARNs, 1)
-	testClientTaskARN := tasks.TaskARNs[0]
-	arnParts := strings.Split(testClientTaskARN, "/")
-	testClientTaskID := arnParts[len(arnParts)-1]
-
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
-		r.Check(err)
-		if !strings.Contains(curlOut, `"code": 200`) {
-			r.Errorf("response was unexpected: %q", curlOut)
-		}
-	})
+	helpers.WaitForRemoteCommand(t, suite.Config(), clientTaskARN, "basic",
+		`/bin/sh -c "curl localhost:1234"`,
+		`"code": 200`,
+	)
 
 	// Validate graceful shutdown behavior. We check the client app can reach its upstream after the task is stopped.
 	// This relies on a couple of helpers:
 	// * a custom entrypoint for the client app that keeps it running for 10s into Task shutdown, and
 	// * an additional "shutdown-monitor" container that makes requests to the client app
 	// Since this is timing dependent, we check logs after the fact to validate when the containers exited.
-	shell.RunCommandAndGetOutput(t, shell.Command{
-		Command: "aws",
-		Args: []string{
-			"ecs",
-			"stop-task",
-			"--region", suite.Config().Region,
-			"--cluster", suite.Config().ECSClusterARN,
-			"--task", testClientTaskARN,
-			"--reason", "Stopped to validate graceful shutdown in acceptance tests",
-		},
-	})
-
-	// Wait for the task to stop (~30 seconds)
-	retry.RunWith(&retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		describeTasksOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-			Command: "aws",
-			Args: []string{
-				"ecs",
-				"describe-tasks",
-				"--region", suite.Config().Region,
-				"--cluster", suite.Config().ECSClusterARN,
-				"--task", testClientTaskARN,
-			},
-		})
-		r.Check(err)
-
-		var describeTasks ecs.DescribeTasksOutput
-		r.Check(json.Unmarshal([]byte(describeTasksOut), &describeTasks))
-		require.Len(r, describeTasks.Tasks, 1)
-		require.NotEqual(r, "RUNNING", describeTasks.Tasks[0].LastStatus)
-	})
+	helpers.StopECSTask(t, suite.Config(), clientTaskARN)
+	helpers.WaitForECSTask(t, suite.Config(), "STOPPED", clientTaskARN)
 
 	// Check logs to see that the application ignored the TERM signal and exited about 10s later.
-	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "basic")
-		require.NoError(r, err)
-
-		appLogs = appLogs.Filter("TEST LOG:")
-		require.Len(r, appLogs, 2)
-		require.Equal(r, appLogs[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
-		require.Equal(r, appLogs[1].Message, "TEST LOG: on exit")
-		require.InDelta(r, 10, appLogs.Duration().Seconds(), 1)
-	})
+	helpers.WaitForLogEvents(t, suite.Config(), clientTaskId, "basic",
+		map[string]int{
+			"TEST LOG: Caught sigterm. Sleeping 10s...": 1,
+			"TEST LOG: on exit":                         1,
+		},
+		9*time.Second,
+	)
 
 	// Check that Envoy ignored the sigterm.
-	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "sidecar-proxy")
-		require.NoError(r, err)
-		envoyLogs = envoyLogs.Filter("Ignored sigterm")
-		require.Len(r, envoyLogs, 1)
-		require.Equal(r, envoyLogs[0].Message, "Ignored sigterm to support graceful task shutdown.")
-	})
+	helpers.WaitForLogEvents(t, suite.Config(), clientTaskId, "sidecar-proxy",
+		map[string]int{
+			"Ignored sigterm to support graceful task shutdown.": 1,
+		},
+		0*time.Second,
+	)
 
 	// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
-	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "shutdown-monitor")
-		require.NoError(r, err)
-
-		// Check how long after shutdown the upstream was reachable.
-		upstreamOkLogs := monitorLogs.Filter(
-			"Signal received: signal=terminated",
-			"upstream: [OK] GET http://localhost:1234 (200)",
-		)
-		// The client app is configured to run for about 10 seconds after Task shutdown.
-		require.GreaterOrEqual(r, len(upstreamOkLogs.Filter("upstream: [OK]")), 7)
-		require.GreaterOrEqual(r, upstreamOkLogs.Duration().Seconds(), 8.0)
-
-		// Double-check the application was still functional for about 10 seconds into Task shutdown.
-		// The FakeService makes requests to the upstream, so this further validates Envoy allows outgoing requests.
-		applicationOkLogs := monitorLogs.Filter(
-			"Signal received: signal=terminated",
-			"application: [OK] GET http://localhost:9090 (200)",
-		)
-		require.GreaterOrEqual(r, len(applicationOkLogs.Filter("application: [OK]")), 7)
-		require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
-	})
+	helpers.WaitForLogEvents(t, suite.Config(), clientTaskId, "shutdown-monitor",
+		map[string]int{
+			"Signal received: signal=terminated":                1,
+			"upstream: [OK] GET http://localhost:1234 (200)":    7,
+			"application: [OK] GET http://localhost:9090 (200)": 7,
+		},
+		8*time.Second,
+	)
 
 	logger.Log(t, "Test successful!")
-}
-
-type listTasksResponse struct {
-	TaskARNs []string `json:"taskArns"`
 }

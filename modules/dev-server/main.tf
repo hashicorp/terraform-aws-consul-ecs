@@ -5,6 +5,9 @@ locals {
     container_name   = "consul-server"
     container_port   = 8500
   }] : []
+
+  // only alphanumeric characters and hyphens allowed
+  load_balancer_name = replace(var.name, "_", "-")
 }
 
 resource "tls_private_key" "ca" {
@@ -377,7 +380,7 @@ EOF
 
 resource "aws_lb_target_group" "this" {
   count                = var.lb_enabled ? 1 : 0
-  name                 = var.name
+  name                 = local.load_balancer_name
   port                 = 8500
   protocol             = "HTTP"
   vpc_id               = var.vpc_id
@@ -394,7 +397,7 @@ resource "aws_lb_target_group" "this" {
 
 resource "aws_lb" "this" {
   count              = var.lb_enabled ? 1 : 0
-  name               = var.name
+  name               = local.load_balancer_name
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.load_balancer[count.index].id]

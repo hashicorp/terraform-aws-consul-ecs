@@ -3,11 +3,14 @@ package helpers
 import (
 	"sort"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/shell"
 	terratestTesting "github.com/gruntwork-io/terratest/modules/testing"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/config"
+	"github.com/stretchr/testify/require"
 )
 
 // GetCloudWatchLogEvents fetches all log events for the given container.
@@ -35,11 +38,33 @@ func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.Test
 		parts := strings.SplitN(line, "\t", 2)
 		timestamp, err := time.Parse(time.RFC3339, parts[0])
 		if err != nil {
+			t.Errorf("failed to parse timestamp in log line `%s`", line)
 			return nil, err
 		}
 		result = append(result, LogEvent{timestamp, parts[1]})
 	}
 	return result, nil
+}
+
+// WaitForLogEvents waits until all the given messages are found in the container logs.
+// It checks for a minimum number of occurrences of each log message, and a minimum
+// timespan for those log messages.
+func WaitForLogEvents(t *testing.T, testConfig *config.TestConfig, taskId, containerName string,
+	minMessageCounts map[string]int, minDuration time.Duration,
+) {
+	messages := make([]string, len(minMessageCounts))
+
+	t.Logf("Waiting for log messages in container %s, messages=%v", containerName, messages)
+	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+		logs, err := GetCloudWatchLogEvents(t, testConfig, taskId, containerName)
+		require.NoError(r, err)
+
+		logs = logs.Filter(messages...)
+		for message, count := range minMessageCounts {
+			require.GreaterOrEqual(r, len(logs.Filter(message)), count)
+		}
+		require.GreaterOrEqual(r, logs.Duration(), minDuration)
+	})
 }
 
 type LogMessages []LogEvent

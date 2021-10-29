@@ -8,19 +8,14 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "route_table_ids" {
-  description = "IDs of the route tables for peering with HVN."
-  type        = list(string)
-}
-
 variable "private_subnets" {
   type        = list(string)
-  description = "Subnets to deploy into."
+  description = "Private subnets to deploy tasks into."
 }
 
-variable "launch_type" {
-  description = "Whether to launch tasks on Fargate or EC2"
-  type        = string
+variable "public_subnets" {
+  type        = list(string)
+  description = "Public subnets, for the ALB."
 }
 
 variable "suffix" {
@@ -43,6 +38,17 @@ variable "tags" {
   description = "A map of tags to add to all resources."
   type        = map(string)
   default     = {}
+}
+
+variable "secure" {
+  description = "Whether to create all resources in a secure installation (with TLS, ACLs and gossip encryption)."
+  type        = bool
+  default     = false
+}
+
+variable "launch_type" {
+  description = "Whether to launch tasks on Fargate or EC2"
+  type        = string
 }
 
 variable "consul_ecs_image" {

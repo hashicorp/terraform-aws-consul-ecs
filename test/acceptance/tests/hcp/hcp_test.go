@@ -1,7 +1,6 @@
 package hcp
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,7 +8,6 @@ import (
 
 	terratestLogger "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -22,6 +20,7 @@ func TestHCP(t *testing.T) {
 	randomSuffix := strings.ToLower(random.UniqueId())
 	tfVars := suite.Config().TFVars()
 	tfVars["suffix"] = randomSuffix
+	delete(tfVars, "public_subnets")
 	tfOptions := &terraform.Options{
 		TerraformDir: "./terraform/hcp-install",
 		Vars:         tfVars,
@@ -53,53 +52,22 @@ func TestHCP(t *testing.T) {
 	serverServiceName := fmt.Sprintf("test_server_%s", randomSuffix)
 	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
 
-	// Wait for both tasks to be registered in Consul.
-	logger.Log(t, "checking if services are registered")
-	retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-		services, _, err := consulClient.Catalog().Services(nil)
-		r.Check(err)
-		logger.Logf(t, "Consul services: %v", services)
-		require.Contains(r, services, serverServiceName)
-		require.Contains(r, services, clientServiceName)
-	})
+	// Wait for both services to be registered in Consul.
+	helpers.WaitForConsulServices(t, consulClient, serverServiceName, clientServiceName)
 
 	// Wait for passing health check for test_server.
-	logger.Log(t, "waiting for health checks of the test_server")
-	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-		checks, _, err := consulClient.Health().Checks(serverServiceName, nil)
-		r.Check(err)
-		logger.Logf(t, "health checks: %v", checks)
-		require.Len(r, checks, 1)
-		require.Equal(r, checks[0].Status, api.HealthPassing)
-	})
+	helpers.WaitForConsulHealthChecks(t, consulClient, api.HealthPassing, serverServiceName)
 
 	// Use aws exec to curl between the apps.
-	taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-		Command: "aws",
-		Args: []string{
-			"ecs",
-			"list-tasks",
-			"--region",
-			suite.Config().Region,
-			"--cluster",
-			suite.Config().ECSClusterARN,
-			"--family",
-			clientServiceName,
-		},
-	})
-
-	var tasks listTasksResponse
-	require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
-	require.Len(t, tasks.TaskARNs, 1)
+	tasks := helpers.ListECSTasks(t, suite.Config(), clientServiceName)
+	clientTaskARN := tasks.TaskArns[0]
+	require.Len(t, tasks.TaskArns, 1)
 
 	// First check that connection between apps is unsuccessful without an intention.
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
-		r.Check(err)
-		if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
-			r.Errorf("response was unexpected: %q", curlOut)
-		}
-	})
+	helpers.WaitForRemoteCommand(t, suite.Config(), clientTaskARN, "basic",
+		`/bin/sh -c "curl localhost:1234"`,
+		`curl: (52) Empty reply from server`,
+	)
 
 	// Create an intention.
 	retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
@@ -112,13 +80,10 @@ func TestHCP(t *testing.T) {
 	})
 
 	// Now check that the connection succeeds.
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), tasks.TaskARNs[0], "basic", `/bin/sh -c "curl localhost:1234"`)
-		r.Check(err)
-		if !strings.Contains(curlOut, `"code": 200`) {
-			r.Errorf("response was unexpected: %q", curlOut)
-		}
-	})
+	helpers.WaitForRemoteCommand(t, suite.Config(), clientTaskARN, "basic",
+		`/bin/sh -c "curl localhost:1234"`,
+		`"code": 200`,
+	)
 
 	// TODO: The token deletion check is disabled due to a race condition.
 	// If the service still exists in Consul after a Task stops, the controller skips
@@ -153,8 +118,4 @@ func TestHCP(t *testing.T) {
 	//}
 
 	logger.Log(t, "Test successful!")
-}
-
-type listTasksResponse struct {
-	TaskARNs []string `json:"taskArns"`
 }

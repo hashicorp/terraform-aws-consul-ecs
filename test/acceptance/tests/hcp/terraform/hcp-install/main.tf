@@ -79,135 +79,21 @@ resource "aws_secretsmanager_secret_version" "consul_ca_cert" {
   secret_string = base64decode(hcp_consul_cluster.this.consul_ca_file)
 }
 
-// Create ACL controller.
-module "acl_controller" {
-  source = "../../../../../../modules/acl-controller"
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = var.log_group_name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller"
-    }
-  }
-  launch_type                       = var.launch_type
-  consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
-  consul_server_http_addr           = hcp_consul_cluster.this.consul_private_endpoint_url
+module "common" {
+  source = "../../../../common-terraform"
+
   ecs_cluster_arn                   = var.ecs_cluster_arn
+  private_subnets                   = var.private_subnets
+  suffix                            = var.suffix
   region                            = var.region
-  subnets                           = var.subnets
-  name_prefix                       = var.suffix
+  log_group_name                    = var.log_group_name
+  tags                              = var.tags
+  launch_type                       = var.launch_type
   consul_ecs_image                  = var.consul_ecs_image
-}
-
-// Create services.
-resource "aws_ecs_service" "test_client" {
-  name            = "test_client_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
-  task_definition = module.test_client.task_definition_arn
-  desired_count   = 1
-  network_configuration {
-    subnets = var.subnets
-  }
-  launch_type            = var.launch_type
-  propagate_tags         = "TASK_DEFINITION"
-  enable_execute_command = true
-
-  tags = var.tags
-}
-
-module "test_client" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_client_${var.suffix}"
-  container_definitions = [{
-    name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
-    environment = [
-      {
-        name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
-      }
-    ]
-    linuxParameters = {
-      initProcessEnabled = true
-    }
-  }]
-  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
-  upstreams = [
-    {
-      destination_name = "test_server_${var.suffix}"
-      local_bind_port  = 1234
-    }
-  ]
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = var.log_group_name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "test_client_${var.suffix}"
-    }
-  }
-  outbound_only = true
-
-  tls                            = true
-  consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
-  gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
-  acls                           = true
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
-  acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
-}
-
-resource "aws_ecs_service" "test_server" {
-  name            = "test_server_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
-  task_definition = module.test_server.task_definition_arn
-  desired_count   = 1
-  network_configuration {
-    subnets = var.subnets
-  }
-  launch_type            = var.launch_type
-  propagate_tags         = "TASK_DEFINITION"
-  enable_execute_command = true
-
-  tags = var.tags
-}
-
-module "test_server" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_server_${var.suffix}"
-  container_definitions = [{
-    name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
-  }]
-  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
-  log_configuration = {
-    logDriver = "awslogs"
-    options = {
-      awslogs-group         = var.log_group_name
-      awslogs-region        = var.region
-      awslogs-stream-prefix = "test_server_${var.suffix}"
-    }
-  }
-  checks = [
-    {
-      checkid  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "2s"
-    }
-  ]
-  port = 9090
-
-  tls                            = true
-  consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
-  gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
-  acls                           = true
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
-  acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
+  retry_join                        = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
+  consul_server_http_addr           = hcp_consul_cluster.this.consul_private_endpoint_url
+  secure                            = true
+  consul_server_ca_cert_arn         = aws_secretsmanager_secret.consul_ca_cert.arn
+  consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  consul_gossip_key_secret_arn      = aws_secretsmanager_secret.gossip_key.arn
 }
