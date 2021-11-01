@@ -17,7 +17,9 @@ exec consul agent \
   -hcl 'addresses = { dns = "127.0.0.1" }' \
   -hcl 'addresses = { grpc = "127.0.0.1" }' \
   -hcl 'addresses = { http = "127.0.0.1" }' \
-  -retry-join "${retry_join}" \
+%{ for j in retry_join ~}
+  -retry-join "${j}" \
+%{ endfor ~}
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'leave_on_terminate = true' \
   -hcl 'ports { grpc = 8502 }' \

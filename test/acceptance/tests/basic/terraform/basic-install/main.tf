@@ -196,7 +196,7 @@ EOT
       ]
     }
   ]
-  retry_join = module.consul_server.server_dns
+  retry_join = [module.consul_server.server_dns]
   upstreams = [
     {
       destination_name = "test_server_${var.suffix}"
@@ -239,7 +239,7 @@ module "test_server" {
     essential        = true
     logConfiguration = local.test_server_log_configuration
   }]
-  retry_join        = module.consul_server.server_dns
+  retry_join        = [module.consul_server.server_dns]
   log_configuration = local.test_server_log_configuration
   checks = [
     {
