@@ -133,7 +133,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
+  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"]
   upstreams = [
     {
       destination_name = "test_server_${var.suffix}"
@@ -182,7 +182,7 @@ module "test_server" {
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
   }]
-  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
+  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"]
   log_configuration = {
     logDriver = "awslogs"
     options = {

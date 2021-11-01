@@ -98,8 +98,8 @@ variable "checks" {
 }
 
 variable "retry_join" {
-  description = "Argument to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
-  type        = string
+  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
+  type        = list(string)
 }
 
 variable "tags" {

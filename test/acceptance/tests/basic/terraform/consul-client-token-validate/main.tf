@@ -9,7 +9,7 @@ module "test_client" {
     name = "basic"
   }]
   outbound_only          = true
-  retry_join             = "test"
+  retry_join             = ["test"]
   acls                   = true
   acl_secret_name_prefix = "foo"
 }

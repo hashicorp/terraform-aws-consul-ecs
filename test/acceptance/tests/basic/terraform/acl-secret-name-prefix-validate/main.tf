@@ -9,7 +9,7 @@ module "test_client" {
     name = "basic"
   }]
   outbound_only                  = true
-  retry_join                     = "test"
+  retry_join                     = ["test"]
   acls                           = true
   consul_client_token_secret_arn = "foo"
 }
