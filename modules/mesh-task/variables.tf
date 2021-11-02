@@ -3,6 +3,24 @@ variable "family" {
   type        = string
 }
 
+variable "consul_service_name" {
+  description = "The name the service will be registered as in Consul. Defaults to the Task family name."
+  type        = string
+  default     = ""
+}
+
+variable "consul_service_tags" {
+  description = "A list of tags included in the Consul service registration."
+  type        = list(string)
+  default     = []
+}
+
+variable "consul_service_meta" {
+  description = "A map of metadata that will be used for the Consul service registration"
+  type        = map(string)
+  default     = {}
+}
+
 variable "requires_compatibilities" {
   description = "Set of launch types required by the task."
   type        = list(string)

@@ -13,6 +13,8 @@ type TestConfig struct {
 	RouteTableIDs      []string `json:"route_table_ids"`
 	LogGroupName       string   `json:"log_group_name"`
 	Tags               interface{}
+	ClientServiceName  string
+	ServerServiceName  string
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {

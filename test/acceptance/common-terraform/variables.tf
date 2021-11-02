@@ -67,3 +67,7 @@ variable "consul_gossip_key_secret_arn" {
   type        = string
 }
 
+variable "server_service_name" {
+  description = "The service name for the test_server"
+  type        = string
+}

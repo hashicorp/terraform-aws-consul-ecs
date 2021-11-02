@@ -102,7 +102,7 @@ EOT
   retry_join = var.retry_join
   upstreams = [
     {
-      destination_name = "test_server_${var.suffix}"
+      destination_name = var.server_service_name
       local_bind_port  = 1234
     }
   ]
@@ -134,8 +134,9 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  source = "../../../modules/mesh-task"
-  family = "test_server_${var.suffix}"
+  source              = "../../../modules/mesh-task"
+  family              = "test_server_${var.suffix}"
+  consul_service_name = var.server_service_name
   container_definitions = [{
     name             = "basic"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

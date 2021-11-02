@@ -94,4 +94,5 @@ module "common" {
   consul_server_ca_cert_arn         = var.secure ? module.consul_server.ca_cert_arn : ""
   consul_bootstrap_token_secret_arn = var.secure ? module.consul_server.bootstrap_token_secret_arn : ""
   consul_gossip_key_secret_arn      = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  server_service_name               = var.server_service_name
 }

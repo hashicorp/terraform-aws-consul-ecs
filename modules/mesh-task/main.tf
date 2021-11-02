@@ -207,9 +207,11 @@ resource "aws_ecs_task_definition" "this" {
     name = local.consul_binary_volume_name
   }
 
-  tags = merge(var.tags, {
-    "consul.hashicorp.com/mesh" = "true"
-  })
+  tags = merge(
+    var.tags,
+    { "consul.hashicorp.com/mesh" = "true" },
+    { "consul.hashicorp.com/service-name" = var.consul_service_name != "" ? var.consul_service_name : var.family }
+  )
 
   container_definitions = jsonencode(
     flatten(
@@ -227,7 +229,10 @@ resource "aws_ecs_task_definition" "this" {
               "-port=${var.port}",
               "-upstreams=${local.upstreams_flag}",
               "-checks=${jsonencode(var.checks)}",
-              "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
+              "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
+              "-tags=${join(",", var.consul_service_tags)}",
+              "-meta=${jsonencode(var.consul_service_meta)}",
+              "-service-name=${var.consul_service_name}"
             ]
             mountPoints = [
               local.consul_data_mount_read_write,
@@ -365,7 +370,8 @@ resource "aws_ecs_task_definition" "this" {
           logConfiguration = var.log_configuration
           command = [
             "health-sync",
-            "-health-sync-containers=${join(",", local.defaulted_check_containers)}"
+            "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
+            "-service-name=${var.consul_service_name}"
           ]
           cpu          = 0
           volumesFrom  = []

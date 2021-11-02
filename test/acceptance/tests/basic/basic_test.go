@@ -58,8 +58,14 @@ func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
 
 func TestBasic(t *testing.T) {
 	randomSuffix := strings.ToLower(random.UniqueId())
+	serverServiceName := fmt.Sprintf("custom_test_server_%s", randomSuffix)
+	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
+
 	tfVars := suite.Config().TFVars("route_table_ids")
 	tfVars["suffix"] = randomSuffix
+	// This uses the explicitly passed service name rather than the task's family name.
+	tfVars["server_service_name"] = serverServiceName
+
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "./terraform/basic-install",
 		Vars:         tfVars,
@@ -78,20 +84,18 @@ func TestBasic(t *testing.T) {
 
 	outputs := terraform.OutputAll(t, terraformOptions)
 
+	// Create a consul client.
 	cfg := api.DefaultConfig()
 	cfg.Address = outputs["consul_server_url"].(string)
 	consulClient, err := api.NewClient(cfg)
 	require.NoError(t, err)
 
-	serverServiceName := fmt.Sprintf("test_server_%s", randomSuffix)
-	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
-
 	// Wait for both tasks to be registered in Consul.
 	helpers.WaitForConsulServices(t, consulClient, serverServiceName, clientServiceName)
 
-	// Wait for passing health check for test_server and test_client
-	// test_server has a Consul native HTTP check
-	// test_client has a check synced from ECS
+	// Wait for passing health check for `serverServiceName` and `clientServiceName`.
+	// `serverServiceName` has a Consul native HTTP check.
+	// `clientServiceName`  has a check synced from ECS.
 	helpers.WaitForConsulHealthChecks(t, consulClient, api.HealthPassing, serverServiceName, clientServiceName)
 
 	// Use aws exec to curl between the apps.
