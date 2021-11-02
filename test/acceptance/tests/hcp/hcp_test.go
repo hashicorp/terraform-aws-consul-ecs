@@ -18,9 +18,15 @@ import (
 
 func TestHCP(t *testing.T) {
 	randomSuffix := strings.ToLower(random.UniqueId())
+	serverServiceName := fmt.Sprintf("custom_test_server_%s", randomSuffix)
+	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
+
 	tfVars := suite.Config().TFVars()
 	tfVars["suffix"] = randomSuffix
 	delete(tfVars, "public_subnets")
+	// This uses the explicitly passed service name rather than the task's family name.
+	tfVars["server_service_name"] = serverServiceName
+
 	tfOptions := &terraform.Options{
 		TerraformDir: "./terraform/hcp-install",
 		Vars:         tfVars,
@@ -48,9 +54,6 @@ func TestHCP(t *testing.T) {
 	cfg.Token = outputs["token"].(string)
 	consulClient, err := api.NewClient(cfg)
 	require.NoError(t, err)
-
-	serverServiceName := fmt.Sprintf("test_server_%s", randomSuffix)
-	clientServiceName := fmt.Sprintf("test_client_%s", randomSuffix)
 
 	// Wait for both services to be registered in Consul.
 	helpers.WaitForConsulServices(t, consulClient, serverServiceName, clientServiceName)
