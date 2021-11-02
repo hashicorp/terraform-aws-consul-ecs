@@ -226,15 +226,17 @@ func TestBasic(t *testing.T) {
 		require.InDelta(r, 10, appLogs.Duration().Seconds(), 1)
 	})
 
-	// Check that Envoy ignored the sigterm.
+	// Check that the Envoy entrypoint received the sigterm.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
 			fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID),
 		)
 		require.NoError(r, err)
-		envoyLogs = envoyLogs.Filter("Ignored sigterm")
-		require.Len(r, envoyLogs, 1)
-		require.Equal(r, envoyLogs[0].Message, "Ignored sigterm to support graceful task shutdown.")
+
+		logMsg := "consul-ecs: waiting for application container(s) to stop"
+		envoyLogs = envoyLogs.Filter(logMsg)
+		require.GreaterOrEqual(r, len(envoyLogs), 1)
+		require.Contains(r, envoyLogs[0].Message, logMsg)
 	})
 
 	// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
