@@ -130,7 +130,7 @@ func TestBasic(t *testing.T) {
 	// Check that Envoy ignored the sigterm.
 	helpers.WaitForLogEvents(t, suite.Config(), clientTaskId, "sidecar-proxy",
 		map[string]int{
-			"Ignored sigterm to support graceful task shutdown.": 1,
+			"consul-ecs: waiting for application container(s) to stop": 1,
 		},
 		0*time.Second,
 	)
