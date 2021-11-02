@@ -52,6 +52,11 @@ variable "consul_ecs_image" {
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
+variable "server_service_name" {
+  description = "The service name for the test_server"
+  type        = string
+}
+
 provider "aws" {
   region = var.region
 }
@@ -199,7 +204,7 @@ EOT
   retry_join = module.consul_server.server_dns
   upstreams = [
     {
-      destination_name = "test_server_${var.suffix}"
+      destination_name = "${var.server_service_name}_${var.suffix}"
       local_bind_port  = 1234
     }
   ]
@@ -231,8 +236,9 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_server_${var.suffix}"
+  source              = "../../../../../../modules/mesh-task"
+  family              = "test_server_${var.suffix}"
+  consul_service_name = "${var.server_service_name}_${var.suffix}"
   container_definitions = [{
     name             = "basic"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
