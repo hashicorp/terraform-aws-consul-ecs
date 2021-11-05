@@ -39,6 +39,12 @@ variable "memory" {
   default     = 512
 }
 
+variable "volumes" {
+  description = "List of volumes to include in the aws_ecs_task_definition resource."
+  type        = any
+  default     = []
+}
+
 variable "additional_task_role_policies" {
   description = "List of additional policy ARNs to attach to the task role."
   type        = list(string)
