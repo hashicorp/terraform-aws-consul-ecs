@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+BREAKING CHANGES
+* modules/mesh-task: The retry_join variable was updated to take a list of
+  members rather than a single member.
+  [[GH-59](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/59)]
+
 FEATURES
 * modules/mesh-task: Run a health-sync container for essential containers when
   ECS health checks are defined and there aren't any Consul health checks
