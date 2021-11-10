@@ -28,6 +28,11 @@ IMPROVEMENTS
   shut down gracefully. [[GH-48](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/48)]
   [[GH-61](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/61)]
 
+BUG FIXES
+* modules/acl-controller and modules/mesh-task: Fix a bug that results in
+  AWS Secrets Manager secrets failing to be created.
+  [[GH-63](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/63)]
+
 ## 0.2.0-beta2 (Sep 30, 2021)
 
 FEATURES
