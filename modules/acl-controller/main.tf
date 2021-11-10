@@ -1,5 +1,6 @@
 resource "aws_secretsmanager_secret" "client_token" {
-  name = "${var.name_prefix}-consul-client-token"
+  name                    = "${var.name_prefix}-consul-client-token"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "client_token" {

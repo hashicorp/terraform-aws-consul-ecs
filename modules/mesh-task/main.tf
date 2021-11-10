@@ -181,8 +181,9 @@ resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
 }
 
 resource "aws_secretsmanager_secret" "service_token" {
-  count = var.acls ? 1 : 0
-  name  = "${var.acl_secret_name_prefix}-${var.family}"
+  count                   = var.acls ? 1 : 0
+  name                    = "${var.acl_secret_name_prefix}-${var.family}"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "service_token" {
