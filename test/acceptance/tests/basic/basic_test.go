@@ -60,6 +60,59 @@ func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
 	require.Contains(t, err.Error(), "ERROR: acl_secret_name_prefix must be set if acls is true")
 }
 
+// TestVolumeVariable tests passing a list of volumes to mesh-task.
+// This validates a big nested dynamic block in mesh-task.
+func TestVolumeVariable(t *testing.T) {
+	// terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+	volumes := []map[string]interface{}{
+		{
+			"name": "my-vol1",
+		},
+		{
+			"name":      "my-vol2",
+			"host_path": "/tmp/fake/path",
+		},
+		{
+			"name":                        "no-optional-fields",
+			"docker_volume_configuration": map[string]interface{}{},
+			"efs_volume_configuration": map[string]interface{}{
+				"file_system_id": "fakeid123",
+			},
+		},
+		{
+			"name": "all-the-fields",
+			"docker_volume_configuration": map[string]interface{}{
+				"scope":         "shared",
+				"autoprovision": true,
+				"driver":        "local",
+				"driver_opts": map[string]interface{}{
+					"type":   "nfs",
+					"device": "host.example.com:/",
+					"o":      "addr=host.example.com,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport",
+				},
+			},
+			"fsx_windows_file_server_volume_configuration": map[string]interface{}{
+				"file_system_id": "fakeid456",
+				"root_directory": `\\data`,
+				"authorization_config": map[string]interface{}{
+					"credentials_parameter": "arn:aws:secretsmanager:us-east-1:000000000000:secret:fake-fake-fake-fake",
+					"domain":                "domain-name",
+				},
+			},
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/volume-variable",
+		Vars:         map[string]interface{}{"volumes": volumes},
+		NoColor:      true,
+	}
+	t.Cleanup(func() {
+		_, _ = terraform.DestroyE(t, terraformOptions)
+	})
+	terraform.InitAndPlan(t, terraformOptions)
+}
+
 func TestBasic(t *testing.T) {
 	randomSuffix := strings.ToLower(random.UniqueId())
 	tfVars := suite.Config().TFVars("route_table_ids")
