@@ -57,3 +57,9 @@ variable "consul_server_ca_cert_arn" {
   type        = string
   default     = ""
 }
+
+variable "assign_public_ip" {
+  description = "Configure the ECS Service to assign a public IP to the task. This is required if running tasks on a public subnet."
+  type        = bool
+  default     = false
+}
