@@ -15,12 +15,23 @@ locals {
 
   consul_binary_volume_name = "consul_binary"
 
+  // Optionally, users can override the application container's entrypoint.
+  app_entrypoint = var.application_shutdown_delay_seconds <= 0 ? {} : {
+    entryPoint = [
+      "/bin/sh", "-c",
+      templatefile("${path.module}/templates/app-entrypoint.tpl", {
+        application_shutdown_delay_seconds = var.application_shutdown_delay_seconds
+      })
+    ]
+  }
+
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
   // is ready to serve traffic.
   container_defs_with_depends_on = [for def in var.container_definitions :
     merge(
+      local.app_entrypoint,
       def,
       {
         dependsOn = flatten(
@@ -391,7 +402,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.envoy_image
             essential        = false
             logConfiguration = var.log_configuration
-            entrypoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
+            entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
             portMappings = [
               {

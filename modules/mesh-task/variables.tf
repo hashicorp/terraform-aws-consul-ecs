@@ -170,6 +170,12 @@ variable "acl_secret_name_prefix" {
 
 variable "consul_datacenter" {
   type        = string
-  description = "The name of the Consul datacenter the client belongs to"
+  description = "The name of the Consul datacenter the client belongs to."
   default     = "dc1"
+}
+
+variable "application_shutdown_delay_seconds" {
+  type        = number
+  description = "Override the application entrypoint to delay shutdown. This delays the TERM signal from ECS, but not the KILL signal. This allows time for incoming traffic to drain off to avoid application errors."
+  default     = 0
 }
