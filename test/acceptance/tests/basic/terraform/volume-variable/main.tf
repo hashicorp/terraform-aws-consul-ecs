@@ -13,6 +13,6 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join    = "test"
+  retry_join    = ["test"]
   outbound_only = true
 }
