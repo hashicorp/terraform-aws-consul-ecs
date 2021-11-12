@@ -4,6 +4,10 @@ BREAKING CHANGES
 * modules/mesh-task: The retry_join variable was updated to take a list of
   members rather than a single member.
   [[GH-59](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/59)]
+* modules/mesh-task: Default the `accessor_id` and `token` stored on the
+  service token. This change allows `consul-ecs` to fix a number of small bugs
+  related to ACL token creation and deletion.
+  [[GH-65](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/65)]
 
 FEATURES
 * modules/mesh-task: Run a health-sync container for essential containers when

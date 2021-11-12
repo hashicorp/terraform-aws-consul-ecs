@@ -186,10 +186,16 @@ resource "aws_secretsmanager_secret" "service_token" {
   recovery_window_in_days = 0
 }
 
+resource "random_uuid" "accessor_id" {}
+resource "random_uuid" "token" {}
+
 resource "aws_secretsmanager_secret_version" "service_token" {
-  count         = var.acls ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.service_token[count.index].id
-  secret_string = jsonencode({})
+  count     = var.acls ? 1 : 0
+  secret_id = aws_secretsmanager_secret.service_token[count.index].id
+  secret_string = jsonencode({
+    accessor_id = random_uuid.accessor_id.result
+    token       = random_uuid.token.result
+  })
 }
 
 resource "aws_ecs_task_definition" "this" {
