@@ -1,4 +1,4 @@
-## UNRELEASED
+## 0.2.0 (Nov 16, 2021)
 
 BREAKING CHANGES
 * modules/mesh-task: The `retry_join` variable was updated to take a list of
