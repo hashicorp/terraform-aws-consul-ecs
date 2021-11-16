@@ -114,3 +114,9 @@ variable "acls" {
   type        = bool
   default     = false
 }
+
+variable "extra_config" {
+  description = "Extra JSON configuration to pass to the Consul server."
+  type        = string
+  default     = null
+}

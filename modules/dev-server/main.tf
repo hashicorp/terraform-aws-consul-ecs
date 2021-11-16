@@ -309,6 +309,12 @@ locals {
   consul_server_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 
+%{if var.extra_config != ""~}
+cat > server.hcl << EOT
+${var.extra_config}
+EOT
+%{endif~}
+
 exec consul agent -server \
   -bootstrap \
   -ui \
@@ -334,6 +340,9 @@ exec consul agent -server \
 %{if var.acls~}
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
   -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
+%{endif~}
+%{if var.extra_config != ""~}
+  -config-file=server.hcl \
 %{endif~}
 EOF
 
