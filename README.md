@@ -1,7 +1,5 @@
 # Consul AWS ECS Modules
 
-⚠️ **IMPORTANT:** This is a beta version of Consul on AWS ECS. It does not yet support production workloads. ⚠️
-
 This repo contains a set of modules for deploying Consul Service Mesh on
 AWS ECS (Elastic Container Service).
 
@@ -26,6 +24,8 @@ Specifically, it adds the following containers:
   [Envoy](https://www.envoyproxy.io/) which is used to proxy and control
   service mesh traffic. All requests to and from the application run through
   the sidecar proxy.
+* `health-sync` - Runs for the full lifecycle of the task. This container
+  syncs health check statuses from ECS into Consul.
 
 The `acl-controller` module runs a controller that automatically provisions ACL tokens
 for tasks on the mesh.
@@ -39,7 +39,7 @@ Please see our [Architecture](https://www.consul.io/docs/ecs/architecture) docs 
 
 See https://www.consul.io/docs/ecs.
 
-## Modules 
+## Modules
 
 * [mesh-task](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/mesh-task): This module creates an [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html)
   that adds additional containers to your application task, so it can be part of the Consul service mesh.
