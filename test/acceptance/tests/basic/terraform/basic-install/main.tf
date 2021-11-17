@@ -218,6 +218,8 @@ EOT
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  additional_task_role_policies = [aws_iam_policy.exec.arn]
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -266,7 +268,38 @@ module "test_server" {
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  additional_task_role_policies = [aws_iam_policy.exec.arn]
 }
+
+
+resource "aws_iam_policy" "exec" {
+  name   = "ecs-execute-command-${var.suffix}"
+  path   = "/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+
+  # TODO: don't have permission to add tags
+  # tags = var.tags
+}
+
 
 locals {
   test_server_log_configuration = {

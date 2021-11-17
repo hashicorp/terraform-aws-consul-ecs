@@ -15,34 +15,6 @@ resource "aws_iam_role" "task" {
       },
     ]
   })
-
-  tags = var.tags
-}
-
-resource "aws_iam_policy" "exec" {
-  name   = "${var.family}-execute-command"
-  path   = "/"
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ssmmessages:CreateControlChannel",
-        "ssmmessages:CreateDataChannel",
-        "ssmmessages:OpenControlChannel",
-        "ssmmessages:OpenDataChannel"
-      ],
-      "Resource": [
-        "*"
-      ]
-    }
-  ]
-}
-EOF
-
-  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
