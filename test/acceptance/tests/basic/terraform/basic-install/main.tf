@@ -269,10 +269,30 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
+  task_role_arn                 = aws_iam_role.task.arn
+  execution_role_arn            = aws_iam_role.execution.arn
   additional_task_role_policies = [aws_iam_policy.exec.arn]
 }
 
+// Testing passing task/execution role into mesh-task
+resource "aws_iam_role" "task" {
+  name = "test_server_${var.suffix}_task_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
 
+
+// Policy to allow `aws execute-command`
 resource "aws_iam_policy" "exec" {
   name   = "ecs-execute-command-${var.suffix}"
   path   = "/"
@@ -300,6 +320,23 @@ EOF
   # tags = var.tags
 }
 
+resource "aws_iam_role" "execution" {
+  name = "test_server_${var.suffix}_execution_role"
+  path = "/ecs/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
 
 locals {
   test_server_log_configuration = {
