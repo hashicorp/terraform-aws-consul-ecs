@@ -173,3 +173,4 @@ variable "consul_datacenter" {
   description = "The name of the Consul datacenter the client belongs to"
   default     = "dc1"
 }
+variable "datadog_api_key" {}

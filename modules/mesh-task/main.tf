@@ -387,6 +387,34 @@ resource "aws_ecs_task_definition" "this" {
             )
           },
           {
+            name             = "datadog-agent"
+            image            = "datadog/agent:latest"
+            essential        = true
+            logConfiguration = var.log_configuration
+            environment = [
+              {
+                name  = "DD_API_KEY"
+                value = var.datadog_api_key
+              },
+              {
+                name  = "ECS_FARGATE"
+                value = "true"
+              }
+            ]
+            dockerLabels = {
+              "com.datadoghq.ad.check_names"  = "[\"openmetrics\"]"
+              "com.datadoghq.ad.init_configs" = "[{}]"
+              "com.datadoghq.ad.instances" = jsonencode([
+                {
+                  prometheus_url            = "http://%%host%%:9102/metrics"
+                  namespace                 = "slow_cooker"
+                  metrics                   = ["go_*", "latency*", "requests", "successes", "process*"]
+                  send_distribution_buckets = true
+                }
+              ])
+            }
+          },
+          {
             name             = "sidecar-proxy"
             image            = var.envoy_image
             essential        = false

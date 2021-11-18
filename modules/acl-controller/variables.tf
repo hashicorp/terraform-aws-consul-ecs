@@ -57,3 +57,5 @@ variable "consul_server_ca_cert_arn" {
   type        = string
   default     = ""
 }
+
+variable "datadog_api_key" {}
