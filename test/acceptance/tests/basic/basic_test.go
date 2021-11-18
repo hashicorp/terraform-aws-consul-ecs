@@ -267,9 +267,7 @@ func TestBasic(t *testing.T) {
 
 	// Check logs to see that the application ignored the TERM signal and exited about 10s later.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
-			fmt.Sprintf("test_client_%s/basic/%s", randomSuffix, testClientTaskID),
-		)
+		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "basic")
 		require.NoError(r, err)
 
 		appLogs = appLogs.Filter("TEST LOG:")
@@ -281,9 +279,7 @@ func TestBasic(t *testing.T) {
 
 	// Check that the Envoy entrypoint received the sigterm.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
-			fmt.Sprintf("test_client_%s/sidecar-proxy/%s", randomSuffix, testClientTaskID),
-		)
+		envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "sidecar-proxy")
 		require.NoError(r, err)
 
 		logMsg := "consul-ecs: waiting for application container(s) to stop"
@@ -294,8 +290,7 @@ func TestBasic(t *testing.T) {
 
 	// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(),
-			fmt.Sprintf("test_client_%s/shutdown-monitor/%s", randomSuffix, testClientTaskID))
+		monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "shutdown-monitor")
 		require.NoError(r, err)
 
 		// Check how long after shutdown the upstream was reachable.

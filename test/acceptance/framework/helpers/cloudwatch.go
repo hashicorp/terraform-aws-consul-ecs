@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"encoding/json"
 	"sort"
 	"strings"
 	"time"
@@ -11,86 +10,51 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/config"
 )
 
-// GetCloudWatchLogEvents fetches all log events for the given log stream.
-func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.TestConfig, streamName string) (LogMessages, error) {
-	getLogs := func(nextToken string) (listLogEventsResponse, error) {
-		args := []string{
-			"aws", "logs", "get-log-events",
-			"--region", testConfig.Region,
-			"--log-group-name", testConfig.LogGroupName,
-			"--log-stream-name", streamName,
-		}
-		if nextToken != "" {
-			args = append(args, "--next-token", nextToken)
-		}
-		var resp listLogEventsResponse
-		getLogEventsOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{Command: args[0], Args: args[1:]})
-		if err != nil {
-			return resp, err
-		}
-
-		err = json.Unmarshal([]byte(getLogEventsOut), &resp)
-		return resp, err
+// GetCloudWatchLogEvents fetches all log events for the given container.
+func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.TestConfig, taskId, containerName string) (LogMessages, error) {
+	args := []string{
+		"ecs-cli", "logs",
+		"--region", testConfig.Region,
+		"--cluster", testConfig.ECSClusterARN,
+		"--task-id", taskId,
+		"--container-name", containerName,
+		"--timestamps",
 	}
-
-	resp, err := getLogs("")
+	out, err := shell.RunCommandAndGetOutputE(t, shell.Command{Command: args[0], Args: args[1:]})
 	if err != nil {
 		return nil, err
 	}
 
-	events := resp.Events
-	forwardToken := resp.NextForwardToken
-	backwardToken := resp.NextBackwardToken
-
-	// Collect log events in the backwards direction
-	for {
-		resp, err = getLogs(backwardToken)
+	// Parse into LogEvents
+	var result LogMessages
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 2)
+		timestamp, err := time.Parse(time.RFC3339, parts[0])
 		if err != nil {
+			t.Errorf("failed to parse timestamp in log line `%s`", line)
 			return nil, err
 		}
-		events = append(resp.Events, events...)
-		// "If you have reached the end of the stream, it returns the same token you passed in."
-		if backwardToken == resp.NextBackwardToken {
-			break
-		}
-		backwardToken = resp.NextBackwardToken
+		result = append(result, LogEvent{timestamp, parts[1]})
 	}
-
-	// Collect log events in the forwards direction
-	for {
-		resp, err = getLogs(forwardToken)
-		if err != nil {
-			return nil, err
-		}
-		events = append(events, resp.Events...)
-		// "If you have reached the end of the stream, it returns the same token you passed in."
-		if forwardToken == resp.NextForwardToken {
-			break
-		}
-		forwardToken = resp.NextForwardToken
-	}
-	result := LogMessages(events)
-	result.Sort()
 	return result, nil
 }
 
 type LogMessages []LogEvent
 
 type LogEvent struct {
-	Timestamp int64  `json:"timestamp"`
-	Message   string `json:"message"`
-	Ingestion int64  `json:"ingestion"`
-}
-
-type listLogEventsResponse struct {
-	Events            []LogEvent `json:"events"`
-	NextForwardToken  string     `json:"nextForwardToken"`
-	NextBackwardToken string     `json:"nextBackwardToken"`
+	Timestamp time.Time
+	Message   string
 }
 
 // Sort will sort these log events by timestamp.
 func (lm LogMessages) Sort() {
-	sort.Slice(lm, func(i, j int) bool { return lm[i].Timestamp < lm[j].Timestamp })
+	sort.Slice(lm, func(i, j int) bool {
+		return lm[i].Timestamp.Before(lm[j].Timestamp)
+	})
 }
 
 // Filter returns those log events that contain any of the filterStrings.
@@ -115,6 +79,5 @@ func (lm LogMessages) Duration() time.Duration {
 	lm.Sort() // Ensure sorted by timestamp first
 	last := lm[len(lm)-1]
 	first := lm[0]
-	// CloudWatch timestamps are in milliseconds
-	return time.Duration(int64(time.Millisecond) * (last.Timestamp - first.Timestamp))
+	return last.Timestamp.Sub(first.Timestamp)
 }
