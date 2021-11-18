@@ -269,8 +269,10 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  task_role_arn                 = aws_iam_role.task.arn
-  execution_role_arn            = aws_iam_role.execution.arn
+  // Test passing both a role resource and role data source objects to make sure both
+  // have the necessary fields ("arn" and "id").
+  task_role                     = aws_iam_role.task
+  execution_role                = data.aws_iam_role.execution
   additional_task_role_policies = [aws_iam_policy.exec.arn]
 }
 
@@ -336,6 +338,12 @@ resource "aws_iam_role" "execution" {
       }
     ]
   })
+}
+
+// Test using an "existing" role name. Users will add a data source,
+// and pass the data source object into mesh-task.
+data "aws_iam_role" "execution" {
+  name = aws_iam_role.execution.name
 }
 
 locals {

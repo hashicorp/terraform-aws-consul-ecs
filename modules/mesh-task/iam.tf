@@ -1,6 +1,24 @@
+locals {
+  // We use a splat trick to workaround a Terraform limitation: `The "count" value
+  // depends on resource attributes that cannot be determined until apply`
+  //
+  // Basically, users will pass in the output value of another resource. That resource
+  // may not be created during the planning phase, so Terraform cannot inspect the value
+  // to set a `count` field. So it errors.
+  //
+  // The workaround uses a splat to convert to 1-length or 0-length list.
+  //
+  // "If the value is anything other than a null value then the splat expression will transform
+  // it into a single-element list...If the value is null then the splat expression will return
+  // an empty tuple."
+  // https://www.terraform.io/docs/language/expressions/splat.html#single-values-as-lists
+  create_task_role      = length(var.task_role[*]) == 0
+  create_execution_role = length(var.execution_role[*]) == 0
+}
+
 // Create the task role
 resource "aws_iam_role" "task" {
-  count = var.task_role_arn == "" ? 1 : 0
+  count = local.create_task_role ? 1 : 0
 
   name = "${var.family}-task"
   assume_role_policy = jsonencode({
@@ -19,13 +37,13 @@ resource "aws_iam_role" "task" {
 
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
   count      = length(var.additional_task_role_policies)
-  role       = var.task_role_arn == "" ? aws_iam_role.task[0].id : var.task_role_arn
+  role       = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
   policy_arn = var.additional_task_role_policies[count.index]
 }
 
 // Create the execution role and attach policies
 resource "aws_iam_role" "execution" {
-  count = var.execution_role_arn == "" ? 1 : 0
+  count = local.create_execution_role ? 1 : 0
   name  = "${var.family}-execution"
   path  = "/ecs/"
 
@@ -101,12 +119,12 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "execution" {
-  role       = var.execution_role_arn == "" ? aws_iam_role.execution[0].id : var.execution_role_arn
+  role       = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
   policy_arn = aws_iam_policy.execution.arn
 }
 
 resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
   count      = length(var.additional_execution_role_policies)
-  role       = var.execution_role_arn == "" ? aws_iam_role.execution[0].id : var.execution_role_arn
+  role       = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
   policy_arn = var.additional_execution_role_policies[count.index]
 }

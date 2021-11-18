@@ -65,8 +65,8 @@ resource "aws_ecs_task_definition" "this" {
   network_mode             = "awsvpc"
   cpu                      = var.cpu
   memory                   = var.memory
-  execution_role_arn       = var.execution_role_arn == "" ? aws_iam_role.execution[0].arn : var.execution_role_arn
-  task_role_arn            = var.task_role_arn == "" ? aws_iam_role.task[0].arn : var.task_role_arn
+  execution_role_arn       = local.create_execution_role ? aws_iam_role.execution[0].arn : var.execution_role.arn
+  task_role_arn            = local.create_task_role ? aws_iam_role.task[0].arn : var.task_role.arn
   volume {
     name = local.consul_data_volume_name
   }

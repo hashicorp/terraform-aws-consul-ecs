@@ -45,16 +45,22 @@ variable "volumes" {
   default     = []
 }
 
-variable "task_role_arn" {
-  description = "ARN of the ECS task role to include in the task definition. If not provided, a role is created."
-  type        = string
-  default     = ""
+variable "task_role" {
+  description = "ECS task role to include in the task definition. If not provided, a role is created."
+  type = object({
+    id  = string
+    arn = string
+  })
+  default = null
 }
 
-variable "execution_role_arn" {
-  description = "ARN of the ECS execution role to include in the task definition. If not provided, a role is created."
-  type        = string
-  default     = ""
+variable "execution_role" {
+  description = "ECS execution role to include in the task definition. If not provided, a role is created."
+  type = object({
+    id  = string
+    arn = string
+  })
+  default = null
 }
 
 variable "additional_task_role_policies" {
