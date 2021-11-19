@@ -15,6 +15,8 @@ locals {
 
   consul_binary_volume_name = "consul_binary"
 
+  service_name = var.consul_service_name != "" ? var.consul_service_name : var.family
+
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
@@ -45,6 +47,38 @@ locals {
   if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
 
   upstreams_flag = join(",", [for upstream in var.upstreams : "${upstream["destination_name"]}:${upstream["local_bind_port"]}"])
+
+  # It might make sense to extract this into a template someday.
+  config = {
+    aclTokenSecret = {
+      provider = "secret-manager"
+      configuration = {
+        prefix                     = var.acl_secret_name_prefix
+        consulClientTokenSecretArn = var.consul_client_token_secret_arn
+      }
+    }
+    mesh = {
+      service = {
+        name   = local.service_name
+        port   = var.port
+        tags   = var.consul_service_tags
+        meta   = var.consul_service_meta
+        checks = var.checks
+      }
+      sideCar = {
+        proxy = {
+          upstreams = [for upstream in var.upstreams :
+            {
+              destinationName = upstream.destination_name
+              localBindPort   = upstream.local_bind_port
+          }]
+        }
+      }
+      healthSyncContainers = local.defaulted_check_containers
+      bootstrapDir         = local.consul_data_mount.containerPath
+    }
+  }
+  encoded_config = jsonencode(local.config)
 }
 
 resource "aws_iam_role" "task" {
@@ -275,7 +309,7 @@ resource "aws_ecs_task_definition" "this" {
   tags = merge(
     var.tags,
     { "consul.hashicorp.com/mesh" = "true" },
-    { "consul.hashicorp.com/service-name" = var.consul_service_name != "" ? var.consul_service_name : var.family }
+    { "consul.hashicorp.com/service-name" = local.service_name }
   )
 
   container_definitions = jsonencode(
@@ -433,14 +467,15 @@ resource "aws_ecs_task_definition" "this" {
           image            = var.consul_ecs_image
           essential        = false
           logConfiguration = var.log_configuration
-          command = [
-            "health-sync",
-            "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
-            "-service-name=${var.consul_service_name}"
+          command          = ["health-sync"]
+          cpu              = 0
+          volumesFrom      = []
+          environment = [
+            {
+              name  = "CONSUL_ECS_CONFIG_JSON",
+              value = local.encoded_config
+            }
           ]
-          cpu          = 0
-          volumesFrom  = []
-          environment  = []
           portMappings = []
           dependsOn = [
             {
