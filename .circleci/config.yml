@@ -4,7 +4,7 @@ orbs:
 executors:
   consul-ecs-test:
     docker:
-      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.2.0
+      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.0
     environment:
       TEST_RESULTS: &TEST_RESULTS /tmp/test-results # path to where test results are saved
 
