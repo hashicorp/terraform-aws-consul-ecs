@@ -47,9 +47,10 @@ resource "aws_ecs_service" "example_client_app" {
 }
 
 module "example_client_app" {
-  source = "../../modules/mesh-task"
-  family = "${var.name}-example-client-app"
-  port   = "9090"
+  source           = "../../modules/mesh-task"
+  family           = "${var.name}-example-client-app"
+  consul_ecs_image = "hashicorpdev/consul-ecs:4a90a1e"
+  port             = "9090"
   upstreams = [
     {
       destination_name = "${var.name}-example-server-app"
@@ -62,6 +63,13 @@ module "example_client_app" {
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential        = true
     logConfiguration = local.example_client_app_log_config
+    healthCheck = {
+      command  = ["CMD-SHELL", "echo 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
+
     environment = [
       {
         name  = "NAME"
@@ -109,14 +117,21 @@ resource "aws_ecs_service" "example_server_app" {
 }
 
 module "example_server_app" {
-  source            = "../../modules/mesh-task"
-  family            = "${var.name}-example-server-app"
-  port              = "9090"
-  log_configuration = local.example_server_app_log_config
+  source                        = "../../modules/mesh-task"
+  family                        = "${var.name}-example-server-app"
+  consul_ecs_image              = "hashicorpdev/consul-ecs:4a90a1e"
+  port                          = "9090"
+  log_configuration             = local.example_server_app_log_config
   container_definitions = [{
-    name             = "example-server-app"
-    image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential        = true
+    name      = "example-server-app"
+    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+    essential = true
+    healthCheck = {
+      command  = ["CMD-SHELL", "echo 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
     logConfiguration = local.example_server_app_log_config
     environment = [
       {
