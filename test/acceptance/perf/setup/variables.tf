@@ -29,12 +29,22 @@ variable "consul_ecs_image" {
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
-variable "server_instances" {
-  description = "The number of server instances to run the performance test on"
+variable "service_groups" {
+  description = "The number of service groups"
   type        = number
 }
 
 variable "server_instances_per_service_group" {
   description = "The number of server instances per service group"
   type        = number
+}
+
+variable "client_instances_per_service_group" {
+  description = "The number of client instances per service group"
+  type        = number
+  default     = 1
+}
+
+variable "lb_ingress_ip" {
+  type = string
 }

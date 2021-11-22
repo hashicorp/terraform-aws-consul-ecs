@@ -9,7 +9,7 @@
 
 1. Ensure the proper AWS credentials are set in environment variables.
 2. Run the tests using commands like:
-   `go test ./... -v -datadog-api-key <DATADOG_API_KEY> -server-instances 20 -percent-restart 25 -restarts 2 -server-instances-per-service-group 10 -no-cleanup`
+   ` go test ./... -v -datadog-api-key <DATADOG_API_KEY> -server-instances 500 -percent-restart 80 -restarts 1 -server-instances-per-service-group 10 -lb-ingress-ip <IP> -timeout 30m -no-cleanup`
 
 ## Choosing Parameters
 
@@ -44,7 +44,7 @@ Factors:
 * Inbound and outbound request
 
 How to test:
-* Set `-server-instances`, `-percent-restart`, and `-restarts` to a large
+* Set `-service-groups`, `-percent-restart`, and `-restarts` to a large
   number to increase the amount of xDS updates Envoy receives.
 * Decrease `-server-instances-per-service-group` so the test-server receives as
   much load as possible.
@@ -56,7 +56,7 @@ Factors:
 * Frequency and duration of service churn
 
 How to test:
-* Set `-server-instances`, `-percent-restart`, `-restarts` and
+* Set `-service-groups`, `-percent-restart`, `-restarts` and
   `-server-instances-per-service-group` to a large number to increase the
   gossip load on Consul clients.
 
@@ -68,8 +68,8 @@ Factors:
 * Number of tasks running
 
 How to test:
-* Setting `-server-instances-per-service-group` to 1 and `-server-instances` to
-  a relatively small number is fine.
+* Setting `-server-instances-per-service-group` to 1 and `-service-groups` to
+  a large number.
 * Set `-percent-restart` to 100 so tokens will be continuously
   created and deleted.
 * Set `-restarts` to a large number to see how the ACL controller responds to
@@ -79,5 +79,4 @@ How to test:
 
 * When Terraform deletes the intentions, it frequently breaks and I have to
   hack the terraform.tfstate file so it can complete
-* There are no Envoy metrics
 * Little effort has gone into making the code mergeable

@@ -1,6 +1,6 @@
 resource "aws_ecs_cluster" "this" {
   name               = local.name
-  capacity_providers = ["FARGATE_SPOT"]
+  capacity_providers = ["FARGATE"]
   tags               = var.tags
 }
 
@@ -16,7 +16,7 @@ module "acl_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
-  consul_server_http_addr           = "${module.consul-server.consul_elb}:80"
+  consul_server_http_addr           = "${module.consul-server.consul_server_address}:8500"
   datadog_api_key                   = var.datadog_api_key
   ecs_cluster_arn                   = aws_ecs_cluster.this.arn
   region                            = var.region
@@ -27,7 +27,8 @@ module "acl_controller" {
 
 
 module "service_group" {
-  count                              = var.server_instances / var.server_instances_per_service_group
+  count                              = var.service_groups
+  client_instances_per_service_group = var.client_instances_per_service_group
   server_instances_per_service_group = var.server_instances_per_service_group
   source                             = "./service-group"
   name                               = "${local.name}-${count.index}"
@@ -53,8 +54,26 @@ resource "consul_config_entry" "proxy-defaults" {
 
   config_json = jsonencode({
     Config = {
-      protocol = "http"
+      protocol            = "http"
       envoy_dogstatsd_url = "udp://127.0.0.1:8125"
     }
   })
+
+  depends_on = [module.consul-server]
+}
+
+resource "consul_config_entry" "service_intentions" {
+  kind = "service-intentions"
+  name = "*"
+
+  config_json = jsonencode({
+    Sources = [
+      {
+        Action = "allow"
+        Name   = "*"
+      }
+    ]
+  })
+
+  depends_on = [module.consul-server]
 }

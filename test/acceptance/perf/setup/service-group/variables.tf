@@ -59,3 +59,7 @@ variable "consul_client_token_secret_arn" {
 variable "server_instances_per_service_group" {
   type = number
 }
+
+variable "client_instances_per_service_group" {
+  type = number
+}

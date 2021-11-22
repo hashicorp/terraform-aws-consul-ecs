@@ -388,7 +388,7 @@ resource "aws_ecs_task_definition" "this" {
           },
           {
             name             = "datadog-agent"
-            image            = "datadog/agent:latest"
+            image            = "ghcr.io/erichaberkorn/datadog_agent:latest"
             essential        = true
             logConfiguration = var.log_configuration
             environment = [

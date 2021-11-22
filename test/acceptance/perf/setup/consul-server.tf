@@ -219,7 +219,8 @@ module "consul-server" {
   source               = "github.com/erichaberkorn/consul-global-scale-benchmark/infrastructure/consul-server-ec2"
   project              = local.name
   vpc_id               = module.vpc.vpc_id
-  subnet_ids           = module.vpc.public_subnets
+  private_subnets      = module.vpc.private_subnets
+  public_subnets       = module.vpc.public_subnets
   consul_version       = "1.10.2"
   region               = var.region
   datadog_api_key      = var.datadog_api_key
@@ -236,6 +237,7 @@ module "consul-server" {
   tls_server_key_pem    = tls_private_key.server_key.private_key_pem
   bootstrap_token       = random_uuid.bootstrap_token.result
   enable_streaming      = true
+  lb_ingress_ip         = var.lb_ingress_ip
 }
 
 provider "consul" {

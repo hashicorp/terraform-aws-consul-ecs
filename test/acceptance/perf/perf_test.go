@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	cluster = "consul-ecs-perf"
+	cluster   = "consul-ecs-perf"
+	sleepTime = 30 * time.Second
 )
 
 func TestRun(t *testing.T) {
@@ -49,19 +50,20 @@ func TestRun(t *testing.T) {
 	for restart := 0; restart < config.Restarts; restart++ {
 		t.Logf("Killing tasks attempt %d", restart+1)
 		killTasks(t)
-		// Wait long enough for some services to become unhealthy.
-		time.Sleep(30 * time.Second)
 		ensureEverythingIsRunning(t, consulClient)
 	}
 }
 
 func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client) {
+	// Wait long enough for some services to become unhealthy.
+	time.Sleep(sleepTime)
 	config := testSuite.Config()
-	serviceGroups := config.TotalServerInstances / config.ServerInstancesPerServiceGroup
 
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		for i := 0; i < serviceGroups; i++ {
-			t.Logf("ensuring everything is running for service group %d", i)
+	startTime := time.Now()
+
+	retry.RunWith(&retry.Timer{Timeout: 7 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+		t.Logf("ensuring everything is running\n")
+		for i := 0; i < config.ServiceGroups; i++ {
 			clientName := fmt.Sprintf("consul-ecs-perf-%d-load-client", i)
 			serverName := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
@@ -69,6 +71,8 @@ func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client) {
 			require.GreaterOrEqual(r, getHealthyCount(r, consulClient, serverName), config.ServerInstancesPerServiceGroup)
 		}
 	})
+
+	t.Logf("it took %s for the cluster to stabilize\n", time.Since(startTime)+sleepTime)
 }
 
 func getHealthyCount(r *retry.R, consulClient *api.Client, serviceName string) int {
@@ -97,8 +101,7 @@ type listTasksResponse struct {
 
 func killTasks(t *testing.T) {
 	config := testSuite.Config()
-	serviceGroups := config.TotalServerInstances / config.ServerInstancesPerServiceGroup
-	for i := 0; i < serviceGroups; i++ {
+	for i := 0; i < config.ServiceGroups; i++ {
 		serviceGroup := fmt.Sprintf("consul-ecs-perf-%d", i)
 		family := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 		t.Logf("Fetching tasks for service group %s", serviceGroup)

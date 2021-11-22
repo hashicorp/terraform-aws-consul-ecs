@@ -9,11 +9,8 @@ resource "aws_ecs_service" "test_server" {
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
-  tags = var.tags
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    weight            = 1
-  }
+  tags        = var.tags
+  launch_type = "FARGATE"
 }
 
 module "test_server" {
@@ -49,20 +46,18 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_client_token_secret_arn = var.consul_client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
+  envoy_image                    = "ghcr.io/erichaberkorn/envoy:latest"
 }
 
 resource "aws_ecs_service" "load_client" {
   name            = "${var.name}-load-client"
   cluster         = var.cluster_arn
   task_definition = module.load_client.task_definition_arn
-  desired_count   = 1
+  desired_count   = var.client_instances_per_service_group
   network_configuration {
     subnets = var.private_subnets
   }
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    weight            = 1
-  }
+  launch_type            = "FARGATE"
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
 
@@ -74,7 +69,7 @@ module "load_client" {
   family = "${var.name}-load-client"
   container_definitions = [{
     name      = "load"
-    image     = "buoyantio/slow_cooker"
+    image     = "ghcr.io/erichaberkorn/slow_cooker:latest" # a clone to avoid rate limits
     essential = true
     command = [
       "-qps", "1000",
@@ -112,21 +107,5 @@ module "load_client" {
   acl_secret_name_prefix         = var.suffix
   consul_client_token_secret_arn = var.consul_client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
-}
-
-# TODO These are annoying because it frequently blocks refreshes and deletes. Is there a better way to do this?
-resource "consul_config_entry" "service_intentions" {
-  kind = "service-intentions"
-  name = "${var.name}-test-server"
-
-  config_json = jsonencode({
-    Sources = [
-      {
-        Action = "allow"
-        Name   = "${var.name}-load-client"
-      }
-    ]
-  })
-
-  depends_on = [module.test_server.task_definition_arn, module.load_client.task_definition_arn]
+  envoy_image                    = "ghcr.io/erichaberkorn/envoy:latest"
 }
