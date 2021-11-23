@@ -16,14 +16,10 @@ locals {
   consul_binary_volume_name = "consul_binary"
 
   // Optionally, users can override the application container's entrypoint.
-  app_entrypoint = var.application_shutdown_delay_seconds <= 0 ? {} : {
-    entryPoint = [
-      "/bin/sh", "-c",
-      templatefile("${path.module}/templates/app-entrypoint.tpl", {
-        application_shutdown_delay_seconds = var.application_shutdown_delay_seconds
-      })
-    ]
-  }
+  app_entrypoint = var.application_shutdown_delay_seconds == null ? null : [
+    "/consul/consul-ecs", "app-entrypoint", "-shutdown-delay", "${var.application_shutdown_delay_seconds}s",
+  ]
+  app_mountpoints = var.application_shutdown_delay_seconds == null ? [] : [local.consul_data_mount]
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
@@ -31,7 +27,6 @@ locals {
   // is ready to serve traffic.
   container_defs_with_depends_on = [for def in var.container_definitions :
     merge(
-      local.app_entrypoint,
       def,
       {
         dependsOn = flatten(
@@ -48,6 +43,16 @@ locals {
               }
             ]
         ))
+      },
+      {
+        // Use the def.entryPoint, if defined. Else, use the app_entrypoint, which is null by default.
+        entryPoint = lookup(def, "entryPoint", local.app_entrypoint)
+        mountPoints = flatten(
+          concat(
+            lookup(def, "mountPoints", []),
+            local.app_mountpoints,
+          )
+        )
       }
     )
   ]

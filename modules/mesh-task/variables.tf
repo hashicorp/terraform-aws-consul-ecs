@@ -177,5 +177,5 @@ variable "consul_datacenter" {
 variable "application_shutdown_delay_seconds" {
   type        = number
   description = "Override the application entrypoint to delay shutdown. This delays the TERM signal from ECS, but not the KILL signal. This allows time for incoming traffic to drain off to avoid application errors."
-  default     = 0
+  default     = null
 }

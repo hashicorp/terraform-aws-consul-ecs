@@ -273,7 +273,7 @@ func TestBasic(t *testing.T) {
 		logMsg := "consul-ecs: received sigterm. waiting 10s before terminating application."
 		appLogs = appLogs.Filter(logMsg)
 		require.Len(r, appLogs, 1)
-		require.Equal(r, appLogs[0].Message, logMsg)
+		require.Contains(r, appLogs[0].Message, logMsg)
 	})
 
 	// Check that the Envoy entrypoint received the sigterm.
