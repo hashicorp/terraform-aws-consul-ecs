@@ -158,7 +158,7 @@ module "test_client" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  additional_task_role_policies = [aws_iam_policy.exec.arn]
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -213,11 +213,11 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  additional_task_role_policies = [aws_iam_policy.exec.arn]
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 
-resource "aws_iam_policy" "exec" {
+resource "aws_iam_policy" "execute-command" {
   name   = "ecs-execute-command-${var.suffix}"
   path   = "/"
   policy = <<EOF

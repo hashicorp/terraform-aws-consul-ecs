@@ -219,7 +219,7 @@ EOT
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  additional_task_role_policies = [aws_iam_policy.exec.arn]
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -272,8 +272,8 @@ module "test_server" {
   // Test passing both a role resource and role data source objects to make sure both
   // have the necessary fields ("arn" and "id").
   task_role                     = aws_iam_role.task
-  execution_role                = data.aws_iam_role.execution
-  additional_task_role_policies = [aws_iam_policy.exec.arn]
+  execution_role                = aws_iam_role.execution
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 // Testing passing task/execution role into mesh-task
@@ -295,7 +295,7 @@ resource "aws_iam_role" "task" {
 
 
 // Policy to allow `aws execute-command`
-resource "aws_iam_policy" "exec" {
+resource "aws_iam_policy" "execute-command" {
   name   = "ecs-execute-command-${var.suffix}"
   path   = "/"
   policy = <<EOF
@@ -338,12 +338,6 @@ resource "aws_iam_role" "execution" {
       }
     ]
   })
-}
-
-// Test using an "existing" role name. Users will add a data source,
-// and pass the data source object into mesh-task.
-data "aws_iam_role" "execution" {
-  name = aws_iam_role.execution.name
 }
 
 locals {

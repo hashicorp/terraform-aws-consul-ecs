@@ -14,6 +14,12 @@ locals {
   // https://www.terraform.io/docs/language/expressions/splat.html#single-values-as-lists
   create_task_role      = length(var.task_role[*]) == 0
   create_execution_role = length(var.execution_role[*]) == 0
+
+  execution_role_id = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
+  task_role_id      = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
+  // We need the ARN for the task definition.
+  execution_role_arn = local.create_execution_role ? aws_iam_role.execution[0].arn : var.execution_role.arn
+  task_role_arn      = local.create_task_role ? aws_iam_role.task[0].arn : var.task_role.arn
 }
 
 // Create the task role
@@ -37,7 +43,7 @@ resource "aws_iam_role" "task" {
 
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
   count      = length(var.additional_task_role_policies)
-  role       = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
+  role       = local.task_role_id
   policy_arn = var.additional_task_role_policies[count.index]
 }
 
@@ -119,12 +125,12 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "execution" {
-  role       = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
+  role       = local.execution_role_id
   policy_arn = aws_iam_policy.execution.arn
 }
 
 resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
   count      = length(var.additional_execution_role_policies)
-  role       = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
+  role       = local.execution_role_id
   policy_arn = var.additional_execution_role_policies[count.index]
 }

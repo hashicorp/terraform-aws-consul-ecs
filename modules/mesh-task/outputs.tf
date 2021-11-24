@@ -3,11 +3,11 @@ output "task_definition_arn" {
 }
 
 output "task_role_id" {
-  value = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
+  value = local.task_role_id
 }
 
 output "execution_role_id" {
-  value = local.create_execution_role ? aws_iam_role.execution[0].id : var.task_role.id
+  value = local.execution_role_id
 }
 
 output "task_tags" {
