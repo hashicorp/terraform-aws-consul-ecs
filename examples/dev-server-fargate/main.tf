@@ -82,6 +82,13 @@ module "example_client_app" {
     cpu         = 0
     mountPoints = []
     volumesFrom = []
+    # An ECS health check. This will be automatically synced into Consul.
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl localhost:9090/health"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
   }]
   retry_join = [module.dev_consul_server.server_dns]
 }
@@ -118,6 +125,17 @@ module "example_server_app" {
       }
     ]
   }]
+  # A Consul-native check, included in service registration.
+  checks = [
+    {
+      checkid  = "server-http"
+      name     = "HTTP health check on port 9090"
+      http     = "http://localhost:9090/health"
+      method   = "GET"
+      timeout  = "10s"
+      interval = "5s"
+    }
+  ]
   retry_join = [module.dev_consul_server.server_dns]
 }
 
