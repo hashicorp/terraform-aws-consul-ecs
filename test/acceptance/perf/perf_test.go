@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
@@ -61,15 +62,22 @@ func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client) {
 
 	startTime := time.Now()
 
+	t.Log("ensuring everything is running")
+
 	retry.RunWith(&retry.Timer{Timeout: 7 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		t.Logf("ensuring everything is running\n")
+		unhealthy := make(map[int]struct{})
 		for i := 0; i < config.ServiceGroups; i++ {
 			clientName := fmt.Sprintf("consul-ecs-perf-%d-load-client", i)
 			serverName := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
-			require.Equal(r, 1, getHealthyCount(r, consulClient, clientName))
-			require.GreaterOrEqual(r, getHealthyCount(r, consulClient, serverName), config.ServerInstancesPerServiceGroup)
+			if getHealthyCount(r, consulClient, clientName) != 1 || getHealthyCount(r, consulClient, serverName) != config.ServerInstancesPerServiceGroup {
+				unhealthy[i] = struct{}{}
+				continue
+			}
 		}
+
+		t.Logf("%d / %d service groups are unhealthy\n", len(unhealthy), config.ServiceGroups)
+		require.Equal(r, 0, len(unhealthy))
 	})
 
 	t.Logf("it took %s for the cluster to stabilize\n", time.Since(startTime)+sleepTime)
@@ -101,12 +109,12 @@ type listTasksResponse struct {
 
 func killTasks(t *testing.T) {
 	config := testSuite.Config()
+	t.Log("Killing tasks")
 	for i := 0; i < config.ServiceGroups; i++ {
-		serviceGroup := fmt.Sprintf("consul-ecs-perf-%d", i)
 		family := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
-		t.Logf("Fetching tasks for service group %s", serviceGroup)
 
 		taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
+			Logger:  logger.Discard,
 			Command: "aws",
 			Args: []string{
 				"ecs",
@@ -124,7 +132,6 @@ func killTasks(t *testing.T) {
 		err := json.Unmarshal([]byte(taskListOut), &tasks)
 		require.NoError(t, err)
 		taskARNS := tasks.TaskARNs
-		t.Logf("Killing tasks for service group %s", serviceGroup)
 
 		// Restart tasks for one service group at a time.
 		tasksToKillPerService := config.ServerInstancesPerServiceGroup * config.PercentRestart / 100
@@ -136,7 +143,8 @@ func killTasks(t *testing.T) {
 			}
 			guard <- struct{}{}
 			go func(arn string) {
-				shell.RunCommandAndGetOutput(t, shell.Command{
+				shell.RunCommand(t, shell.Command{
+					Logger:  logger.Discard,
 					Command: "aws",
 					Args: []string{
 						"ecs",
