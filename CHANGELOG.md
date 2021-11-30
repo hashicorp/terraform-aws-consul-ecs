@@ -4,6 +4,9 @@ FEATURES
 * modules/acl-controller: Add `assign_public_ip` variable to the ACL controller
   to support running on public subnets.
   [[GH-64](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/64)]
+* modules/mesh-task: Add `task_role_arn` and `execution_role_arn` input variables
+  which specify the task and execution role to include in the task definition.
+  [[GH-71](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/71)]
 
 ## 0.2.0 (Nov 16, 2021)
 

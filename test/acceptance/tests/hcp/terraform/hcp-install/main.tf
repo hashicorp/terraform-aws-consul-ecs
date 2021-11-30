@@ -157,6 +157,8 @@ module "test_client" {
   consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -210,4 +212,32 @@ module "test_server" {
   consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
+}
+
+
+resource "aws_iam_policy" "execute-command" {
+  name   = "ecs-execute-command-${var.suffix}"
+  path   = "/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+
 }

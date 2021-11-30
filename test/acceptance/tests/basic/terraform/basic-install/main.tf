@@ -218,6 +218,8 @@ EOT
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -266,6 +268,76 @@ module "test_server" {
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
+
+  // Test passing both a role resource and role data source objects to make sure both
+  // have the necessary fields ("arn" and "id").
+  task_role                     = aws_iam_role.task
+  execution_role                = aws_iam_role.execution
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
+}
+
+// Testing passing task/execution role into mesh-task
+resource "aws_iam_role" "task" {
+  name = "test_server_${var.suffix}_task_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+
+// Policy to allow `aws execute-command`
+resource "aws_iam_policy" "execute-command" {
+  name   = "ecs-execute-command-${var.suffix}"
+  path   = "/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+
+  # TODO: don't have permission to add tags
+  # tags = var.tags
+}
+
+resource "aws_iam_role" "execution" {
+  name = "test_server_${var.suffix}_execution_role"
+  path = "/ecs/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 locals {
