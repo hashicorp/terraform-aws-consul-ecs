@@ -4,6 +4,9 @@ FEATURES
 * modules/acl-controller: Add `assign_public_ip` variable to the ACL controller
   to support running on public subnets.
   [[GH-64](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/64)]
+* modules/mesh-task: Add `task_role_arn` and `execution_role_arn` input variables
+  which specify the task and execution role to include in the task definition.
+  [[GH-71](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/71)]
 * modules/mesh-task: Add `application_shutdown_delay_seconds` variable to
   delay application shutdown. This allows time for incoming traffic to drain
   off for better graceful shutdown.

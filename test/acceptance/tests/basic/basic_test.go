@@ -20,6 +20,7 @@ import (
 
 // Test the validation that if TLS is enabled, Consul's CA certificate must also be provided.
 func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
+	t.Parallel()
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "./terraform/ca-cert-validate",
 		NoColor:      true,
@@ -34,6 +35,7 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 
 // Test the validation that if ACLs are enabled, Consul client token must also be provided.
 func TestValidation_ConsulClientTokenIsRequiredIfACLsIsEnabled(t *testing.T) {
+	t.Parallel()
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "./terraform/consul-client-token-validate",
 		NoColor:      true,
@@ -48,6 +50,7 @@ func TestValidation_ConsulClientTokenIsRequiredIfACLsIsEnabled(t *testing.T) {
 
 // Test the validation that if ACLs are enabled, ACL secret name prefix must also be provided.
 func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
+	t.Parallel()
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "./terraform/acl-secret-name-prefix-validate",
 		NoColor:      true,
@@ -63,6 +66,7 @@ func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
 // TestVolumeVariable tests passing a list of volumes to mesh-task.
 // This validates a big nested dynamic block in mesh-task.
 func TestVolumeVariable(t *testing.T) {
+	t.Parallel()
 	// terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 	volumes := []map[string]interface{}{
 		{
@@ -105,6 +109,18 @@ func TestVolumeVariable(t *testing.T) {
 	terraformOptions := &terraform.Options{
 		TerraformDir: "./terraform/volume-variable",
 		Vars:         map[string]interface{}{"volumes": volumes},
+		NoColor:      true,
+	}
+	t.Cleanup(func() {
+		_, _ = terraform.DestroyE(t, terraformOptions)
+	})
+	terraform.InitAndPlan(t, terraformOptions)
+}
+
+func TestPassingExistingRoles(t *testing.T) {
+	t.Parallel()
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/pass-existing-iam-roles",
 		NoColor:      true,
 	}
 	t.Cleanup(func() {
