@@ -176,6 +176,16 @@ variable "consul_datacenter" {
 
 variable "application_shutdown_delay_seconds" {
   type        = number
-  description = "Override the application entrypoint to delay shutdown. This delays the TERM signal from ECS, but not the KILL signal. This allows time for incoming traffic to drain off to avoid application errors."
+  description = <<EOT
+  Set an application entrypoint to delay the TERM signal from ECS for this many seconds.
+  This allows time for incoming traffic to drain off before your application container exits.
+  This cannot delay the KILL signal from ECS, so this delay should be shorter than the `stopTimeout`
+  on the container definition.
+
+  This will set the `entryPoint` field for each container in `container_definitions` that does not have
+  an `entryPoint` field. Containers with a non-null `entryPoint` field will be ignored. Since this sets
+  an explicit entrypoint, the default entrypoint from the image (if present) will not be used. You may
+  need to set the `command` field on the container definition to ensure the container starts properly.
+  EOT
   default     = null
 }
