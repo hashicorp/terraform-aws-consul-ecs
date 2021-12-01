@@ -286,11 +286,10 @@ func TestBasic(t *testing.T) {
 		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "basic")
 		require.NoError(r, err)
 
-		appLogs = appLogs.Filter("TEST LOG:")
-		require.Len(r, appLogs, 2)
-		require.Equal(r, appLogs[0].Message, "TEST LOG: Caught sigterm. Sleeping 10s...")
-		require.Equal(r, appLogs[1].Message, "TEST LOG: on exit")
-		require.InDelta(r, 10, appLogs.Duration().Seconds(), 1)
+		logMsg := "consul-ecs: received sigterm. waiting 10s before terminating application."
+		appLogs = appLogs.Filter(logMsg)
+		require.Len(r, appLogs, 1)
+		require.Contains(r, appLogs[0].Message, logMsg)
 	})
 
 	// Check that the Envoy entrypoint received the sigterm.

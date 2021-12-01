@@ -159,20 +159,7 @@ module "test_client" {
       linuxParameters = {
         initProcessEnabled = true
       }
-      # Keep the client running for 10 seconds to validate graceful shutdown behavior.
-      entryPoint = ["/bin/sh", "-c", <<EOT
-/app/fake-service &
-export PID=$!
-trap "{ echo 'TEST LOG: on exit'; kill $PID; }" 0
-function onterm() {
-    echo "TEST LOG: Caught sigterm. Sleeping 10s..."
-    sleep 10
-    exit 0
-}
-trap onterm TERM
-wait $PID
-EOT
-      ]
+      command = ["/app/fake-service"]
       healthCheck = {
         command  = ["CMD-SHELL", "echo 1"]
         interval = 30
@@ -210,6 +197,8 @@ EOT
   ]
   log_configuration = local.test_client_log_configuration
   outbound_only     = true
+  // This keeps the application running for 10 seconds.
+  application_shutdown_delay_seconds = 10
 
   tls                            = var.secure
   consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
