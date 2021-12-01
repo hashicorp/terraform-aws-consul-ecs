@@ -66,6 +66,7 @@ resource "aws_ecs_service" "this" {
   network_configuration {
     subnets          = var.subnet_ids
     assign_public_ip = var.assign_public_ip
+    security_groups  = length(aws_security_group.ecs_service) != 0 ? [aws_security_group.ecs_service[0].id] : null
   }
   launch_type = var.launch_type
   service_registries {
@@ -414,7 +415,7 @@ resource "aws_lb_listener" "this" {
 
 resource "aws_security_group" "load_balancer" {
   count  = var.lb_enabled ? 1 : 0
-  name   = var.name
+  name   = "${var.name}-lb-sg"
   vpc_id = var.vpc_id
 
   ingress {
@@ -424,6 +425,27 @@ resource "aws_security_group" "load_balancer" {
     protocol        = "tcp"
     cidr_blocks     = var.lb_ingress_rule_cidr_blocks
     security_groups = var.lb_ingress_rule_security_groups
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "ecs_service" {
+  count  = var.lb_enabled ? 1 : 0
+  name   = "${var.name}-ecs-sg"
+  vpc_id = var.vpc_id
+
+  ingress {
+    description     = "Access to Consul dev server HTTP API and UI."
+    from_port       = 8500
+    to_port         = 8500
+    protocol        = "tcp"
+    security_groups = [aws_security_group.load_balancer[0].id]
   }
 
   egress {
