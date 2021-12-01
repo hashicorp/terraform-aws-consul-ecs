@@ -441,10 +441,10 @@ resource "aws_security_group" "ecs_service" {
   vpc_id = var.vpc_id
 
   ingress {
-    description     = "Access to Consul dev server HTTP API and UI."
-    from_port       = 8500
-    to_port         = 8500
-    protocol        = "tcp"
+    description     = "Access to Consul dev server from security group attached to load balancer"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     security_groups = [aws_security_group.load_balancer[0].id]
   }
 
