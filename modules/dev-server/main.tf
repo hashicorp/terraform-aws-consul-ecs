@@ -442,9 +442,9 @@ resource "aws_security_group" "ecs_service" {
 
   ingress {
     description     = "Access to Consul dev server from security group attached to load balancer"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
     security_groups = [aws_security_group.load_balancer[0].id]
   }
 
