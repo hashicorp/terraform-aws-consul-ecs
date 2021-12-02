@@ -57,9 +57,12 @@ resource "aws_ecs_service" "load_client" {
   network_configuration {
     subnets = var.private_subnets
   }
-  launch_type            = "FARGATE"
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
+  capacity_provider_strategy     {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 100
+  }
 
   tags = var.tags
 }

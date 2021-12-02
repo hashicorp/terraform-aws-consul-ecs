@@ -1,6 +1,6 @@
 resource "aws_ecs_cluster" "this" {
   name               = local.name
-  capacity_providers = ["FARGATE"]
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
   tags               = var.tags
 }
 
@@ -59,7 +59,7 @@ resource "consul_config_entry" "proxy-defaults" {
     }
   })
 
-  depends_on = [module.consul-server]
+  depends_on = [module.consul-server[0], module.service_group[0]]
 }
 
 resource "consul_config_entry" "service_intentions" {
@@ -75,5 +75,5 @@ resource "consul_config_entry" "service_intentions" {
     ]
   })
 
-  depends_on = [module.consul-server]
+  depends_on = [module.consul-server[0], module.service_group[0]]
 }

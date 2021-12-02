@@ -15,6 +15,8 @@ const (
 	flagPercentRestart                 = "percent-restart"
 	flagLBIngressIP                    = "lb-ingress-ip"
 	flagRestarts                       = "restarts"
+	flagMode                           = "mode"
+	flagOutputCSVPath                  = "output-csv-path"
 )
 
 // TestConfig holds configuration for the test suite.
@@ -26,6 +28,8 @@ type TestConfig struct {
 	PercentRestart                 int
 	LBIngressIP                    string
 	Restarts                       int
+	Mode                           string
+	OutputCSVPath                  string
 }
 
 func (t TestConfig) TFVars() map[string]interface{} {
@@ -47,6 +51,8 @@ type TestFlags struct {
 	flagRestarts                       int
 	flagServerInstancesPerServiceGroup int
 	flagLBIngressIP                    string
+	flagMode                           string
+	flagOutputCSVPath                  string
 
 	once sync.Once
 }
@@ -72,6 +78,11 @@ func (t *TestFlags) init() {
 		"Number of times to kill tasks")
 	flag.StringVar(&t.flagLBIngressIP, flagLBIngressIP, "",
 		"The IP address that will access the Consul UI")
+	flag.StringVar(&t.flagMode, flagMode, "everything",
+		"The mode the tests will run in. Either 'everything' or 'service-group'")
+
+	flag.StringVar(&t.flagOutputCSVPath, flagOutputCSVPath, "",
+		"The path to write service group stabilization times to")
 }
 
 func (t *TestFlags) Validate() error {
@@ -91,6 +102,10 @@ func (t *TestFlags) Validate() error {
 		return fmt.Errorf("%q is required", flagLBIngressIP)
 	}
 
+	if t.flagMode != "everything" && t.flagMode != "service-group" {
+		return fmt.Errorf("%q needs to be 'everything' or 'service-group'", flagMode)
+	}
+
 	return nil
 }
 
@@ -103,6 +118,8 @@ func (t *TestFlags) TestConfigFromFlags() *TestConfig {
 		PercentRestart:                 t.flagPercentRestart,
 		Restarts:                       t.flagRestarts,
 		LBIngressIP:                    t.flagLBIngressIP,
+		Mode:                           t.flagMode,
+		OutputCSVPath:                  t.flagOutputCSVPath,
 	}
 
 	return &cfg

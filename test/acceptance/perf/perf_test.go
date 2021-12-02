@@ -3,6 +3,7 @@ package perf
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -10,16 +11,18 @@ import (
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/montanaflynn/stats"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	cluster   = "consul-ecs-perf"
-	sleepTime = 30 * time.Second
+	cluster      = "consul-ecs-perf"
+	pollInterval = 10 * time.Second
+	maxDuration  = 30 * time.Minute
 )
 
 func TestRun(t *testing.T) {
+	InitMetrics(t)
 	config := testSuite.Config()
 	tfVars := config.TFVars()
 	options := &terraform.Options{
@@ -45,47 +48,67 @@ func TestRun(t *testing.T) {
 	consulClient, err := api.NewClient(&api.Config{Address: consulURL, Token: bootstrapToken})
 	require.NoError(t, err)
 
-	ensureEverythingIsRunning(t, consulClient)
-
-	t.Log("Number of restarts", config.Restarts)
-	for restart := 0; restart < config.Restarts; restart++ {
-		t.Logf("Killing tasks attempt %d", restart+1)
-		killTasks(t)
-		ensureEverythingIsRunning(t, consulClient)
+	strategy := NewEverythingStabilizes(config.ServiceGroups, config.Restarts)
+	if config.Mode == "service-group" {
+		strategy = NewServiceGroupStabilizes(config.ServiceGroups, config.Restarts)
 	}
+
+	ensureEverythingIsRunning(t, consulClient, strategy)
 }
 
-func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client) {
-	// Wait long enough for some services to become unhealthy.
-	time.Sleep(sleepTime)
+type ServiceGroupState map[int][]time.Time
+
+func (sgs ServiceGroupState) done(restarts int) bool {
+	for _, durations := range sgs {
+		if len(durations) != restarts {
+			return false
+		}
+	}
+	return true
+}
+
+func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client, strategy Strategy) {
+	fmt.Println("Monitoring for healthy services")
 	config := testSuite.Config()
 
-	startTime := time.Now()
+	for {
+		time.Sleep(pollInterval)
 
-	t.Log("ensuring everything is running")
-
-	retry.RunWith(&retry.Timer{Timeout: 7 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		unhealthy := make(map[int]struct{})
+		fmt.Print("Pulling service groups. ")
+		var currentlyHealthy []int
 		for i := 0; i < config.ServiceGroups; i++ {
 			clientName := fmt.Sprintf("consul-ecs-perf-%d-load-client", i)
 			serverName := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
-			if getHealthyCount(r, consulClient, clientName) != 1 || getHealthyCount(r, consulClient, serverName) != config.ServerInstancesPerServiceGroup {
-				unhealthy[i] = struct{}{}
-				continue
+			clientRunning := getHealthyCount(t, consulClient, clientName) == 1
+			serverRunning := getHealthyCount(t, consulClient, serverName) >= config.ServerInstancesPerServiceGroup
+			if clientRunning && serverRunning {
+				currentlyHealthy = append(currentlyHealthy, i)
 			}
 		}
 
-		t.Logf("%d / %d service groups are unhealthy\n", len(unhealthy), config.ServiceGroups)
-		require.Equal(r, 0, len(unhealthy))
-	})
+		fmt.Printf("%d / %d are healthy.\n", len(currentlyHealthy), config.ServiceGroups)
 
-	t.Logf("it took %s for the cluster to stabilize\n", time.Since(startTime)+sleepTime)
+		// TODO naming is hard. strategy.ServiceGroupsToDelete updates the internal
+		// state for the strategy so it isn't the best name.
+		toKill := strategy.ServiceGroupsToDelete(currentlyHealthy, time.Now())
+
+		if strategy.Done() {
+			fmt.Println("Every service has completed")
+			summaryStatistics := getSummaryStatistics(t, strategy, *config)
+			fmt.Printf("SummaryStatistics:\n%+v\n", summaryStatistics)
+			return
+		}
+
+		for _, i := range toKill {
+			killTasksForServiceGroup(t, i)
+		}
+	}
 }
 
-func getHealthyCount(r *retry.R, consulClient *api.Client, serviceName string) int {
+func getHealthyCount(t *testing.T, consulClient *api.Client, serviceName string) int {
 	services, _, err := consulClient.Health().Service(serviceName, "", false, nil)
-	r.Check(err)
+	require.NoError(t, err)
 
 	healthyCount := 0
 	for _, service := range services {
@@ -107,56 +130,126 @@ type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
 }
 
-func killTasks(t *testing.T) {
+func killTasksForServiceGroup(t *testing.T, i int) {
 	config := testSuite.Config()
-	t.Log("Killing tasks")
-	for i := 0; i < config.ServiceGroups; i++ {
-		family := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
-		taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-			Logger:  logger.Discard,
-			Command: "aws",
-			Args: []string{
-				"ecs",
-				"list-tasks",
-				"--region",
-				"us-west-2",
-				"--cluster",
-				cluster,
-				"--family",
-				family,
-			},
-		})
+	fmt.Printf("Killing tasks for service group %d\n", i)
+	family := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
-		var tasks listTasksResponse
-		err := json.Unmarshal([]byte(taskListOut), &tasks)
-		require.NoError(t, err)
-		taskARNS := tasks.TaskARNs
+	taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
+		Logger:  logger.Discard,
+		Command: "aws",
+		Args: []string{
+			"ecs",
+			"list-tasks",
+			"--region",
+			"us-west-2",
+			"--cluster",
+			cluster,
+			"--family",
+			family,
+		},
+	})
 
-		// Restart tasks for one service group at a time.
-		tasksToKillPerService := config.ServerInstancesPerServiceGroup * config.PercentRestart / 100
-		guard := make(chan struct{}, tasksToKillPerService)
+	var tasks listTasksResponse
+	err := json.Unmarshal([]byte(taskListOut), &tasks)
+	require.NoError(t, err)
+	taskARNS := tasks.TaskARNs
 
-		for i, taskARN := range taskARNS {
-			if i >= tasksToKillPerService {
-				break
-			}
-			guard <- struct{}{}
-			go func(arn string) {
-				shell.RunCommand(t, shell.Command{
-					Logger:  logger.Discard,
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"stop-task",
-						"--region", "us-west-2",
-						"--cluster", cluster,
-						"--task", arn,
-						"--reason", "Stopped to test performance",
-					},
-				})
-				<-guard
-			}(taskARN)
+	// Restart tasks for one service group at a time.
+	tasksToKillPerService := config.ServerInstancesPerServiceGroup * config.PercentRestart / 100
+	guard := make(chan struct{}, tasksToKillPerService)
+
+	for i, taskARN := range taskARNS {
+		if i >= tasksToKillPerService {
+			break
 		}
+		guard <- struct{}{}
+		go func(arn string) {
+			shell.RunCommand(t, shell.Command{
+				Logger:  logger.Discard,
+				Command: "aws",
+				Args: []string{
+					"ecs",
+					"stop-task",
+					"--region", "us-west-2",
+					"--cluster", cluster,
+					"--task", arn,
+					"--reason", "Stopped to test performance",
+				},
+			})
+			<-guard
+		}(taskARN)
+	}
+}
+
+type SummaryStatistics struct {
+	Min               time.Duration
+	Mean              time.Duration
+	StandardDeviation time.Duration
+	Median            time.Duration
+	P90               time.Duration
+	P95               time.Duration
+	P99               time.Duration
+	Max               time.Duration
+}
+
+func getSummaryStatistics(t *testing.T, s Strategy, config TestConfig) SummaryStatistics {
+	timeseries := s.Data()
+
+	var seconds []float64
+
+	for _, event := range timeseries {
+		seconds = append(seconds, float64(event.duration.Seconds()))
+	}
+
+	if config.OutputCSVPath != "" {
+		f, err := os.Create(config.OutputCSVPath)
+		require.NoError(t, err)
+		f.WriteString("time,duration\n")
+		defer f.Close()
+
+		for _, event := range timeseries {
+			f.WriteString(fmt.Sprintf("%s,%s\n", event.time.Format(time.RFC3339Nano), event.duration))
+		}
+	}
+
+	mean, err := stats.Mean(seconds)
+	require.NoError(t, err)
+
+	min, err := stats.Min(seconds)
+	require.NoError(t, err)
+
+	median, err := stats.Median(seconds)
+	require.NoError(t, err)
+
+	max, err := stats.Max(seconds)
+	require.NoError(t, err)
+
+	p90, err := stats.Percentile(seconds, 90)
+	require.NoError(t, err)
+
+	p95, err := stats.Percentile(seconds, 95)
+	require.NoError(t, err)
+
+	p99, err := stats.Percentile(seconds, 99)
+	require.NoError(t, err)
+
+	standardDeviation, err := stats.StandardDeviation(seconds)
+	require.NoError(t, err)
+
+	toDuration := func(v float64) time.Duration {
+		return time.Duration(int64(v)) * time.Second
+	}
+
+	return SummaryStatistics{
+		Min:               toDuration(min),
+		Mean:              toDuration(mean),
+		Median:            toDuration(median),
+		StandardDeviation: toDuration(standardDeviation),
+		P90:               toDuration(p90),
+		P95:               toDuration(p95),
+		P99:               toDuration(p99),
+		Max:               toDuration(max),
 	}
 }
