@@ -104,6 +104,25 @@ module "consul_server" {
   acls                  = var.secure
 }
 
+data "aws_security_group" "vpc_default" {
+  vpc_id = var.vpc_id
+
+  filter {
+    name   = "group-name"
+    values = ["default"]
+  }
+}
+
+resource "aws_security_group_rule" "consul_server_ingress" {
+  description              = "Access to Consul dev server from default security group"
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  source_security_group_id = data.aws_security_group.vpc_default.id
+  security_group_id        = module.consul_server.security_group_id
+}
+
 module "acl_controller" {
   count  = var.secure ? 1 : 0
   source = "../../../../../../modules/acl-controller"
