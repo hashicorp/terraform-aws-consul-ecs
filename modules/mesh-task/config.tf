@@ -46,7 +46,7 @@ locals {
 
   config = {
     aclTokenSecret = {
-      provider = "secret-manager"
+      provider = "secrets-manager"
       configuration = {
         prefix                     = var.acl_secret_name_prefix
         consulClientTokenSecretArn = var.consul_client_token_secret_arn
