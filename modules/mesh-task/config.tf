@@ -32,13 +32,11 @@ locals {
       for k, v in local.meshServiceConfig :
       k => v if v != null && try(length(v) != 0, true)
     }
-    sidecar = {
-      proxy = {
-        upstreams = [
-          for upstream in local.camelCaseUpstreams :
-          { for k, v in upstream : k => v if v != null && try(length(v) != 0, true) }
-        ]
-      }
+    proxy = {
+      upstreams = [
+        for upstream in local.camelCaseUpstreams :
+        { for k, v in upstream : k => v if v != null && try(length(v) != 0, true) }
+      ]
     }
     healthSyncContainers = local.defaulted_check_containers
     bootstrapDir         = local.consul_data_mount.containerPath

@@ -240,7 +240,7 @@ module "test_server" {
   log_configuration = local.test_server_log_configuration
   checks = [
     {
-      checkid  = "server-http"
+      checkId  = "server-http"
       name     = "HTTP health check on port 9090"
       http     = "http://localhost:9090/health"
       method   = "GET"

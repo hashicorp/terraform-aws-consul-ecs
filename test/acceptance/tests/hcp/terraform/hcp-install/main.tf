@@ -195,7 +195,7 @@ module "test_server" {
   }
   checks = [
     {
-      checkid  = "server-http"
+      checkId  = "server-http"
       name     = "HTTP health check on port 9090"
       http     = "http://localhost:9090/health"
       method   = "GET"
