@@ -43,17 +43,8 @@ locals {
   }
 
   config = {
-    aclTokenSecret = {
-      provider = "secrets-manager"
-      configuration = {
-        prefix                     = var.acl_secret_name_prefix
-        consulClientTokenSecretArn = var.consul_client_token_secret_arn
-      }
-    }
-    mesh = {
-      for k, v in local.meshConfig :
-      k => v if v != null && try(length(v) != 0, true)
-    }
+    for k, v in local.meshConfig :
+    k => v if v != null && try(length(v) != 0, true)
   }
 
   encoded_config = jsonencode(local.config)
