@@ -18,3 +18,13 @@ module "dev_consul_server" {
   }
   launch_type = "FARGATE"
 }
+
+resource "aws_security_group_rule" "consul_server_ingress" {
+  description              = "Access to Consul dev server from default security group"
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  source_security_group_id = module.vpc.default_security_group_id
+  security_group_id        = module.dev_consul_server.security_group_id
+}

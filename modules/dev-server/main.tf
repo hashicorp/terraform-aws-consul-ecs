@@ -66,7 +66,7 @@ resource "aws_ecs_service" "this" {
   network_configuration {
     subnets          = var.subnet_ids
     assign_public_ip = var.assign_public_ip
-    security_groups  = length(aws_security_group.ecs_service) != 0 ? [aws_security_group.ecs_service[0].id] : null
+    security_groups  = [aws_security_group.ecs_service.id]
   }
   launch_type = var.launch_type
   service_registries {
@@ -436,22 +436,28 @@ resource "aws_security_group" "load_balancer" {
 }
 
 resource "aws_security_group" "ecs_service" {
-  count  = var.lb_enabled ? 1 : 0
   name   = "${var.name}-ecs-sg"
   vpc_id = var.vpc_id
+}
 
-  ingress {
-    description     = "Access to Consul dev server from security group attached to load balancer"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.load_balancer[0].id]
-  }
+resource "aws_security_group_rule" "lb_ingress_to_service" {
+  count = var.lb_enabled ? 1 : 0
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  description              = "Access to Consul dev server from security group attached to load balancer"
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  source_security_group_id = aws_security_group.load_balancer[0].id
+  security_group_id        = aws_security_group.ecs_service.id
+}
+
+
+resource "aws_security_group_rule" "egress_from_service" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.ecs_service.id
 }
