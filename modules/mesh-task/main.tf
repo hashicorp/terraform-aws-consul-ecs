@@ -197,21 +197,10 @@ resource "aws_ecs_task_definition" "this" {
             ] : [],
           },
           {
-            name      = "consul-client"
-            image     = var.consul_image
-            essential = false
-            portMappings = [
-              {
-                containerPort = 8300
-                hostPort      = 8300
-                protocol      = "tcp"
-              },
-              {
-                containerPort = 8300
-                hostPort      = 8300
-                protocol      = "udp"
-              },
-            ]
+            name             = "consul-client"
+            image            = var.consul_image
+            essential        = false
+            portMappings     = []
             logConfiguration = var.log_configuration
             entryPoint       = ["/bin/sh", "-ec"]
             command = [replace(
@@ -271,13 +260,7 @@ resource "aws_ecs_task_definition" "this" {
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
-            portMappings = [
-              {
-                containerPort = 20000
-                hostPort      = 20000
-                protocol      = "tcp"
-              },
-            ]
+            portMappings     = []
             mountPoints = [
               local.consul_data_mount
             ]

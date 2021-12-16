@@ -12,6 +12,10 @@ FEATURES
   off for better graceful shutdown.
   [[GH-67](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/67)]
 
+IMPROVEMENTS
+* modules/mesh-task: Cleanup unnecessary port mappings.
+  [[GH-78](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/78)]
+
 ## 0.2.0 (Nov 16, 2021)
 
 BREAKING CHANGES
