@@ -20,6 +20,7 @@ locals {
     "/consul/consul-ecs", "app-entrypoint", "-shutdown-delay", "${var.application_shutdown_delay_seconds}s",
   ]
   app_mountpoints = var.application_shutdown_delay_seconds == null ? [] : [local.consul_data_mount]
+  service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
@@ -60,7 +61,6 @@ locals {
   defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
   if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
 
-  upstreams_flag = join(",", [for upstream in var.upstreams : "${upstream["destination_name"]}:${upstream["local_bind_port"]}"])
 }
 
 resource "aws_secretsmanager_secret" "service_token" {
@@ -158,7 +158,7 @@ resource "aws_ecs_task_definition" "this" {
   tags = merge(
     var.tags,
     { "consul.hashicorp.com/mesh" = "true" },
-    { "consul.hashicorp.com/service-name" = var.consul_service_name != "" ? var.consul_service_name : var.family }
+    { "consul.hashicorp.com/service-name" = local.service_name }
   )
 
   container_definitions = jsonencode(
@@ -171,17 +171,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.consul_ecs_image
             essential        = false
             logConfiguration = var.log_configuration
-            command = [
-              "mesh-init",
-              "-envoy-bootstrap-dir=/consul",
-              "-port=${var.port}",
-              "-upstreams=${local.upstreams_flag}",
-              "-checks=${jsonencode(var.checks)}",
-              "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
-              "-tags=${join(",", var.consul_service_tags)}",
-              "-meta=${jsonencode(var.consul_service_meta)}",
-              "-service-name=${var.consul_service_name}"
-            ]
+            command          = ["mesh-init"]
             mountPoints = [
               local.consul_data_mount_read_write,
               {
@@ -190,9 +180,14 @@ resource "aws_ecs_task_definition" "this" {
                 readOnly      = true
               }
             ]
-            cpu          = 0
-            volumesFrom  = []
-            environment  = []
+            cpu         = 0
+            volumesFrom = []
+            environment = [
+              {
+                name  = "CONSUL_ECS_CONFIG_JSON",
+                value = local.encoded_config
+              }
+            ]
             portMappings = []
             secrets = var.acls ? [
               {
@@ -316,14 +311,15 @@ resource "aws_ecs_task_definition" "this" {
           image            = var.consul_ecs_image
           essential        = false
           logConfiguration = var.log_configuration
-          command = [
-            "health-sync",
-            "-health-sync-containers=${join(",", local.defaulted_check_containers)}",
-            "-service-name=${var.consul_service_name}"
+          command          = ["health-sync"]
+          cpu              = 0
+          volumesFrom      = []
+          environment = [
+            {
+              name  = "CONSUL_ECS_CONFIG_JSON",
+              value = local.encoded_config
+            }
           ]
-          cpu          = 0
-          volumesFrom  = []
-          environment  = []
           portMappings = []
           dependsOn = [
             {
