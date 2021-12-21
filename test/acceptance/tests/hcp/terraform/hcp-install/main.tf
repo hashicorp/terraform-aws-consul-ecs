@@ -136,8 +136,8 @@ module "test_client" {
   retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"]
   upstreams = [
     {
-      destination_name = "test_server_${var.suffix}"
-      local_bind_port  = 1234
+      destinationName = "test_server_${var.suffix}"
+      localBindPort   = 1234
     }
   ]
   log_configuration = {

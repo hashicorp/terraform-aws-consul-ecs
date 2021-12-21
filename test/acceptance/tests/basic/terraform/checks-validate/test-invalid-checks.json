@@ -1,0 +1,20 @@
+[
+  {
+    "invalid-key": "",
+    "checkId": "frontend-http",
+    "name": "frontend-http",
+    "http": "http://localhost:8080/health",
+    "method": "POST",
+    "body": "{\"method\": \"health\"}",
+    "notes": "Health check for the frontend service",
+    "header": {
+      "Content-Type": [
+        "application/json"
+      ]
+    },
+    "interval": "30s",
+    "timeout": "10s",
+    "successBeforePassing": 3,
+    "failuresBeforeCritical": 4
+  }
+]

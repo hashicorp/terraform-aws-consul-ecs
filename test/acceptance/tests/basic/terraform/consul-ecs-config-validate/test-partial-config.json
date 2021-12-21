@@ -1,0 +1,10 @@
+{
+  "service": {
+    "namespace": "test-ns"
+  },
+  "proxy": {
+    "meshGateway": {
+      "mode": "remote"
+    }
+  }
+}

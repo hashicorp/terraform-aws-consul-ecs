@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:1ce040e"
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
 variable "server_service_name" {
@@ -210,8 +210,8 @@ EOT
   retry_join = [module.consul_server.server_dns]
   upstreams = [
     {
-      destination_name = "${var.server_service_name}_${var.suffix}"
-      local_bind_port  = 1234
+      destinationName = "${var.server_service_name}_${var.suffix}"
+      localBindPort   = 1234
     }
   ]
   log_configuration = local.test_client_log_configuration

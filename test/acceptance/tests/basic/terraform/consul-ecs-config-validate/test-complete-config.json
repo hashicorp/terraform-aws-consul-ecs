@@ -1,0 +1,29 @@
+{
+  "service": {
+    "enableTagOverride": false,
+    "weights": {
+      "passing": 1,
+      "warning": 1
+    },
+    "namespace": "test-ns"
+  },
+  "proxy": {
+    "config": {
+      "some": "data"
+    },
+    "meshGateway": {
+      "mode": "remote"
+    },
+    "expose": {
+      "checks": true,
+      "paths": [
+        {
+          "listenerPort": 1234,
+          "path": "/path",
+          "localPathPort": 2345,
+          "protocol": "http"
+        }
+      ]
+    }
+  }
+}

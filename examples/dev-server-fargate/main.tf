@@ -52,8 +52,8 @@ module "example_client_app" {
   port   = "9090"
   upstreams = [
     {
-      destination_name = "${var.name}-example-server-app"
-      local_bind_port  = 1234
+      destinationName = "${var.name}-example-server-app"
+      localBindPort   = 1234
     }
   ]
   log_configuration = local.example_client_app_log_config

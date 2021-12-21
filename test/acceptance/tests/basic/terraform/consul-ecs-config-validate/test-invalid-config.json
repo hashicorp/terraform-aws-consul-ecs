@@ -1,0 +1,20 @@
+{
+  "invalid-key": "",
+  "service": {
+    "invalid-key": ""
+  },
+  "proxy": {
+    "invalid-key": "",
+    "meshGateway": {
+      "invalid-key": ""
+    },
+    "expose": {
+      "invalid-key": "",
+      "paths": [
+        {
+          "invalid-key": ""
+        }
+      ]
+    }
+  }
+}
