@@ -11,7 +11,8 @@ type stabilizationEvent struct {
 }
 
 type Strategy interface {
-	ServiceGroupsToDelete([]int, time.Time) []int
+	ServiceGroups() map[int]struct{}
+	ServiceGroupsToDelete(map[int]struct{}, time.Time) map[int]struct{}
 	setServiceGroupStable(int, time.Time)
 	Data() []stabilizationEvent
 	Done() bool
@@ -19,38 +20,45 @@ type Strategy interface {
 
 type EverythingStabilizes struct {
 	restarts                 int
-	serviceGroups            []int
+	serviceGroups            map[int]struct{}
+	threshold                int
 	initialStabilizationTime time.Time
 	subsequentStabilizations []time.Time
 }
 
-func NewEverythingStabilizes(serviceGroups int, restarts int) Strategy {
-	var allServiceGroups []int
+func NewEverythingStabilizes(serviceGroups int, restarts int, threshold int) Strategy {
+	allServiceGroups := make(map[int]struct{})
 	for i := 0; i < serviceGroups; i++ {
-		allServiceGroups = append(allServiceGroups, i)
+		allServiceGroups[i] = struct{}{}
 	}
 	return &EverythingStabilizes{
 		serviceGroups: allServiceGroups,
 		restarts:      restarts,
+		threshold:     threshold,
 	}
 }
 
-func (sgs *EverythingStabilizes) ServiceGroupsToDelete(stableServiceGroups []int, t time.Time) []int {
-	var emptyServiceGroups []int
+func (sgs *EverythingStabilizes) ServiceGroupsToDelete(stableServiceGroups map[int]struct{}, t time.Time) map[int]struct{} {
+	emptyServiceGroups := make(map[int]struct{})
 
-	if len(sgs.serviceGroups) != len(stableServiceGroups) || len(sgs.subsequentStabilizations) == sgs.restarts {
+	if len(stableServiceGroups)*100 < (len(sgs.serviceGroups)*sgs.threshold) || len(sgs.subsequentStabilizations) == sgs.restarts {
 		return emptyServiceGroups
 	}
 
 	sgs.setServiceGroupStable(0, t)
+	sgs.serviceGroups = stableServiceGroups
 
-	fmt.Println("Every service group is healthy")
+	fmt.Printf("%d service groups are stable and will be used going forward. This is greater than the threshold of %d percent.\n", len(stableServiceGroups), sgs.threshold)
 
 	return stableServiceGroups
 }
 
 func (sgs *EverythingStabilizes) Done() bool {
 	return len(sgs.subsequentStabilizations) == sgs.restarts
+}
+
+func (es *EverythingStabilizes) ServiceGroups() map[int]struct{} {
+	return es.serviceGroups
 }
 
 func (es *EverythingStabilizes) Data() []stabilizationEvent {
@@ -85,18 +93,18 @@ func (es *EverythingStabilizes) setServiceGroupStable(serviceGroup int, t time.T
 
 type ServiceGroupStabilizes struct {
 	restarts                  int
-	serviceGroups             []int
+	serviceGroups             map[int]struct{}
 	initialStabilizationTimes map[int]time.Time
 	subsequentStabilizations  map[int][]time.Time
 }
 
 func NewServiceGroupStabilizes(serviceGroups int, restarts int) Strategy {
-	var allServiceGroups []int
+	allServiceGroups := make(map[int]struct{})
 	initialStabilizationTimes := make(map[int]time.Time)
 	subsequentStabilizations := make(map[int][]time.Time)
 
 	for i := 0; i < serviceGroups; i++ {
-		allServiceGroups = append(allServiceGroups, i)
+		allServiceGroups[i] = struct{}{}
 		initialStabilizationTimes[i] = time.Time{}
 		subsequentStabilizations[i] = []time.Time{}
 	}
@@ -109,17 +117,21 @@ func NewServiceGroupStabilizes(serviceGroups int, restarts int) Strategy {
 	}
 }
 
-func (sgs *ServiceGroupStabilizes) ServiceGroupsToDelete(stableServiceGroups []int, t time.Time) []int {
-	var toRestart []int
+func (sgs *ServiceGroupStabilizes) ServiceGroupsToDelete(stableServiceGroups map[int]struct{}, t time.Time) map[int]struct{} {
+	toRestart := make(map[int]struct{})
 
-	for _, serviceGroup := range stableServiceGroups {
+	for serviceGroup, _ := range stableServiceGroups {
 		if len(sgs.subsequentStabilizations[serviceGroup]) != sgs.restarts {
 			sgs.setServiceGroupStable(serviceGroup, time.Now())
-			toRestart = append(toRestart, serviceGroup)
+			toRestart[serviceGroup] = struct{}{}
 		}
 	}
 
 	return toRestart
+}
+
+func (sgs *ServiceGroupStabilizes) ServiceGroups() map[int]struct{} {
+	return sgs.serviceGroups
 }
 
 func (sgs *ServiceGroupStabilizes) Data() []stabilizationEvent {

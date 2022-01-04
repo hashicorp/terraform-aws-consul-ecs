@@ -16,6 +16,7 @@ resource "aws_ecs_service" "test_server" {
 module "test_server" {
   source = "../../../../../modules/mesh-task"
   family = "${var.name}-test-server"
+  consul_image = "public.ecr.aws/hashicorp/consul:${var.consul_version}"
   container_definitions = [{
     name      = "basic"
     image     = "ghcr.io/lkysow/fake-service:v0.21.0"
@@ -70,6 +71,7 @@ resource "aws_ecs_service" "load_client" {
 module "load_client" {
   source = "../../../../../modules/mesh-task"
   family = "${var.name}-load-client"
+  consul_image = "public.ecr.aws/hashicorp/consul:${var.consul_version}"
   container_definitions = [{
     name      = "load"
     image     = "ghcr.io/erichaberkorn/slow_cooker:latest" # a clone to avoid rate limits

@@ -221,7 +221,7 @@ module "consul-server" {
   vpc_id               = module.vpc.vpc_id
   private_subnets      = module.vpc.private_subnets
   public_subnets       = module.vpc.public_subnets
-  consul_version       = "1.10.2"
+  consul_version       = var.consul_version
   region               = var.region
   datadog_api_key      = var.datadog_api_key
   consul_download_url  = "" // We need to provide it as it is a required variable.

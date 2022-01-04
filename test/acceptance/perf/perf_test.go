@@ -9,7 +9,6 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/shell"
-	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/api"
 	"github.com/montanaflynn/stats"
 	"github.com/stretchr/testify/require"
@@ -24,31 +23,19 @@ const (
 func TestRun(t *testing.T) {
 	InitMetrics(t)
 	config := testSuite.Config()
-	tfVars := config.TFVars()
-	options := &terraform.Options{
-		TerraformDir: "./setup",
-		NoColor:      true,
-		Vars:         tfVars,
-	}
 
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, options)
+	config.terraformApply(t, true)
 
-	if !config.NoCleanup {
-		t.Cleanup(func() {
-			_, _ = terraform.DestroyE(t, terraformOptions)
-		})
-	}
+	t.Cleanup(func() {
+		config.terraformApply(t, false)
+	})
 
-	_, err := terraform.InitAndApplyE(t, terraformOptions)
+	outputVariables := terraformOutput(t)
+
+	consulClient, err := api.NewClient(&api.Config{Address: outputVariables.ConsulELBURL, Token: outputVariables.BootstrapToken})
 	require.NoError(t, err)
 
-	consulURL := terraform.Output(t, options, "consul_elb_url")
-	bootstrapToken := terraform.Output(t, options, "bootstrap_token")
-
-	consulClient, err := api.NewClient(&api.Config{Address: consulURL, Token: bootstrapToken})
-	require.NoError(t, err)
-
-	strategy := NewEverythingStabilizes(config.ServiceGroups, config.Restarts)
+	strategy := NewEverythingStabilizes(config.ServiceGroups, config.Restarts, config.StableThreshold)
 	if config.Mode == "service-group" {
 		strategy = NewServiceGroupStabilizes(config.ServiceGroups, config.Restarts)
 	}
@@ -75,19 +62,19 @@ func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client, strategy 
 		time.Sleep(pollInterval)
 
 		fmt.Print("Pulling service groups. ")
-		var currentlyHealthy []int
-		for i := 0; i < config.ServiceGroups; i++ {
+		currentlyHealthy := make(map[int]struct{})
+		for i, _ := range strategy.ServiceGroups() {
 			clientName := fmt.Sprintf("consul-ecs-perf-%d-load-client", i)
 			serverName := fmt.Sprintf("consul-ecs-perf-%d-test-server", i)
 
 			clientRunning := getHealthyCount(t, consulClient, clientName) == 1
 			serverRunning := getHealthyCount(t, consulClient, serverName) >= config.ServerInstancesPerServiceGroup
 			if clientRunning && serverRunning {
-				currentlyHealthy = append(currentlyHealthy, i)
+				currentlyHealthy[i] = struct{}{}
 			}
 		}
 
-		fmt.Printf("%d / %d are healthy.\n", len(currentlyHealthy), config.ServiceGroups)
+		fmt.Printf("%d / %d are healthy.\n", len(currentlyHealthy), len(strategy.ServiceGroups()))
 
 		// TODO naming is hard. strategy.ServiceGroupsToDelete updates the internal
 		// state for the strategy so it isn't the best name.
@@ -100,7 +87,7 @@ func ensureEverythingIsRunning(t *testing.T, consulClient *api.Client, strategy 
 			return
 		}
 
-		for _, i := range toKill {
+		for i, _ := range toKill {
 			killTasksForServiceGroup(t, i)
 		}
 	}
@@ -251,5 +238,61 @@ func getSummaryStatistics(t *testing.T, s Strategy, config TestConfig) SummarySt
 		P95:               toDuration(p95),
 		P99:               toDuration(p99),
 		Max:               toDuration(max),
+	}
+}
+
+func (config TestConfig) terraformApply(t *testing.T, setup bool) {
+	args := []string{
+		"apply",
+		"-refresh=false",
+		"-auto-approve",
+		fmt.Sprintf("-var-file=%s", config.ConfigPath),
+	}
+
+	if !setup {
+		args = append(args,
+			"-var=server_instances_per_service_group=0",
+			"-var=client_instances_per_service_group=0",
+		)
+	}
+
+	shell.RunCommandAndGetOutput(t, shell.Command{
+		WorkingDir: "./setup",
+		Command:    "terraform",
+		Args:       args,
+	})
+}
+
+type rawTerraformOutputVariables = map[string]struct {
+	Sensitive bool   `json:"sensitive"`
+	Type      string `json:"type"`
+	Value     string `json:"value"`
+}
+
+type TerraformOutputVariables struct {
+	BootstrapToken string
+	ConsulELBURL   string
+}
+
+func getValue(t *testing.T, raw rawTerraformOutputVariables, v string) string {
+	valueData, ok := raw[v]
+	require.True(t, ok)
+	return valueData.Value
+}
+
+func terraformOutput(t *testing.T) TerraformOutputVariables {
+	outputVariables := make(rawTerraformOutputVariables)
+
+	out := shell.RunCommandAndGetOutput(t, shell.Command{
+		WorkingDir: "./setup",
+		Command:    "terraform",
+		Args:       []string{"output", "--json"},
+	})
+	err := json.Unmarshal([]byte(out), &outputVariables)
+	require.NoError(t, err)
+
+	return TerraformOutputVariables{
+		BootstrapToken: getValue(t, outputVariables, "bootstrap_token"),
+		ConsulELBURL:   getValue(t, outputVariables, "consul_elb_url"),
 	}
 }

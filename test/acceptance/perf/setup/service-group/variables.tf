@@ -63,3 +63,7 @@ variable "server_instances_per_service_group" {
 variable "client_instances_per_service_group" {
   type = number
 }
+
+variable "consul_version" {
+  type = string
+}

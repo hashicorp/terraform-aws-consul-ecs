@@ -8,6 +8,7 @@ require (
 	github.com/gruntwork-io/terratest v0.34.6
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.8.0
+	github.com/hashicorp/hcl/v2 v2.11.1 // indirect
 	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/stretchr/testify v1.4.0
 )

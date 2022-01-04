@@ -45,6 +45,7 @@ module "service_group" {
   private_subnets                    = module.vpc.private_subnets
   cluster_arn                        = aws_ecs_cluster.this.arn
   consul_client_token_secret_arn     = module.acl_controller.client_token_secret_arn
+  consul_version = var.consul_version
 }
 
 
