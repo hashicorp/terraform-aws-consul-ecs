@@ -1,6 +1,6 @@
 # This Dockerfile includes the dependencies for unit and acceptance tests
 # run in CircleCI.
-FROM circleci/golang:1.17
+FROM cimg/go:1.17
 
 # change the user to root so we can install stuff
 USER root
