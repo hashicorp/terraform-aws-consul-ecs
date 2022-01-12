@@ -263,6 +263,12 @@ variable "consul_datacenter" {
   default     = "dc1"
 }
 
+variable "consul_agent_configuration" {
+  type        = string
+  description = "The contents of a configuration file for the Consul Agent in HCL format."
+  default     = null
+}
+
 variable "application_shutdown_delay_seconds" {
   type        = number
   description = <<-EOT

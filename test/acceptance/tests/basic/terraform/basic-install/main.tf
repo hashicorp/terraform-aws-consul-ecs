@@ -228,6 +228,10 @@ EOT
   consul_ecs_image               = var.consul_ecs_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
+
+  consul_agent_configuration = <<-EOT
+  log_level = "debug"
+  EOT
 }
 
 resource "aws_ecs_service" "test_server" {
