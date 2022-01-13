@@ -21,6 +21,12 @@ variable "consul_service_meta" {
   default     = {}
 }
 
+variable "consul_namespace" {
+  description = "The Consul namespace use to register this service."
+  type        = string
+  default     = null
+}
+
 variable "requires_compatibilities" {
   description = "Set of launch types required by the task."
   type        = list(string)
@@ -159,9 +165,14 @@ variable "upstreams" {
 }
 
 variable "checks" {
-  description = "A list of maps defining Consul checks for this service. See the Consul [Register Check documentation](https://www.consul.io/api-docs/agent/check#register-check)."
-  type        = any
-  default     = []
+  description = <<-EOT
+  A list of maps defining Consul checks for this service. This follows the schema of the `service.checks` field
+  of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
+  the Consul [checks documentation](https://www.consul.io/docs/discovery/checks) for more.
+  EOT
+
+  type    = any
+  default = []
 
   validation {
     error_message = "Check fields must be one of 'checkId', 'name', 'scriptArgs', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
@@ -272,12 +283,11 @@ variable "consul_ecs_config" {
   type        = any
   default     = {}
   description = <<EOT
-  Additional configuration to pass to the consul-ecs binary for Consul service and sidecar proxy registration
-  requests.
+  Additional configuration to pass to the consul-ecs binary for Consul service and sidecar proxy registration requests.
 
   This accepts a subset of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
   For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `checks`, `consul_service_name`,
-  `consul_service_tags`, and `consul_service_meta`. In most cases, these separate variables should suffice.
+  `consul_service_tags`, `consul_service_meta`, and `consul_namespace`. In most cases, these separate variables will suffice.
 
   Example:
   ```
@@ -288,7 +298,6 @@ variable "consul_ecs_config" {
         passing = 1
         warning = 1
       }
-      namespace = ""
     }
     proxy = {
       config = {}
@@ -320,10 +329,10 @@ variable "consul_ecs_config" {
   }
 
   validation {
-    error_message = "Only the 'enableTagOverride', 'weights', and 'namespace' fields are allowed in consul_ecs_config.service."
+    error_message = "Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service."
     condition = alltrue([
       for key in keys(lookup(var.consul_ecs_config, "service", {})) :
-      contains(["enableTagOverride", "weights", "namespace"], key)
+      contains(["enableTagOverride", "weights"], key)
     ])
   }
 

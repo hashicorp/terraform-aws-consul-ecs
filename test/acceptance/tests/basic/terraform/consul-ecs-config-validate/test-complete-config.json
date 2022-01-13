@@ -4,8 +4,7 @@
     "weights": {
       "passing": 1,
       "warning": 1
-    },
-    "namespace": "test-ns"
+    }
   },
   "proxy": {
     "config": {

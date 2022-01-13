@@ -6,11 +6,12 @@ locals {
   config = {
     service = merge(
       {
-        name   = local.service_name
-        tags   = var.consul_service_tags
-        port   = var.port
-        meta   = var.consul_service_meta
-        checks = var.checks
+        name      = local.service_name
+        tags      = var.consul_service_tags
+        port      = var.port
+        meta      = var.consul_service_meta
+        checks    = var.checks
+        namespace = var.consul_namespace
       },
       local.serviceExtra
     )
