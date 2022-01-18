@@ -67,7 +67,6 @@ func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
 // This validates a big nested dynamic block in mesh-task.
 func TestVolumeVariable(t *testing.T) {
 	t.Parallel()
-	// terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 	volumes := []map[string]interface{}{
 		{
 			"name": "my-vol1",
@@ -127,6 +126,172 @@ func TestPassingExistingRoles(t *testing.T) {
 		_, _ = terraform.DestroyE(t, terraformOptions)
 	})
 	terraform.InitAndPlan(t, terraformOptions)
+}
+
+func TestValidation_UpstreamsVariable(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		upstreamsFile string
+		errors        []string
+	}{
+		"no-upstreams": {
+			upstreamsFile: "test-no-upstreams.json",
+		},
+		"valid-upstreams": {
+			upstreamsFile: "test-valid-upstreams.json",
+		},
+		"invalid-upstreams": {
+			upstreamsFile: "test-invalid-upstreams.json",
+			errors: []string{
+				"Upstream fields must be one of.*",
+			},
+		},
+		"requires-destination-name": {
+			upstreamsFile: "test-missing-destinationName.json",
+			errors: []string{
+				"Upstream fields .* are required.",
+			},
+		},
+		"requires-local-bind-port": {
+			upstreamsFile: "test-missing-localBindPort.json",
+			errors: []string{
+				"Upstream fields .* are required.",
+			},
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/upstreams-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"upstreams_file": c.upstreamsFile,
+				},
+			})
+
+			if len(c.errors) == 0 {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				for _, regex := range c.errors {
+					require.Regexp(t, regex, out)
+				}
+			}
+		})
+	}
+
+}
+
+func TestValidation_ChecksVariable(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		checksFile string
+		error      bool
+	}{
+		"no-checks": {
+			checksFile: "test-no-checks.json",
+		},
+		"valid-checks": {
+			checksFile: "test-valid-checks.json",
+		},
+		"invalid-checks": {
+			checksFile: "test-invalid-checks.json",
+			error:      true,
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/checks-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"checks_file": c.checksFile,
+				},
+			})
+
+			if c.error {
+				require.Error(t, err)
+				require.Regexp(t, "Check fields must be one of.*", out)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+
+}
+
+func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		configFile string
+		errors     []string
+	}{
+		"empty-map": {
+			configFile: "test-empty-config.json",
+		},
+		"complete-config": {
+			configFile: "test-complete-config.json",
+		},
+		"partial-config": {
+			configFile: "test-partial-config.json",
+		},
+		"invalid-config": {
+			configFile: "test-invalid-config.json",
+			errors: []string{
+				"Only the 'service' and 'proxy' fields are allowed in consul_ecs_config.",
+				"Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service.",
+				"Only the 'meshGateway', 'expose', and 'config' fields are allowed in consul_ecs_config.proxy.",
+				"Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway.",
+				"Only the 'checks' and 'paths' fields are allowed in consul_ecs_config.proxy.expose.",
+				"Only the 'listenerPort', 'path', 'localPathPort', and 'protocol' fields are allowed in each item of consul_ecs_config.proxy.expose.paths[*].",
+			},
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/consul-ecs-config-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"consul_ecs_config_file": c.configFile,
+				},
+			})
+
+			if len(c.errors) == 0 {
+				require.NoError(t, err)
+			} else {
+				for _, msg := range c.errors {
+					// error messages are wrapped, so a space may turn into a newline.
+					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
+					require.Regexp(t, regex, out)
+				}
+			}
+		})
+	}
 }
 
 func TestBasic(t *testing.T) {

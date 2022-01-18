@@ -1,0 +1,20 @@
+[
+  {
+    "destinationName": "backend",
+    "localBindPort": 1234
+  },
+  {
+    "destinationType": "service",
+    "destinationNamespace": "test-ns",
+    "destinationName": "backend",
+    "datacenter": "dc2",
+    "localBindAddress": "localhost",
+    "localBindPort": 1234,
+    "config": {
+      "data": "some-upstream-config-data"
+    },
+    "meshGateway": {
+      "mode": "local"
+    }
+  }
+]

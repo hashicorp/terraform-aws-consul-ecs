@@ -1,5 +1,5 @@
 variable "family" {
-  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This name will also be used as the Consul service name."
+  description = "Task definition [family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This is used by default as the Consul service name if `consul_service_name` is not provided."
   type        = string
 }
 
@@ -19,6 +19,12 @@ variable "consul_service_meta" {
   description = "A map of metadata that will be used for the Consul service registration"
   type        = map(string)
   default     = {}
+}
+
+variable "consul_namespace" {
+  description = "The Consul namespace use to register this service."
+  type        = string
+  default     = null
 }
 
 variable "requires_compatibilities" {
@@ -106,41 +112,106 @@ variable "envoy_image" {
 }
 
 variable "log_configuration" {
-  description = "Task definition log configuration object (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
+  description = "Task definition [log configuration object](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
   type        = any
   default     = null
 }
 
 variable "container_definitions" {
-  description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
+  description = "Application [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
   # This is `any` on purpose. Using `list(any)` is too restrictive. It requires maps in the list to have the same key set, and same value types.
   type = any
 }
 
 variable "upstreams" {
   description = <<-EOT
-  Upstream services this service will call. In the form [{destination_name = $name, local_bind_port = $port}] where
-  destination_name is the name of the upstream service and local_bind_port is the local port that this application should
-  use when calling the upstream service.
+  Upstream services that this service will call. This follows the schema of the `proxy.upstreams` field of the
+  [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
   EOT
 
-  type = list(
-    object({
-      destination_name = string
-      local_bind_port  = number
-    })
-  )
+  type    = any
   default = []
+
+  validation {
+    error_message = "Upstream fields 'destinationName' and 'localBindPort' are required."
+    condition = alltrue(flatten([
+      for upstream in var.upstreams : [
+        can(lookup(upstream, "destinationName")),
+        can(lookup(upstream, "localBindPort")),
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationName', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
+    condition = alltrue(flatten([
+      for upstream in var.upstreams : [
+        for key in keys(upstream) : contains(
+          [
+            "destinationType",
+            "destinationNamespace",
+            "destinationName",
+            "datacenter",
+            "localBindAddress",
+            "localBindPort",
+            "config",
+            "meshGateway",
+          ],
+          key
+        )
+      ]
+    ]))
+  }
 }
 
 variable "checks" {
-  description = "A list of maps defining Consul checks for this service (https://www.consul.io/api-docs/agent/check#register-check)."
-  type        = list(any)
-  default     = []
+  description = <<-EOT
+  A list of maps defining Consul checks for this service. This follows the schema of the `service.checks` field
+  of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
+  the Consul [checks documentation](https://www.consul.io/docs/discovery/checks) for more.
+  EOT
+
+  type    = any
+  default = []
+
+  validation {
+    error_message = "Check fields must be one of 'checkId', 'name', 'scriptArgs', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
+    condition = alltrue(flatten([
+      for check in var.checks : [
+        for key in keys(check) : contains(
+          [
+            "checkId",
+            "name",
+            "scriptArgs",
+            "items",
+            "interval",
+            "timeout",
+            "ttl",
+            "http",
+            "header",
+            "method",
+            "body",
+            "tcp",
+            "status",
+            "notes",
+            "tlsServerName",
+            "tlsSkipVerify",
+            "grpc",
+            "grpcUseTls",
+            "aliasNode",
+            "aliasService",
+            "successBeforePassing",
+            "failuresBeforeCritical",
+          ],
+          key
+        )
+      ]
+    ]))
+  }
 }
 
 variable "retry_join" {
-  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or consul_server_service_name must be set."
+  description = "Arguments to pass to [-retry-join](https://www.consul.io/docs/agent/options#_retry_join). This or `consul_server_service_name` must be set."
   type        = list(string)
 }
 
@@ -181,7 +252,7 @@ variable "consul_client_token_secret_arn" {
 }
 
 variable "acl_secret_name_prefix" {
-  description = "The prefix of Secrets Manager secret names created by the ACL controller. If secret prefix is provided, we assume the secrets are generated by the ACL controller and follow the '<secret_prefix>-<task-family>' naming convention."
+  description = "The prefix of Secrets Manager secret names created by the ACL controller. If secret prefix is provided, we assume the secrets are generated by the ACL controller and follow the `<secret_prefix>-<task-family>` naming convention."
   type        = string
   default     = ""
 }
@@ -194,7 +265,7 @@ variable "consul_datacenter" {
 
 variable "application_shutdown_delay_seconds" {
   type        = number
-  description = <<EOT
+  description = <<-EOT
   Set an application entrypoint to delay the TERM signal from ECS for this many seconds.
   This allows time for incoming traffic to drain off before your application container exits.
   This cannot delay the KILL signal from ECS, so this delay should be shorter than the `stopTimeout`
@@ -206,4 +277,114 @@ variable "application_shutdown_delay_seconds" {
   need to set the `command` field on the container definition to ensure the container starts properly.
   EOT
   default     = null
+}
+
+variable "consul_ecs_config" {
+  type        = any
+  default     = {}
+  description = <<EOT
+  Additional configuration to pass to the consul-ecs binary for Consul service and sidecar proxy registration requests.
+
+  This accepts a subset of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
+  For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `checks`, `consul_service_name`,
+  `consul_service_tags`, `consul_service_meta`, and `consul_namespace`. In most cases, these separate variables will suffice.
+
+  Example:
+  ```
+  consul_ecs_config = {
+    service = {
+      enableTagOverride = false
+      weights = {
+        passing = 1
+        warning = 1
+      }
+    }
+    proxy = {
+      config = {}
+      meshGateway = {
+        mode = "remote"
+      }
+      expose = {
+        checks = true
+        paths = [
+          {
+            listenerPort = 1234
+            path = "/path"
+            localPathPort = 2345
+            protocol = "http"
+          }
+        ]
+      }
+    }
+  }
+  ```
+  EOT
+
+  validation {
+    error_message = "Only the 'service' and 'proxy' fields are allowed in consul_ecs_config."
+    condition = alltrue([
+      for key in keys(var.consul_ecs_config) :
+      contains(["service", "proxy"], key)
+    ])
+  }
+
+  validation {
+    error_message = "Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service."
+    condition = alltrue([
+      for key in keys(lookup(var.consul_ecs_config, "service", {})) :
+      contains(["enableTagOverride", "weights"], key)
+    ])
+  }
+
+  validation {
+    error_message = "Only the 'meshGateway', 'expose', and 'config' fields are allowed in consul_ecs_config.proxy."
+    condition = alltrue([
+      for key in keys(lookup(var.consul_ecs_config, "proxy", {})) :
+      contains(["meshGateway", "expose", "config"], key)
+    ])
+  }
+
+  validation {
+    error_message = "Only the 'passing' and 'warning' fields are allowed in consul_ecs_config.service.weights."
+    condition = alltrue(flatten([
+      for service in [lookup(var.consul_ecs_config, "service", {})] : [
+        for key in keys(lookup(service, "weights", {})) :
+        contains(["passing", "warning"], key)
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway."
+    condition = alltrue(flatten([
+      for proxy in [lookup(var.consul_ecs_config, "proxy", {})] : [
+        for key in keys(lookup(proxy, "meshGateway", {})) :
+        contains(["mode"], key)
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Only the 'checks' and 'paths' fields are allowed in consul_ecs_config.proxy.expose."
+    condition = alltrue(flatten([
+      for proxy in [lookup(var.consul_ecs_config, "proxy", {})] : [
+        for key in keys(lookup(proxy, "expose", {})) :
+        contains(["checks", "paths"], key)
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Only the 'listenerPort', 'path', 'localPathPort', and 'protocol' fields are allowed in each item of consul_ecs_config.proxy.expose.paths[*]."
+    condition = alltrue(flatten([
+      for proxy in [lookup(var.consul_ecs_config, "proxy", {})] : [
+        for expose in [lookup(proxy, "expose", {})] : [
+          for path in lookup(expose, "paths", []) : [
+            for key in keys(path) :
+            contains(["listenerPort", "path", "localPathPort", "protocol"], key)
+          ]
+        ]
+      ]
+    ]))
+  }
 }

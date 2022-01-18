@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+BREAKING CHANGES
+* modules/mesh-task: The `upstreams` and `checks` variables both require camel case
+  field names to match the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
+  [[GH-80](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/80)]
+
 FEATURES
 * modules/acl-controller: Add `assign_public_ip` variable to the ACL controller
   to support running on public subnets.
@@ -11,6 +16,10 @@ FEATURES
   delay application shutdown. This allows time for incoming traffic to drain
   off for better graceful shutdown.
   [[GH-67](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/67)]
+* module/mesh-task: Additional options can be passed to the Consul service
+  and sidecar proxy registration requests using the `consul_ecs_config`,
+  `upstreams`, and `consul_namespace` variables.
+  [[GH-80](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/80)]
 
 IMPROVEMENTS
 * modules/mesh-task: Cleanup unnecessary port mappings.

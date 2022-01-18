@@ -1,0 +1,13 @@
+{
+  "service": {
+    "weights": {
+      "passing": 1,
+      "warning": 1
+    }
+  },
+  "proxy": {
+    "meshGateway": {
+      "mode": "remote"
+    }
+  }
+}
