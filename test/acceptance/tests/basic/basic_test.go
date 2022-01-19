@@ -492,6 +492,18 @@ func TestBasic(t *testing.T) {
 		require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
 	})
 
+	// Validate that passing additional Consul agent configuration works.
+	// We enable DEBUG logs on one of the Consul agents.
+	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+		agentLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "consul-client")
+
+		require.NoError(r, err)
+		logMsg := "[DEBUG] agent:"
+		agentLogs = agentLogs.Filter(logMsg)
+		require.GreaterOrEqual(r, len(agentLogs), 1)
+		require.Contains(r, agentLogs[0].Message, logMsg)
+	})
+
 	logger.Log(t, "Test successful!")
 }
 

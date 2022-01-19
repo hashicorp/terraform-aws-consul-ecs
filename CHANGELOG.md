@@ -20,6 +20,9 @@ FEATURES
   and sidecar proxy registration requests using the `consul_ecs_config`,
   `upstreams`, and `consul_namespace` variables.
   [[GH-80](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/80)]
+* module/mesh-task: Add `consul_agent_configuration` variable to pass
+  additional configuration to the Consul agent.
+  [[GH-82](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/82)]
 
 IMPROVEMENTS
 * modules/mesh-task: Cleanup unnecessary port mappings.

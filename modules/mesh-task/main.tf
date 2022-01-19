@@ -61,6 +61,15 @@ locals {
   defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
   if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
 
+  consul_agent_defaults_hcl = templatefile(
+    "${path.module}/templates/consul_agent_defaults.hcl.tpl",
+    {
+      gossip_encryption_enabled = local.gossip_encryption_enabled
+      retry_join                = var.retry_join
+      tls                       = var.tls
+      acls                      = var.acls
+    }
+  )
 }
 
 resource "aws_secretsmanager_secret" "service_token" {
@@ -207,10 +216,9 @@ resource "aws_ecs_task_definition" "this" {
               templatefile(
                 "${path.module}/templates/consul_client_command.tpl",
                 {
-                  gossip_encryption_enabled = local.gossip_encryption_enabled
-                  retry_join                = var.retry_join
-                  tls                       = var.tls
-                  acls                      = var.acls
+                  consul_agent_defaults_hcl      = local.consul_agent_defaults_hcl
+                  consul_agent_configuration_hcl = var.consul_agent_configuration
+                  tls                            = var.tls
                 }
               ), "\r", "")
             ]
