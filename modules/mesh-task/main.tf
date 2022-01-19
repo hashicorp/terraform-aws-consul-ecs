@@ -1,6 +1,9 @@
 data "aws_region" "current" {}
 
 locals {
+  // Must be updated for each release, and after each release to return to a "-dev" version.
+  version_string = "0.2.0-dev"
+
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   consul_data_volume_name   = "consul_data"
   consul_data_mount = {
@@ -166,8 +169,12 @@ resource "aws_ecs_task_definition" "this" {
 
   tags = merge(
     var.tags,
-    { "consul.hashicorp.com/mesh" = "true" },
-    { "consul.hashicorp.com/service-name" = local.service_name }
+    {
+      "consul.hashicorp.com/mesh"           = "true"
+      "consul.hashicorp.com/service-name"   = local.service_name
+      "consul.hashicorp.com/module"         = "terraform-aws-consul-ecs"
+      "consul.hashicorp.com/module-version" = local.version_string
+    },
   )
 
   container_definitions = jsonencode(
