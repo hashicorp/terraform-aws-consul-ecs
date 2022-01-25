@@ -12,6 +12,7 @@ locals {
         meta      = var.consul_service_meta
         checks    = var.checks
         namespace = var.consul_namespace
+        partition = var.consul_partition
       },
       local.serviceExtra
     )
