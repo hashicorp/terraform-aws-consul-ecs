@@ -22,13 +22,13 @@ variable "consul_service_meta" {
 }
 
 variable "consul_namespace" {
-  description = "The Consul namespace to use to register this service."
+  description = "The Consul namespace to use to register this service [Consul Enterprise]."
   type        = string
   default     = null
 }
 
 variable "consul_partition" {
-  description = "The Consul admin partition to use to register this service."
+  description = "The Consul admin partition to use to register this service [Consul Enterprise]."
   type        = string
   default     = null
 }
