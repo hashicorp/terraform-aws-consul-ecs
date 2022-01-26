@@ -18,8 +18,9 @@ FEATURES
   [[GH-67](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/67)]
 * module/mesh-task: Additional options can be passed to the Consul service
   and sidecar proxy registration requests using the `consul_ecs_config`,
-  `upstreams`, and `consul_namespace` variables.
+  `upstreams`, `consul_namespace`, and `consul_partition` variables.
   [[GH-80](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/80)]
+  [[GH-84](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/84)]
 * module/mesh-task: Add `consul_agent_configuration` variable to pass
   additional configuration to the Consul agent.
   [[GH-82](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/82)]
@@ -27,6 +28,9 @@ FEATURES
 IMPROVEMENTS
 * modules/mesh-task: Cleanup unnecessary port mappings.
   [[GH-78](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/78)]
+* modules/mesh-task, modules/dev-server: Update default Consul image to 1.11.2 
+  and default Envoy image to 1.20.1.
+  [[GH-84](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/84)]
 
 ## 0.2.0 (Nov 16, 2021)
 

@@ -22,7 +22,13 @@ variable "consul_service_meta" {
 }
 
 variable "consul_namespace" {
-  description = "The Consul namespace use to register this service."
+  description = "The Consul namespace to use to register this service [Consul Enterprise]."
+  type        = string
+  default     = null
+}
+
+variable "consul_partition" {
+  description = "The Consul admin partition to use to register this service [Consul Enterprise]."
   type        = string
   default     = null
 }
@@ -96,7 +102,7 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.10.4"
+  default     = "public.ecr.aws/hashicorp/consul:1.11.2"
 }
 
 variable "consul_ecs_image" {
@@ -108,7 +114,7 @@ variable "consul_ecs_image" {
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.18.4"
+  default     = "envoyproxy/envoy-alpine:v1.20.1"
 }
 
 variable "log_configuration" {
@@ -143,13 +149,14 @@ variable "upstreams" {
   }
 
   validation {
-    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationName', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
+    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationPartition', 'destinationName', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
     condition = alltrue(flatten([
       for upstream in var.upstreams : [
         for key in keys(upstream) : contains(
           [
             "destinationType",
             "destinationNamespace",
+            "destinationPartition",
             "destinationName",
             "datacenter",
             "localBindAddress",
@@ -175,14 +182,14 @@ variable "checks" {
   default = []
 
   validation {
-    error_message = "Check fields must be one of 'checkId', 'name', 'scriptArgs', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
+    error_message = "Check fields must be one of 'checkId', 'name', 'args', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'h2ping', 'h2pingUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
     condition = alltrue(flatten([
       for check in var.checks : [
         for key in keys(check) : contains(
           [
             "checkId",
             "name",
-            "scriptArgs",
+            "args",
             "items",
             "interval",
             "timeout",
@@ -198,6 +205,8 @@ variable "checks" {
             "tlsSkipVerify",
             "grpc",
             "grpcUseTls",
+            "h2ping",
+            "h2pingUseTls",
             "aliasNode",
             "aliasService",
             "successBeforePassing",
@@ -293,7 +302,7 @@ variable "consul_ecs_config" {
 
   This accepts a subset of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
   For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `checks`, `consul_service_name`,
-  `consul_service_tags`, `consul_service_meta`, and `consul_namespace`. In most cases, these separate variables will suffice.
+  `consul_service_tags`, `consul_service_meta`, `consul_namespace`, and `consul_partition`. In most cases, these separate variables will suffice.
 
   Example:
   ```
