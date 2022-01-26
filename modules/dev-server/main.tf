@@ -336,6 +336,9 @@ exec consul agent -server \
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
   -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
 %{endif~}
+%{if var.consul_config != null~}
+  -hcl='${var.consul_config}' \
+%{endif~}
 EOF
 
   // We use this command to generate the server certs dynamically before the servers start

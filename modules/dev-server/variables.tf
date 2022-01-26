@@ -114,3 +114,9 @@ variable "acls" {
   type        = bool
   default     = false
 }
+
+variable "consul_config" {
+  description = "Additional Consul configuration in HCL format."
+  type        = string
+  default     = null
+}
