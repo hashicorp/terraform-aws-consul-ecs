@@ -108,7 +108,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.2.0"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.3.0"
 }
 
 variable "envoy_image" {

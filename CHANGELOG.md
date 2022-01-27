@@ -1,4 +1,4 @@
-## UNRELEASED
+## 0.3.0 (Jan 27, 2022)
 
 BREAKING CHANGES
 * modules/mesh-task: The `upstreams` and `checks` variables both require camel case
@@ -28,7 +28,7 @@ FEATURES
 IMPROVEMENTS
 * modules/mesh-task: Cleanup unnecessary port mappings.
   [[GH-78](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/78)]
-* modules/mesh-task, modules/dev-server: Update default Consul image to 1.11.2 
+* modules/mesh-task, modules/dev-server: Update default Consul image to 1.11.2
   and default Envoy image to 1.20.1.
   [[GH-84](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/84)]
 
