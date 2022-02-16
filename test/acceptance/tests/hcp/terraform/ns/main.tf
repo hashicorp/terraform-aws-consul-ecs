@@ -154,6 +154,7 @@ module "test_client" {
   upstreams = [
     {
       destinationName = "test_server_${var.suffix}"
+      destinationNamespace = local.test_server_ns
       localBindPort   = 1234
     }
   ]
