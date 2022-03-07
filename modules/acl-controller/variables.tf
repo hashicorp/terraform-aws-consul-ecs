@@ -63,3 +63,9 @@ variable "assign_public_ip" {
   type        = bool
   default     = false
 }
+
+variable "security_groups" {
+  description = "Configure the ECS service with security groups. If not specified, the default security group for the VPC is used."
+  type        = list(string)
+  default     = []
+}
