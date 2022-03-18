@@ -25,6 +25,10 @@ locals {
   app_mountpoints = var.application_shutdown_delay_seconds == null ? [] : [local.consul_data_mount]
   service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
 
+  // Optionally, users can provide a partition and namespace for the service.
+  partition_tag = var.consul_partition != null ? {"consul.hashicorp.com/partition" = var.consul_partition} : {}
+  namespace_tag = var.consul_namespace != null ? {"consul.hashicorp.com/namespace" = var.consul_namespace} : {}
+
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
@@ -71,13 +75,17 @@ locals {
       retry_join                = var.retry_join
       tls                       = var.tls
       acls                      = var.acls
+      partition                 = var.consul_partition
     }
   )
+
+  // TODO: is there a cleaner way to do this?
+  secret_name = var.consul_partition != null ? "${var.acl_secret_name_prefix}-${var.family}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${var.family}"
 }
 
 resource "aws_secretsmanager_secret" "service_token" {
   count                   = var.acls ? 1 : 0
-  name                    = "${var.acl_secret_name_prefix}-${var.family}"
+  name                    = local.secret_name
   recovery_window_in_days = 0
 }
 
@@ -175,6 +183,8 @@ resource "aws_ecs_task_definition" "this" {
       "consul.hashicorp.com/module"         = "terraform-aws-consul-ecs"
       "consul.hashicorp.com/module-version" = local.version_string
     },
+    local.partition_tag,
+    local.namespace_tag,
   )
 
   container_definitions = jsonencode(

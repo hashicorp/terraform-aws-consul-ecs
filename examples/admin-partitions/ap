@@ -1,0 +1,146 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(pwd)
+LAUNCH_TYPE=FARGATE
+CONSUL_ECS_IMAGE="docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:1da64b3"
+
+getTFOutput() {
+  echo "$1" | jq -rc "$2"
+}
+
+setAWSVars() {
+  cd $SCRIPT_DIR/aws-ecs
+  awsECSOutput=$(terraform output -json | jq .)
+  AWS_REGION=$(getTFOutput "$awsECSOutput" ".region.value")
+  VPC_ID=$(getTFOutput "$awsECSOutput" ".vpc_id.value")
+  ROUTE_TABLE_IDS=$(getTFOutput "$awsECSOutput" ".route_table_ids.value")
+  SUFFIX=$(getTFOutput "$awsECSOutput" ".suffix.value")
+  LOG_GROUP_NAME=$(getTFOutput "$awsECSOutput" ".log_group_name.value")
+  SUBNETS=$(getTFOutput "$awsECSOutput" ".subnets.value")
+  ECS_CLUSTER_1_ARN=$(getTFOutput "$awsECSOutput" ".ecs_cluster_1_arn.value")
+  ECS_CLUSTER_2_ARN=$(getTFOutput "$awsECSOutput" ".ecs_cluster_2_arn.value")
+  cd $SCRIPT_DIR
+}
+
+setConsulVars(){
+  cd $SCRIPT_DIR/hcp-consul
+  hcpConsulOutput=$(terraform output -json | jq .)
+  CONSUL_HTTP_ADDR=$(getTFOutput "$hcpConsulOutput" ".hcp_public_endpoint.value")
+  CONSUL_HTTP_TOKEN=$(getTFOutput "$hcpConsulOutput" ".token.value")
+  HCP_PRIVATE_ENDPOINT=$(getTFOutput "$hcpConsulOutput" ".hcp_private_endpoint.value")
+  BOOTSTRAP_TOKEN_ARN=$(getTFOutput "$hcpConsulOutput" ".bootstrap_token_arn.value")
+  CONSUL_CA_CERT_ARN=$(getTFOutput "$hcpConsulOutput" ".consul_ca_cert_arn.value")
+  GOSSIP_KEY_ARN=$(getTFOutput "$hcpConsulOutput" ".gossip_key_arn.value")
+  RETRY_JOIN=$(getTFOutput "$hcpConsulOutput" ".retry_join.value")
+  cd $SCRIPT_DIR
+}
+
+setServerVars(){
+  cd $SCRIPT_DIR/example-server
+  serverOutput=$(terraform output -json | jq .)
+  UPSTREAM_NAME=$(getTFOutput "$serverOutput" ".upstream_name.value")
+  UPSTREAM_PARTITION=$(getTFOutput "$serverOutput" ".upstream_partition.value")
+  UPSTREAM_NAMESPACE=$(getTFOutput "$serverOutput" ".upstream_namespace.value")
+  cd $SCRIPT_DIR
+}
+
+tfCmdECS() {
+  terraform "$1" -auto-approve -var launch_type="$LAUNCH_TYPE"
+}
+
+tfCmdConsul() {
+  terraform "$1" -auto-approve \
+    -var region="$AWS_REGION" \
+    -var vpc_id="$VPC_ID" \
+    -var route_table_ids="$ROUTE_TABLE_IDS"
+}
+
+tfCmdService() {
+  terraform "$1" -auto-approve \
+    -var ecs_cluster_arn="$2" \
+    -var launch_type="$LAUNCH_TYPE" \
+    -var log_group_name="$LOG_GROUP_NAME" \
+    -var region="$AWS_REGION" \
+    -var subnets="$SUBNETS" \
+    -var hcp_private_endpoint="$HCP_PRIVATE_ENDPOINT" \
+    -var consul_ecs_image="$CONSUL_ECS_IMAGE" \
+    -var bootstrap_token_arn="$BOOTSTRAP_TOKEN_ARN" \
+    -var consul_ca_cert_arn="$CONSUL_CA_CERT_ARN" \
+    -var gossip_key_arn="$GOSSIP_KEY_ARN" \
+    -var retry_join="$RETRY_JOIN" \
+    -var partition="$3" \
+    -var namespace="$4" \
+    -var upstream_name="$UPSTREAM_NAME" \
+    -var upstream_partition="$UPSTREAM_PARTITION" \
+    -var upstream_namespace="$UPSTREAM_NAMESPACE"
+}
+
+up() {
+  # init and apply AWS ECS resources
+  cd $SCRIPT_DIR/aws-ecs
+  echo -e "\nCreating AWS resources\n"
+  terraform init
+  tfCmdECS apply
+
+  setAWSVars
+
+  # init and apply HCP Consul resources and AWS Secrets
+  echo -e "\nCreating HCP Consul resources\n"
+  cd $SCRIPT_DIR/hcp-consul
+  terraform init
+  tfCmdConsul apply
+
+  setConsulVars
+
+  # init and apply application services
+  echo -e "\nCreating application resources\n"
+  cd $SCRIPT_DIR/example-server
+  terraform init
+  tfCmdService apply "$ECS_CLUSTER_2_ARN" "part2" "ns2"
+  setServerVars
+
+  cd $SCRIPT_DIR/example-client
+  terraform init
+  tfCmdService apply "$ECS_CLUSTER_1_ARN" "part1" "ns1"
+
+  cd $SCRIPT_DIR
+}
+
+down() {
+  setAWSVars
+  setConsulVars
+  setServerVars
+
+  echo -e "\nDestroying application resources\n"
+  cd $SCRIPT_DIR/example-client
+  tfCmdService destroy
+
+  cd $SCRIPT_DIR/example-server
+  tfCmdService destroy
+
+  for arg in "$@"; do [[ "$arg" == "hcp-consul" ]] && destroyHCP="y"; done
+  if [[ -n "$destroyHCP" ]]; then
+    echo -e "\nDestroying HCP Consul resources\n"
+    cd $SCRIPT_DIR/hcp-consul
+    tfCmdConsul destroy
+  fi
+
+  for arg in "$@"; do [[ "$arg" == "aws-ecs" ]] && destroyECS="y"; done
+  if [[ -n "$destroyECS" ]]; then
+    echo -e "\nDestroying AWS resources\n"
+    cd $SCRIPT_DIR/aws-ecs
+    tfCmdECS destroy
+  fi
+
+  cd $SCRIPT_DIR
+}
+
+die() {
+  echo -e "error: $*" >&2
+  exit 1
+}
+
+[[ "$(type -t $1)" == "function" ]] || die "unknown command '$1'. options are 'up' or 'down'"
+FUNC=$1
+shift
+$FUNC "$@"

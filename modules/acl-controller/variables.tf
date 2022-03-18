@@ -63,3 +63,15 @@ variable "assign_public_ip" {
   type        = bool
   default     = false
 }
+
+variable "consul_partitions_enabled" {
+  description = "Enable admin partitions [Consul Enterprise]."
+  type        = string
+  default     = ""
+}
+
+variable "consul_partition" {
+  description = "Admin partition the controller will manage [Consul Enterprise]."
+  type        = string
+  default     = "default"
+}

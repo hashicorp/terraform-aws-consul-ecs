@@ -1,0 +1,16 @@
+{
+  "Kind": "exported-services",
+  "Partition": "part2",
+  "Name": "part2",
+  "Services": [
+    {
+      "Consumers": [
+        {
+          "Partition": "part1"
+        }
+      ],
+      "Name": "*",
+      "Namespace": "*"
+    }
+  ]
+}
