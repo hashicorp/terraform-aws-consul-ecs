@@ -39,8 +39,8 @@ resource "aws_ecs_task_definition" "this" {
         "acl-controller",
         "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
         "-secret-name-prefix", var.name_prefix,
-        //TODO: this works because the controller ignores the -partition flag if partitions are not enabled.
         var.consul_partitions_enabled,
+        // we can always pass the -partition flag because the controller ignores it if partitions are not enabled.
         "-partition", var.consul_partition,
       ]
       linuxParameters = {
@@ -115,7 +115,7 @@ resource "aws_iam_role" "this_task" {
 }
 
 resource "aws_iam_policy" "this_execution" {
-  name        = "${var.name_prefix}-consul-acl-controller-execution${local.partition_suffix}"
+  name        = "${var.name_prefix}-consul-acl-controller-execution"
   path        = "/ecs/"
   description = "Consul controller execution"
 
@@ -157,7 +157,7 @@ EOF
 }
 
 resource "aws_iam_role" "this_execution" {
-  name = "${var.name_prefix}-consul-acl-controller-execution${local.partition_suffix}"
+  name = "${var.name_prefix}-consul-acl-controller-execution"
   path = "/ecs/"
 
   assume_role_policy = <<EOF

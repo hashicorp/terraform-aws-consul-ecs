@@ -1,19 +1,15 @@
-provider "aws" {
-  region = var.region
-}
-
 locals {
-  suffix = var.suffix != "" ? var.suffix : random_string.suffix.result
+  hcp_suffix = random_string.hcp_suffix.result
 }
 
-resource "random_string" "suffix" {
+resource "random_string" "hcp_suffix" {
   length  = 6
   special = false
 }
 
-// Create HCP resources.
+// Create HCP Consul resources.
 resource "hcp_hvn" "server" {
-  hvn_id         = "hvn-${local.suffix}"
+  hvn_id         = "hvn-${local.hcp_suffix}"
   cloud_provider = "aws"
   region         = var.region
   cidr_block     = "172.25.16.0/20"
@@ -22,13 +18,13 @@ resource "hcp_hvn" "server" {
 data "aws_caller_identity" "current" {}
 
 data "aws_vpc" "selected" {
-  id = var.vpc_id
+  id = module.vpc.vpc_id
 }
 
 resource "hcp_aws_network_peering" "this" {
   peering_id      = "${hcp_hvn.server.hvn_id}-peering"
   hvn_id          = hcp_hvn.server.hvn_id
-  peer_vpc_id     = var.vpc_id
+  peer_vpc_id     = module.vpc.vpc_id
   peer_account_id = data.aws_caller_identity.current.account_id
   peer_vpc_region = var.region
 }
@@ -47,14 +43,14 @@ resource "hcp_hvn_route" "peering_route" {
 }
 
 resource "aws_route" "peering" {
-  count                     = length(var.route_table_ids)
-  route_table_id            = var.route_table_ids[count.index]
+  count                     = length([module.vpc.public_route_table_ids[0], module.vpc.private_route_table_ids[0]])
+  route_table_id            = [module.vpc.public_route_table_ids[0], module.vpc.private_route_table_ids[0]][count.index]
   destination_cidr_block    = hcp_hvn.server.cidr_block
   vpc_peering_connection_id = aws_vpc_peering_connection_accepter.peer.vpc_peering_connection_id
 }
 
 resource "hcp_consul_cluster" "this" {
-  cluster_id      = "server-${local.suffix}"
+  cluster_id      = "server-${local.hcp_suffix}"
   datacenter      = "dc1"
   hvn_id          = hcp_hvn.server.hvn_id
   tier            = "development"
@@ -62,7 +58,7 @@ resource "hcp_consul_cluster" "this" {
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
-  name = "${local.suffix}-bootstrap-token"
+  name = "${local.hcp_suffix}-bootstrap-token"
 }
 
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
@@ -71,7 +67,7 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
 }
 
 resource "aws_secretsmanager_secret" "gossip_key" {
-  name = "${local.suffix}-gossip-key"
+  name = "${local.hcp_suffix}-gossip-key"
 }
 
 resource "aws_secretsmanager_secret_version" "gossip_key" {
@@ -80,7 +76,7 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 }
 
 resource "aws_secretsmanager_secret" "consul_ca_cert" {
-  name = "${local.suffix}-consul-ca-cert"
+  name = "${local.hcp_suffix}-consul-ca-cert"
 }
 
 resource "aws_secretsmanager_secret_version" "consul_ca_cert" {

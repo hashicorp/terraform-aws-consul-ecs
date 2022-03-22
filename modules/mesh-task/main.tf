@@ -79,7 +79,6 @@ locals {
     }
   )
 
-  // TODO: is there a cleaner way to do this?
   secret_name = var.consul_partition != null ? "${var.acl_secret_name_prefix}-${var.family}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${var.family}"
 }
 
