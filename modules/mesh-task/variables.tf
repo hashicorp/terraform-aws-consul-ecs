@@ -24,13 +24,13 @@ variable "consul_service_meta" {
 variable "consul_namespace" {
   description = "The Consul namespace to use to register this service [Consul Enterprise]."
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "consul_partition" {
   description = "The Consul admin partition to use to register this service [Consul Enterprise]."
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "requires_compatibilities" {
@@ -63,7 +63,10 @@ variable "task_role" {
     id  = string
     arn = string
   })
-  default = null
+  default = {
+    id  = null
+    arn = null
+  }
 }
 
 variable "execution_role" {
@@ -72,7 +75,10 @@ variable "execution_role" {
     id  = string
     arn = string
   })
-  default = null
+  default = {
+    id  = null
+    arn = null
+  }
 }
 
 variable "additional_task_role_policies" {
@@ -120,7 +126,7 @@ variable "envoy_image" {
 variable "log_configuration" {
   description = "Task definition log configuration object (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
   type        = any
-  default     = null
+  default     = {}
 }
 
 variable "container_definitions" {
@@ -275,7 +281,7 @@ variable "consul_datacenter" {
 variable "consul_agent_configuration" {
   type        = string
   description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = null
+  default     = ""
 }
 
 variable "application_shutdown_delay_seconds" {
@@ -289,7 +295,7 @@ variable "application_shutdown_delay_seconds" {
   the default entrypoint from the image (if present) will not be used, so you may need to set the `command` field on the
   container definition to ensure your container starts properly, depending on your image.
   EOT
-  default     = null
+  default     = 0
 }
 
 variable "consul_ecs_config" {

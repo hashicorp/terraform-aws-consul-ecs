@@ -12,8 +12,8 @@ locals {
   // it into a single-element list...If the value is null then the splat expression will return
   // an empty tuple."
   // https://www.terraform.io/docs/language/expressions/splat.html#single-values-as-lists
-  create_task_role      = length(var.task_role[*]) == 0
-  create_execution_role = length(var.execution_role[*]) == 0
+  create_task_role      = length(var.task_role[*]) == 0 ? true : length(var.task_role.id[*]) == 0
+  create_execution_role = length(var.execution_role[*]) == 0 ? true : length(var.execution_role.id[*]) == 0
 
   execution_role_id = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
   task_role_id      = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
