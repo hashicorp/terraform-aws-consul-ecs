@@ -1,3 +1,9 @@
+## Unreleased
+
+IMPROVEMENTS
+* module/acl-controller: Support `security_groups` input variable.
+  [[GH-89](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/89)]
+
 ## 0.3.0 (Jan 27, 2022)
 
 BREAKING CHANGES
