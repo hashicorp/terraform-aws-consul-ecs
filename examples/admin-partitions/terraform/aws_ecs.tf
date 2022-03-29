@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 locals {
-  aws_suffix = random_string.rand_aws_suffix.result
-  ecs_name = "consul-ecs-${random_string.rand_aws_suffix.result}"
+  aws_suffix  = random_string.rand_aws_suffix.result
+  ecs_name    = "consul-ecs-${random_string.rand_aws_suffix.result}"
   launch_type = "FARGATE"
 }
 
@@ -47,12 +47,12 @@ module "vpc" {
 }
 
 resource "aws_ecs_cluster" "cluster_1" {
-  name               = "${local.ecs_name}-1"
-  tags               = var.tags
+  name = "${local.ecs_name}-1"
+  tags = var.tags
 }
 
 resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
-  cluster_name = aws_ecs_cluster.cluster_1.name
+  cluster_name       = aws_ecs_cluster.cluster_1.name
   capacity_providers = [local.launch_type]
 
   default_capacity_provider_strategy {
@@ -61,12 +61,12 @@ resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
 }
 
 resource "aws_ecs_cluster" "cluster_2" {
-  name               = "${local.ecs_name}-2"
-  tags               = var.tags
+  name = "${local.ecs_name}-2"
+  tags = var.tags
 }
 
 resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_2" {
-  cluster_name = aws_ecs_cluster.cluster_2.name
+  cluster_name       = aws_ecs_cluster.cluster_2.name
   capacity_providers = [local.launch_type]
 
   default_capacity_provider_strategy {

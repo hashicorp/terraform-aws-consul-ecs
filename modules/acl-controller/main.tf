@@ -35,14 +35,15 @@ resource "aws_ecs_task_definition" "this" {
       image            = var.consul_ecs_image
       essential        = true
       logConfiguration = var.log_configuration,
-      command = [
+      command = concat([
         "acl-controller",
         "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
-        "-secret-name-prefix", var.name_prefix,
-        var.consul_partitions_enabled,
-        // we can always pass the -partition flag because the controller ignores it if partitions are not enabled.
-        "-partition", var.consul_partition,
-      ]
+        "-secret-name-prefix", var.name_prefix
+        ],
+        var.consul_partitions_enabled ? [
+          "-partitions-enabled",
+          "-partition", var.consul_partition
+      ] : [])
       linuxParameters = {
         initProcessEnabled = true
       }

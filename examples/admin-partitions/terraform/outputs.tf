@@ -9,20 +9,20 @@ output "token" {
 
 output "client" {
   value = {
-    name = "example_client_${local.client_suffix}"
-    partition = var.client_partition
-    namespace = var.client_namespace
-    region = var.region
+    name            = "example_client_${local.client_suffix}"
+    partition       = var.client_partition
+    namespace       = var.client_namespace
+    region          = var.region
     ecs_cluster_arn = aws_ecs_cluster.cluster_1.arn
   }
 }
 
 output "server" {
   value = {
-    name = "example_server_${local.server_suffix}"
-    partition = var.server_partition
-    namespace = var.server_namespace
-    region = var.region
+    name            = "example_server_${local.server_suffix}"
+    partition       = var.server_partition
+    namespace       = var.server_namespace
+    region          = var.region
     ecs_cluster_arn = aws_ecs_cluster.cluster_2.arn
   }
 }

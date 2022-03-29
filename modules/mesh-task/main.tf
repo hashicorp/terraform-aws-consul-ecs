@@ -26,8 +26,8 @@ locals {
   service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // Optionally, users can provide a partition and namespace for the service.
-  partition_tag = var.consul_partition != null ? {"consul.hashicorp.com/partition" = var.consul_partition} : {}
-  namespace_tag = var.consul_namespace != null ? {"consul.hashicorp.com/namespace" = var.consul_namespace} : {}
+  partition_tag = var.consul_partition != null ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
+  namespace_tag = var.consul_namespace != null ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.

@@ -1,6 +1,26 @@
-variable "ecs_cluster_arn" {
+variable "region" {
+  description = "Region."
   type        = string
-  description = "Cluster ARN of ECS cluster."
+}
+
+variable "suffix_1" {
+  description = "Suffix to add to all resource names in cluster 1."
+  type        = string
+}
+
+variable "suffix_2" {
+  description = "Suffix to add to all resource names in cluster 2."
+  type        = string
+}
+
+variable "ecs_cluster_1_arn" {
+  description = "Cluster ARN of ECS cluster 1."
+  type        = string
+}
+
+variable "ecs_cluster_2_arn" {
+  description = "Cluster ARN of ECS cluster 2."
+  type        = string
 }
 
 variable "vpc_id" {
@@ -14,8 +34,8 @@ variable "route_table_ids" {
 }
 
 variable "subnets" {
-  type        = list(string)
   description = "Subnets to deploy into."
+  type        = list(string)
 }
 
 variable "launch_type" {
@@ -23,20 +43,9 @@ variable "launch_type" {
   type        = string
 }
 
-variable "suffix" {
-  type        = string
-  default     = "nosuffix"
-  description = "Suffix to add to all resource names."
-}
-
-variable "region" {
-  type        = string
-  description = "Region."
-}
-
 variable "log_group_name" {
-  type        = string
   description = "Name for cloudwatch log group."
+  type        = string
 }
 
 variable "tags" {
@@ -85,4 +94,28 @@ variable "gossip_key_secret_arn" {
 variable "consul_ca_cert_secret_arn" {
   description = "ARN of the secret holding the Consul CA certificate."
   type        = string
+}
+
+variable "client_partition" {
+  description = "The Consul partition that the client belongs to."
+  type        = string
+  default     = "part1"
+}
+
+variable "client_namespace" {
+  description = "The Consul namespace that the client belongs to."
+  type        = string
+  default     = "ns1"
+}
+
+variable "server_partition" {
+  description = "The Consul partition that the server belongs to."
+  type        = string
+  default     = "part2"
+}
+
+variable "server_namespace" {
+  description = "The Consul namespace that the server belongs to."
+  type        = string
+  default     = "ns2"
 }

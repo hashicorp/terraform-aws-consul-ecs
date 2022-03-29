@@ -1,3 +1,8 @@
+## Unreleased
+
+FEATURES
+* Added support for Consul Enterprise Admin Partitions and Namespaces.
+
 ## 0.3.0 (Jan 27, 2022)
 
 BREAKING CHANGES

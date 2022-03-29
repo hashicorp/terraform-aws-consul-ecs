@@ -2,33 +2,33 @@ provider "aws" {
   region = var.region
 }
 
-// Create ACL controller
-module "acl_controller" {
+// Create ACL controller for cluster 1
+module "acl_controller_1" {
   source = "../../../../../../modules/acl-controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix}"
+      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_1}"
     }
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
   consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = var.ecs_cluster_arn
+  ecs_cluster_arn                   = var.ecs_cluster_1_arn
   region                            = var.region
   subnets                           = var.subnets
-  name_prefix                       = var.suffix
+  name_prefix                       = var.suffix_1
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
-  consul_partition                  = "default"
+  consul_partition                  = var.client_partition
 }
 
-// Create client.
+// Create services.
 resource "aws_ecs_service" "test_client" {
-  name            = "test_client_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
+  name            = "test_client_${var.suffix_1}"
+  cluster         = var.ecs_cluster_1_arn
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
@@ -43,7 +43,7 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
-  family = "test_client_${var.suffix}"
+  family = "test_client_${var.suffix_1}"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -61,7 +61,8 @@ module "test_client" {
   retry_join = var.retry_join
   upstreams = [
     {
-      destinationName      = "test_server_${var.suffix}"
+      destinationName      = "test_server_${var.suffix_2}"
+      destinationPartition = var.server_partition
       destinationNamespace = var.server_namespace
       localBindPort        = 1234
     }
@@ -71,29 +72,52 @@ module "test_client" {
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "test_client_${var.suffix}"
+      awslogs-stream-prefix = "test_client_${var.suffix_1}"
     }
   }
   outbound_only = true
 
   tls                            = true
   acls                           = true
-  acl_secret_name_prefix         = var.suffix
+  acl_secret_name_prefix         = var.suffix_1
   gossip_key_secret_arn          = var.gossip_key_secret_arn
   consul_server_ca_cert_arn      = var.consul_ca_cert_secret_arn
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
+  consul_client_token_secret_arn = module.acl_controller_1.client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
   consul_image                   = var.consul_image
+  consul_partition               = var.client_partition
   consul_namespace               = var.client_namespace
-  consul_partition               = "default"
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
-// Create server.
+// Create ACL controller for cluster 2
+module "acl_controller_2" {
+  source = "../../../../../../modules/acl-controller"
+  log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = var.log_group_name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_2}"
+    }
+  }
+  launch_type                       = var.launch_type
+  consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
+  consul_server_http_addr           = var.consul_private_endpoint_url
+  ecs_cluster_arn                   = var.ecs_cluster_2_arn
+  region                            = var.region
+  subnets                           = var.subnets
+  name_prefix                       = var.suffix_2
+  consul_ecs_image                  = var.consul_ecs_image
+  consul_partitions_enabled         = true
+  consul_partition                  = var.server_partition
+}
+
+// Create services.
 resource "aws_ecs_service" "test_server" {
-  name            = "test_server_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
+  name            = "test_server_${var.suffix_2}"
+  cluster         = var.ecs_cluster_2_arn
   task_definition = module.test_server.task_definition_arn
   desired_count   = 1
   network_configuration {
@@ -108,7 +132,7 @@ resource "aws_ecs_service" "test_server" {
 
 module "test_server" {
   source = "../../../../../../modules/mesh-task"
-  family = "test_server_${var.suffix}"
+  family = "test_server_${var.suffix_2}"
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -120,7 +144,7 @@ module "test_server" {
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "test_server_${var.suffix}"
+      awslogs-stream-prefix = "test_server_${var.suffix_2}"
     }
   }
   checks = [
@@ -137,20 +161,20 @@ module "test_server" {
 
   tls                            = true
   acls                           = true
-  acl_secret_name_prefix         = var.suffix
+  acl_secret_name_prefix         = var.suffix_2
   gossip_key_secret_arn          = var.gossip_key_secret_arn
   consul_server_ca_cert_arn      = var.consul_ca_cert_secret_arn
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
+  consul_client_token_secret_arn = module.acl_controller_2.client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
   consul_image                   = var.consul_image
-  consul_partition               = "default"
+  consul_partition               = var.server_partition
   consul_namespace               = var.server_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
 resource "aws_iam_policy" "execute_command" {
-  name   = "ecs-execute-command-${var.suffix}"
+  name   = "ecs-execute-command-${var.suffix_1}"
   path   = "/"
   policy = <<EOF
 {

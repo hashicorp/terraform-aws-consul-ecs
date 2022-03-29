@@ -44,6 +44,6 @@ acl {
 }
 %{ endif ~}
 
-%{ if partition != "" ~}
+%{ if partition != null && partition != "" ~}
 partition = "${partition}"
 %{ endif ~}

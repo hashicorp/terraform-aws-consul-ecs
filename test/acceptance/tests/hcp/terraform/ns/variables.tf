@@ -48,7 +48,7 @@ variable "tags" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.11.2-ent"
+  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.11.4-ent"
 }
 
 variable "consul_ecs_image" {
@@ -57,14 +57,44 @@ variable "consul_ecs_image" {
   default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
-variable "test_client_ns" {
-  description = "The namespace that the test_client belongs to."
+variable "consul_public_endpoint_url" {
+  description = "URL of the public Consul endpoint."
+  type        = string
+}
+
+variable "consul_private_endpoint_url" {
+  description = "URL of the private Consul endpoint."
+  type        = string
+}
+
+variable "retry_join" {
+  description = "Retry join string for the Consul client."
+  type        = list(string)
+}
+
+variable "bootstrap_token_secret_arn" {
+  description = "ARN of the secret holding the Consul bootstrap token."
+  type        = string
+}
+
+variable "gossip_key_secret_arn" {
+  description = "ARN of the secret holding the Consul gossip encryption key."
+  type        = string
+}
+
+variable "consul_ca_cert_secret_arn" {
+  description = "ARN of the secret holding the Consul CA certificate."
+  type        = string
+}
+
+variable "client_namespace" {
+  description = "The namespace that the client belongs to."
   type        = string
   default     = "ns1"
 }
 
-variable "test_server_ns" {
-  description = "The namespace that the test_server belongs to."
+variable "server_namespace" {
+  description = "The namespace that the server belongs to."
   type        = string
   default     = "ns2"
 }

@@ -26,7 +26,7 @@ module "acl_controller_client" {
   subnets                           = module.vpc.private_subnets
   name_prefix                       = local.client_suffix
   consul_ecs_image                  = var.consul_ecs_image
-  consul_partitions_enabled         = "-partitions-enabled"
+  consul_partitions_enabled         = true
   consul_partition                  = var.client_partition
 }
 
