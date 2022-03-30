@@ -128,6 +128,64 @@ func TestPassingExistingRoles(t *testing.T) {
 	terraform.InitAndPlan(t, terraformOptions)
 }
 
+func TestPassingAppEntrypoint(t *testing.T) {
+	t.Parallel()
+
+	newint := func(x int) *int { return &x }
+	cases := map[string]struct {
+		value         *int
+		expEntrypoint bool
+	}{
+		"null":     {nil, false},
+		"negative": {newint(-1), false},
+		"zero":     {newint(0), false},
+		"one":      {newint(1), true},
+		"five":     {newint(5), true},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/pass-app-entrypoint",
+		NoColor:      true,
+	}
+	t.Cleanup(func() {
+		_, _ = terraform.DestroyE(t, terraformOptions)
+	})
+
+	terraform.Init(t, terraformOptions)
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			opts := &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars:         map[string]interface{}{
+					//"application_shutdown_delay_seconds": nil,
+				},
+			}
+			if c.value != nil {
+				opts.Vars["application_shutdown_delay_seconds"] = *c.value
+			}
+			out := terraform.Plan(t, opts)
+
+			if c.expEntrypoint {
+				// Look for app-entrypoint in the Terraform diff.
+				regex := strings.Join([]string{
+					`\+ entryPoint  = \[`,
+					`  \+ "/consul/consul-ecs",`,
+					`  \+ "app-entrypoint",`,
+					`  \+ "-shutdown-delay",`,
+					`  \+ "\d+s",`, // e.g. "2s", "10s", etc
+					`\]`,
+				}, `\s+`)
+				require.Regexp(t, regex, out)
+			} else {
+				require.NotContains(t, out, "app-entrypoint")
+			}
+
+		})
+	}
+}
+
 func TestValidation_UpstreamsVariable(t *testing.T) {
 	t.Parallel()
 

@@ -10,7 +10,7 @@ cat << EOF > /consul/agent-defaults.hcl
 ${consul_agent_defaults_hcl}
 EOF
 
-%{ if consul_agent_configuration_hcl != null ~}
+%{ if consul_agent_configuration_hcl != "" ~}
 cat << EOF > /consul/agent-extra.hcl
 ${consul_agent_configuration_hcl}
 EOF
@@ -19,6 +19,6 @@ EOF
 exec consul agent \
     -data-dir /consul/data \
     -config-file /consul/agent-defaults.hcl \
-%{ if consul_agent_configuration_hcl != null ~}
+%{ if consul_agent_configuration_hcl != "" ~}
     -config-file /consul/agent-extra.hcl
 %{ endif ~}

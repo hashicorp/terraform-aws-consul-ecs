@@ -1,5 +1,5 @@
 variable "family" {
-  description = "Task definition [family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This is used by default as the Consul service name if `consul_service_name` is not provided."
+  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This is used by default as the Consul service name if `consul_service_name` is not provided."
   type        = string
 }
 
@@ -24,13 +24,13 @@ variable "consul_service_meta" {
 variable "consul_namespace" {
   description = "The Consul namespace to use to register this service [Consul Enterprise]."
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "consul_partition" {
   description = "The Consul admin partition to use to register this service [Consul Enterprise]."
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "requires_compatibilities" {
@@ -63,7 +63,10 @@ variable "task_role" {
     id  = string
     arn = string
   })
-  default = null
+  default = {
+    id  = null
+    arn = null
+  }
 }
 
 variable "execution_role" {
@@ -72,7 +75,10 @@ variable "execution_role" {
     id  = string
     arn = string
   })
-  default = null
+  default = {
+    id  = null
+    arn = null
+  }
 }
 
 variable "additional_task_role_policies" {
@@ -118,13 +124,13 @@ variable "envoy_image" {
 }
 
 variable "log_configuration" {
-  description = "Task definition [log configuration object](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
+  description = "Task definition log configuration object (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
   type        = any
-  default     = null
+  default     = {}
 }
 
 variable "container_definitions" {
-  description = "Application [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
+  description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
   # This is `any` on purpose. Using `list(any)` is too restrictive. It requires maps in the list to have the same key set, and same value types.
   type = any
 }
@@ -132,7 +138,7 @@ variable "container_definitions" {
 variable "upstreams" {
   description = <<-EOT
   Upstream services that this service will call. This follows the schema of the `proxy.upstreams` field of the
-  [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
+  consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
   EOT
 
   type    = any
@@ -174,8 +180,8 @@ variable "upstreams" {
 variable "checks" {
   description = <<-EOT
   A list of maps defining Consul checks for this service. This follows the schema of the `service.checks` field
-  of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
-  the Consul [checks documentation](https://www.consul.io/docs/discovery/checks) for more.
+  of the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
+  the Consul checks documentation (https://www.consul.io/docs/discovery/checks) for more.
   EOT
 
   type    = any
@@ -220,7 +226,7 @@ variable "checks" {
 }
 
 variable "retry_join" {
-  description = "Arguments to pass to [-retry-join](https://www.consul.io/docs/agent/options#_retry_join). This or `consul_server_service_name` must be set."
+  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
   type        = list(string)
 }
 
@@ -275,64 +281,32 @@ variable "consul_datacenter" {
 variable "consul_agent_configuration" {
   type        = string
   description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = null
+  default     = ""
 }
 
 variable "application_shutdown_delay_seconds" {
   type        = number
   description = <<-EOT
-  Set an application entrypoint to delay the TERM signal from ECS for this many seconds.
-  This allows time for incoming traffic to drain off before your application container exits.
-  This cannot delay the KILL signal from ECS, so this delay should be shorter than the `stopTimeout`
-  on the container definition.
-
-  This will set the `entryPoint` field for each container in `container_definitions` that does not have
-  an `entryPoint` field. Containers with a non-null `entryPoint` field will be ignored. Since this sets
-  an explicit entrypoint, the default entrypoint from the image (if present) will not be used. You may
-  need to set the `command` field on the container definition to ensure the container starts properly.
+  An optional number of seconds by which to delay application shutdown. By default, there is no delay. This delay allows
+  incoming traffic to drain off before your application container exits. This delays the TERM signal from ECS when
+  the task is stopped. However, the KILL signal from ECS cannot be delayed, so this value should be shorter than the
+  `stopTimeout` on the container definition. This works by setting an explicit `entryPoint` field on each container without an
+  `entryPoint` field. Containers with a non-null `entryPoint` field will be ignored. Since this sets an explicit entrypoint,
+  the default entrypoint from the image (if present) will not be used, so you may need to set the `command` field on the
+  container definition to ensure your container starts properly, depending on your image.
   EOT
-  default     = null
+  default     = 0
 }
 
 variable "consul_ecs_config" {
   type        = any
   default     = {}
-  description = <<EOT
+  description = <<-EOT
   Additional configuration to pass to the consul-ecs binary for Consul service and sidecar proxy registration requests.
-
-  This accepts a subset of the [consul-ecs config file](https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
+  This accepts a subset of the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
   For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `checks`, `consul_service_name`,
-  `consul_service_tags`, `consul_service_meta`, `consul_namespace`, and `consul_partition`. In most cases, these separate variables will suffice.
-
-  Example:
-  ```
-  consul_ecs_config = {
-    service = {
-      enableTagOverride = false
-      weights = {
-        passing = 1
-        warning = 1
-      }
-    }
-    proxy = {
-      config = {}
-      meshGateway = {
-        mode = "remote"
-      }
-      expose = {
-        checks = true
-        paths = [
-          {
-            listenerPort = 1234
-            path = "/path"
-            localPathPort = 2345
-            protocol = "http"
-          }
-        ]
-      }
-    }
-  }
-  ```
+  `consul_service_tags`, `consul_service_meta`, `consul_namespace`, and `consul_partition`.
+  In most cases, these separate variables will suffice.
   EOT
 
   validation {
