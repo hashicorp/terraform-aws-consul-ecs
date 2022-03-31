@@ -19,10 +19,11 @@ locals {
   consul_binary_volume_name = "consul_binary"
 
   // Optionally, users can override the application container's entrypoint.
-  app_entrypoint = var.application_shutdown_delay_seconds == null ? null : [
+  enable_app_entrypoint = var.application_shutdown_delay_seconds == null ? false : var.application_shutdown_delay_seconds > 0
+  app_entrypoint = local.enable_app_entrypoint ? [
     "/consul/consul-ecs", "app-entrypoint", "-shutdown-delay", "${var.application_shutdown_delay_seconds}s",
-  ]
-  app_mountpoints = var.application_shutdown_delay_seconds == null ? [] : [local.consul_data_mount]
+  ] : null
+  app_mountpoints = local.enable_app_entrypoint ? [local.consul_data_mount] : []
   service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // Optionally, users can provide a partition and namespace for the service.

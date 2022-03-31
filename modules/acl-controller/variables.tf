@@ -27,7 +27,7 @@ variable "launch_type" {
 }
 
 variable "consul_bootstrap_token_secret_arn" {
-  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least 'acl:write' privileges in Consul."
+  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least `acl:write` privileges in Consul."
   type        = string
 }
 
@@ -74,4 +74,10 @@ variable "consul_partition" {
   description = "Admin partition the controller will manage [Consul Enterprise]."
   type        = string
   default     = "default"
+}
+
+variable "security_groups" {
+  description = "Configure the ECS service with security groups. If not specified, the default security group for the VPC is used."
+  type        = list(string)
+  default     = []
 }
