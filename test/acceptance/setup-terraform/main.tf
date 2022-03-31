@@ -48,9 +48,9 @@ module "vpc" {
 // Create ECS clusters
 // The clusters are created in the same VPC to ensure there is network connectivity between them.
 resource "aws_ecs_cluster" "cluster_1" {
-  name = "${local.name}-1"
+  name               = "${local.name}-1"
   capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
-  tags = var.tags
+  tags               = var.tags
 }
 
 /* TODO
@@ -65,9 +65,9 @@ resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
 */
 
 resource "aws_ecs_cluster" "cluster_2" {
-  name = "${local.name}-2"
+  name               = "${local.name}-2"
   capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
-  tags = var.tags
+  tags               = var.tags
 }
 
 /* TODO

@@ -52,7 +52,7 @@ resource "hcp_consul_cluster" "this" {
 provider "consul" {
   address    = hcp_consul_cluster.this.consul_public_endpoint_url
   datacenter = "dc1"
-  token = hcp_consul_cluster.this.consul_root_token_secret_id
+  token      = hcp_consul_cluster.this.consul_root_token_secret_id
 }
 
 // Create Admin Partition and Namespace for the client
