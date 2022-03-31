@@ -20,15 +20,37 @@ import (
 
 const setupDir = "../../setup-terraform"
 
-var timeouts = map[string]*retry.Timer{
+var timeouts = struct {
+	Registration *retry.Timer
+	Health       *retry.Timer
+	Consul       *retry.Timer
+	MeshTask     *retry.Timer
+}{
 	// Timeout and polling interval for ECS mesh tasks to start and register with Consul.
-	"registration": &retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second},
+	Registration: &retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second},
 	// Timeout and polling interval for ECS mesh tasks to start reporting healthy status.
-	"health": &retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second},
+	Health: &retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second},
 	// Timeout and polling interval for making API calls to the Consul server.
-	"consul": &retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second},
+	Consul: &retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second},
 	// Timeout and polling interval for making service calls (curl) between mesh tasks.
-	"mesh-task": &retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second},
+	MeshTask: &retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second},
+}
+
+// retryFunc is a temporary replacement for the retry.RunWith function.
+// When using retry.RunWith some non-deterministic failures were observed
+// during the acceptance tests.
+func retryFunc(rt *retry.Timer, t *testing.T, f func() error) error {
+	var err error
+	stop := time.Now().Add(rt.Timeout)
+	for time.Now().Before(stop) {
+		err = f()
+		if err == nil {
+			return nil
+		}
+		logger.Log(t, err)
+		time.Sleep(rt.Wait)
+	}
+	return err
 }
 
 // HCPTestConfig holds the extended configuration for the admin partition/namespace tests.
@@ -37,14 +59,12 @@ type HCPTestConfig struct {
 	ECSCluster1ARN          string      `json:"ecs_cluster_1_arn"`
 	ECSCluster2ARN          string      `json:"ecs_cluster_2_arn"`
 	ConsulAddr              string      `json:"consul_public_endpoint_url"`
+	ConsulToken             string      `json:"token"`
 	ConsulPrivateAddr       string      `json:"consul_private_endpoint_url"`
 	RetryJoin               interface{} `json:"retry_join"`
 	BootstrapTokenSecretARN string      `json:"bootstrap_token_secret_arn"`
 	GossipKeySecretARN      string      `json:"gossip_key_secret_arn"`
 	ConsulCASecretARN       string      `json:"consul_ca_cert_secret_arn"`
-
-	// Fields that are excluded from the Terraform variables have no JSON tags.
-	ConsulToken string
 }
 
 func TestHCP(t *testing.T) {
@@ -53,16 +73,16 @@ func TestHCP(t *testing.T) {
 	require.NoError(t, config.UnmarshalTF(setupDir, &cfg))
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn"}
+	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
 	tfVars := config.TFVars(cfg, ignoreVars...)
 
-	consulClient, consulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
+	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
-	defer func() {
-		if err := restoreConsulState(t, consulClient, consulState); err != nil {
-			t.Log(err)
+	t.Cleanup(func() {
+		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
+			logger.Log(t, "failed to restore Consul state:", err)
 		}
-	}()
+	})
 
 	randomSuffix := strings.ToLower(random.UniqueId())
 
@@ -85,21 +105,10 @@ func TestHCP(t *testing.T) {
 
 	tfVars["suffix"] = randomSuffix
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
-	defer terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure)
+	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
 	// Wait for both tasks to be registered in Consul.
-	logger.Log(t, "waiting for services to register with consul")
-	retry.RunWith(timeouts["registration"], t, func(r *retry.R) {
-		require.True(r, clientTask.Registered())
-		require.True(r, serverTask.Registered())
-	})
-
-	// Wait for passing health checks for the services.
-	logger.Log(t, "waiting for service health checks")
-	retry.RunWith(timeouts["health"], t, func(r *retry.R) {
-		require.True(r, clientTask.Healthy())
-		require.True(r, serverTask.Healthy())
-	})
+	waitForTasks(t, clientTask, serverTask)
 
 	// Check that the connection between apps is unsuccessful without an intention.
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
@@ -107,13 +116,11 @@ func TestHCP(t *testing.T) {
 
 	// Create an intention.
 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
+	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
 	// Now check that the connection succeeds.
 	logger.Log(t, "checking that the connection succeeds with an intention")
 	expectCurlOutput(t, clientTask, `"code": 200`)
-
-	// remove the intention.
-	deleteIntention(t, consulClient, serverTask)
 
 	// TODO: The token deletion check is disabled due to a race condition.
 	// If the service still exists in Consul after a Task stops, the controller skips
@@ -158,16 +165,16 @@ func TestNamespaces(t *testing.T) {
 	require.NoError(t, config.UnmarshalTF(setupDir, &cfg))
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn"}
+	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
 	tfVars := config.TFVars(cfg, ignoreVars...)
 
-	consulClient, consulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
+	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
-	defer func() {
-		if err := restoreConsulState(t, consulClient, consulState); err != nil {
-			t.Log(err)
+	t.Cleanup(func() {
+		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
+			logger.Log(t, "failed to restore Consul state:", err)
 		}
-	}()
+	})
 
 	randomSuffix := strings.ToLower(random.UniqueId())
 
@@ -193,21 +200,10 @@ func TestNamespaces(t *testing.T) {
 	tfVars["server_namespace"] = serverTask.Namespace
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ns", tfVars)
-	defer terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure)
+	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
 	// Wait for both tasks to be registered in Consul.
-	logger.Log(t, "waiting for services to register with consul")
-	retry.RunWith(timeouts["registration"], t, func(r *retry.R) {
-		require.True(r, clientTask.Registered())
-		require.True(r, serverTask.Registered())
-	})
-
-	// Wait for passing health checks for the services.
-	logger.Log(t, "waiting for service health checks")
-	retry.RunWith(timeouts["health"], t, func(r *retry.R) {
-		require.True(r, clientTask.Healthy())
-		require.True(r, serverTask.Healthy())
-	})
+	waitForTasks(t, clientTask, serverTask)
 
 	// Check that the connection between apps is unsuccessful without an intention.
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
@@ -215,13 +211,11 @@ func TestNamespaces(t *testing.T) {
 
 	// Create an intention.
 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
+	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
 	// Now check that the connection succeeds.
 	logger.Log(t, "checking that the connection succeeds with an intention")
 	expectCurlOutput(t, clientTask, `"code": 200`)
-
-	// remove the intention.
-	deleteIntention(t, consulClient, serverTask)
 
 	logger.Log(t, "Test successful!")
 }
@@ -237,13 +231,13 @@ func TestAdminPartitions(t *testing.T) {
 	ignoreVars := []string{"ecs_cluster_arn", "token"}
 	tfVars := config.TFVars(cfg, ignoreVars...)
 
-	consulClient, consulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
+	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
-	defer func() {
-		if err := restoreConsulState(t, consulClient, consulState); err != nil {
-			t.Log(err)
+	t.Cleanup(func() {
+		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
+			logger.Log(t, "failed to restore Consul state:", err)
 		}
-	}()
+	})
 
 	clientSuffix := strings.ToLower(random.UniqueId())
 	serverSuffix := strings.ToLower(random.UniqueId())
@@ -273,40 +267,28 @@ func TestAdminPartitions(t *testing.T) {
 	tfVars["server_namespace"] = serverTask.Namespace
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ap", tfVars)
-	defer terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure)
+	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
 	// Wait for both tasks to be registered in Consul.
-	logger.Log(t, "waiting for services to register with consul")
-	retry.RunWith(timeouts["registration"], t, func(r *retry.R) {
-		require.True(r, clientTask.Registered())
-		require.True(r, serverTask.Registered())
-	})
-
-	// Wait for passing health checks for the services.
-	logger.Log(t, "waiting for service health checks")
-	retry.RunWith(timeouts["health"], t, func(r *retry.R) {
-		require.True(r, clientTask.Healthy())
-		require.True(r, serverTask.Healthy())
-	})
+	waitForTasks(t, clientTask, serverTask)
 
 	logger.Log(t, "checking that the connection is refused without an `exported-services` config entry")
 	expectCurlOutput(t, clientTask, `Connection refused`)
 
 	// Create an exported-services config entry for the server
 	upsertExportedServices(t, consulClient, clientTask, serverTask)
+	t.Cleanup(func() { deleteExportedServices(t, consulClient, serverTask) })
 
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
 	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
 
 	// Create an intention.
+	logger.Log(t, "upserting intention")
 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
+	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
 	logger.Log(t, "checking that the connection succeeds with an exported-services and intention")
 	expectCurlOutput(t, clientTask, `"code": 200`)
-
-	// remove the config entries for the intention and exported services.
-	deleteIntention(t, consulClient, serverTask)
-	deleteExportedServices(t, consulClient, serverTask)
 
 	logger.Log(t, "Test successful!")
 }
@@ -337,18 +319,46 @@ func terraformDestroy(t *testing.T, tfOpts *terraform.Options, noCleanupOnFailur
 	}
 }
 
-func expectCurlOutput(t *testing.T, task *helpers.MeshTask, expected string) {
-	retry.RunWith(timeouts["mesh-task"], t, func(r *retry.R) {
-		curlOut, err := task.ExecuteCommand("basic", `/bin/sh -c "curl localhost:1234"`)
-		r.Check(err)
-		if !strings.Contains(curlOut, expected) {
-			r.Errorf("response was unexpected: %q", curlOut)
+func waitForTasks(t *testing.T, tasks ...*helpers.MeshTask) {
+	// Wait for tasks to register with Consul.
+	logger.Log(t, "waiting for services to register with consul")
+	require.NoError(t, retryFunc(timeouts.Registration, t, func() error {
+		for _, task := range tasks {
+			if !task.Registered() {
+				return fmt.Errorf("%s is not registered", task.Name)
+			}
 		}
-	})
+		return nil
+	}))
+
+	// Wait for passing health checks for the services.
+	logger.Log(t, "waiting for service health checks")
+	require.NoError(t, retryFunc(timeouts.Health, t, func() error {
+		for _, task := range tasks {
+			if !task.Healthy() {
+				return fmt.Errorf("%s is not healthy", task.Name)
+			}
+		}
+		return nil
+	}))
+}
+
+func expectCurlOutput(t *testing.T, task *helpers.MeshTask, expected string) {
+	require.NoError(t, retryFunc(timeouts.MeshTask, t, func() error {
+		curlOut, err := task.ExecuteCommand("basic", `/bin/sh -c "curl localhost:1234"`)
+		if err != nil {
+			return fmt.Errorf("failed to execute command: %w", err)
+		}
+		if !strings.Contains(curlOut, expected) {
+			return fmt.Errorf("unexpected response: %s", curlOut)
+		}
+		logger.Log(t, "observed expected response:", expected)
+		return nil
+	}))
 }
 
 func upsertIntention(t *testing.T, consulClient *api.Client, action api.IntentionAction, src, dst *helpers.MeshTask) {
-	retry.RunWith(timeouts["consul"], t, func(r *retry.R) {
+	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
 		_, _, err := consulClient.ConfigEntries().Set(&api.ServiceIntentionsConfigEntry{
 			Kind:      api.ServiceIntentions,
 			Name:      dst.Name,
@@ -363,19 +373,25 @@ func upsertIntention(t *testing.T, consulClient *api.Client, action api.Intentio
 				},
 			},
 		}, dst.WriteOpts())
-		r.Check(err)
-	})
+		if err != nil {
+			return fmt.Errorf("failed to upsert intention: %w", err)
+		}
+		return nil
+	}))
 }
 
 func deleteIntention(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
-	retry.RunWith(timeouts["consul"], t, func(r *retry.R) {
+	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
 		_, err := consulClient.ConfigEntries().Delete(api.ServiceIntentions, dst.Name, dst.WriteOpts())
-		r.Check(err)
-	})
+		if err != nil {
+			return fmt.Errorf("failed to delete intention: %w", err)
+		}
+		return nil
+	}))
 }
 
 func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *helpers.MeshTask) {
-	retry.RunWith(timeouts["consul"], t, func(r *retry.R) {
+	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
 		_, _, err := consulClient.ConfigEntries().Set(&api.ExportedServicesConfigEntry{
 			Name:      dst.Partition,
 			Partition: dst.Partition,
@@ -385,15 +401,21 @@ func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *he
 				Consumers: []api.ServiceConsumer{{Partition: src.Partition}},
 			}},
 		}, dst.WriteOpts())
-		r.Check(err)
-	})
+		if err != nil {
+			return fmt.Errorf("failed to upsert exported-services for %s/%s/%s: %w", dst.Partition, dst.Namespace, dst.Name, err)
+		}
+		return nil
+	}))
 }
 
 func deleteExportedServices(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
-	retry.RunWith(timeouts["consul"], t, func(r *retry.R) {
+	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
 		_, err := consulClient.ConfigEntries().Delete(api.ExportedServices, dst.Partition, dst.WriteOpts())
-		r.Check(err)
-	})
+		if err != nil {
+			return fmt.Errorf("failed to delete exported-services for %s: %w", dst.Partition, err)
+		}
+		return nil
+	}))
 }
 
 func consulClient(t *testing.T, addr, token string) (*api.Client, ConsulState, error) {

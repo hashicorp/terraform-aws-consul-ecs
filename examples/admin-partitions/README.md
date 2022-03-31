@@ -1,6 +1,6 @@
 # Consul on ECS - Admin Partitions and Namespaces
 
-This folder provides an example of using the Admin Partition and Namespace features Consul Enterprise on ECS.
+This folder provides an example of using Admin Partitions and Namespaces with Consul on ECS.
 
 ![Admin Partitions Example](context.png)
 

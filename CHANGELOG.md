@@ -1,7 +1,8 @@
 ## Unreleased
 
 FEATURES
-* Added support for Consul Enterprise Admin Partitions and Namespaces.
+* Add support for Admin Partitions and Namespaces.
+  [[GH-87](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/87)]
 
 ## 0.3.0 (Jan 27, 2022)
 
