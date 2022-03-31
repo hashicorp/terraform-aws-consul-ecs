@@ -1,15 +1,6 @@
-locals {
-  hcp_suffix = random_string.hcp_suffix.result
-}
-
-resource "random_string" "hcp_suffix" {
-  length  = 6
-  special = false
-}
-
 // Create HCP Consul resources.
 resource "hcp_hvn" "server" {
-  hvn_id         = "hvn-${local.hcp_suffix}"
+  hvn_id         = "hvn-${local.rand_suffix}"
   cloud_provider = "aws"
   region         = var.region
   cidr_block     = "172.25.16.0/20"
@@ -50,15 +41,92 @@ resource "aws_route" "peering" {
 }
 
 resource "hcp_consul_cluster" "this" {
-  cluster_id      = "server-${local.hcp_suffix}"
+  cluster_id      = "server-${local.rand_suffix}"
   datacenter      = "dc1"
   hvn_id          = hcp_hvn.server.hvn_id
   tier            = "development"
   public_endpoint = true
 }
 
+// Configure Consul resources to allow cross-partition and cross-namespace communication.
+provider "consul" {
+  address    = hcp_consul_cluster.this.consul_public_endpoint_url
+  datacenter = "dc1"
+  token = hcp_consul_cluster.this.consul_root_token_secret_id
+}
+
+// Create Admin Partition and Namespace for the client
+resource "consul_admin_partition" "part1" {
+  name        = "part1"
+  description = "Partition for client service"
+}
+
+resource "consul_namespace" "ns1" {
+  name        = "ns1"
+  description = "Namespace for client service"
+  partition   = "part1"
+}
+
+// Create Admin Partition and Namespace for the server
+resource "consul_admin_partition" "part2" {
+  name        = "part2"
+  description = "Partition for server service"
+}
+
+resource "consul_namespace" "ns2" {
+  name        = "ns2"
+  description = "Namespace for server service"
+  partition   = "part2"
+}
+
+/*
+TODO: Use the Consul Terraform Provider to create the config entries
+for exported-services and service-intentions once the TF provider supports
+admin partitions.
+
+For now the ap-example script creates these entries via the API.
+
+// Create exported-services config entry to export the server to the client
+resource "consul_config_entry" "exported_services" {
+  kind = "exported-services"
+  name = consul_admin_partition.part2.name
+
+  config_json = jsonencode({
+    Services = [{
+      Name      = "example_server_${local.server_suffix}"
+      Partition = consul_admin_partition.part2.name
+      Namespace = consul_namespace.ns2.name
+      Consumers = [{
+        Partition = consul_admin_partition.part1.name
+      }]
+    }]
+  })
+}
+
+// Create an intention to allow the client to call the server
+resource "consul_config_entry" "service_intentions" {
+  kind      = "service-intentions"
+  name      = "example_server_${local.server_suffix}"
+  partition = consul_admin_partition.part2.name
+  namespace = consul_namespace.ns2.name
+
+  config_json = jsonencode({
+    Sources = [
+      {
+        Name      = "example_client_${local.client_suffix}"
+        Partition = consul_admin_partition.part1.name
+        Namespace = consul_namespace.ns1.name
+        Action    = "allow"
+        Type      = "consul"
+      }
+    ]
+  })
+}
+*/
+
+// Create AWS Secrets Manager secrets required by the mesh-tasks and ACL controllers
 resource "aws_secretsmanager_secret" "bootstrap_token" {
-  name = "${local.hcp_suffix}-bootstrap-token"
+  name = "${local.rand_suffix}-bootstrap-token"
 }
 
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
@@ -67,7 +135,7 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
 }
 
 resource "aws_secretsmanager_secret" "gossip_key" {
-  name = "${local.hcp_suffix}-gossip-key"
+  name = "${local.rand_suffix}-gossip-key"
 }
 
 resource "aws_secretsmanager_secret_version" "gossip_key" {
@@ -76,7 +144,7 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 }
 
 resource "aws_secretsmanager_secret" "consul_ca_cert" {
-  name = "${local.hcp_suffix}-consul-ca-cert"
+  name = "${local.rand_suffix}-consul-ca-cert"
 }
 
 resource "aws_secretsmanager_secret_version" "consul_ca_cert" {

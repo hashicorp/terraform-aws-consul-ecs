@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 locals {
-  aws_suffix  = random_string.rand_aws_suffix.result
-  ecs_name    = "consul-ecs-${random_string.rand_aws_suffix.result}"
+  rand_suffix = random_string.rand_suffix.result
+  ecs_name    = "consul-ecs-${random_string.rand_suffix.result}"
   launch_type = "FARGATE"
 }
 
@@ -15,29 +15,18 @@ data "aws_availability_zones" "available" {
   }
 }
 
-resource "random_string" "rand_aws_suffix" {
+resource "random_string" "rand_suffix" {
   length  = 6
   special = false
-}
-
-resource "random_shuffle" "azs" {
-  input = data.aws_availability_zones.available.names
 }
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "2.78.0"
 
-  name = local.ecs_name
-  cidr = "10.0.0.0/16"
-  // The NAT gateway limit is per AZ. With `single_nat_gateway = true`, the NAT gateway is created
-  // in the first public subnet. Shuffling AZs helps spread NAT gateways across AZs to help with this.
-  azs = [
-    // Silly, but avoids this error: `"count" value depends on resource attributes that cannot be determined until apply`
-    random_shuffle.azs.result[0],
-    random_shuffle.azs.result[1],
-    random_shuffle.azs.result[2],
-  ]
+  name                 = local.ecs_name
+  cidr                 = "10.0.0.0/16"
+  azs                  = data.aws_availability_zones.available.names
   private_subnets      = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets       = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_nat_gateway   = true
@@ -81,7 +70,7 @@ resource "aws_cloudwatch_log_group" "log_group" {
 
 // Policy that allows execution of remote commands in ECS tasks.
 resource "aws_iam_policy" "execute_command" {
-  name   = "ecs-execute-command-${local.aws_suffix}"
+  name   = "ecs-execute-command-${local.rand_suffix}"
   path   = "/"
   policy = <<EOF
 {

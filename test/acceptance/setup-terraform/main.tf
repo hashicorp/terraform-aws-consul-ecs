@@ -49,9 +49,11 @@ module "vpc" {
 // The clusters are created in the same VPC to ensure there is network connectivity between them.
 resource "aws_ecs_cluster" "cluster_1" {
   name = "${local.name}-1"
+  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
   tags = var.tags
 }
 
+/* TODO
 resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
   cluster_name       = aws_ecs_cluster.cluster_1.name
   capacity_providers = [var.launch_type]
@@ -60,12 +62,15 @@ resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
     capacity_provider = var.launch_type
   }
 }
+*/
 
 resource "aws_ecs_cluster" "cluster_2" {
   name = "${local.name}-2"
+  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
   tags = var.tags
 }
 
+/* TODO
 resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_2" {
   cluster_name       = aws_ecs_cluster.cluster_2.name
   capacity_providers = [var.launch_type]
@@ -74,6 +79,7 @@ resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_2" {
     capacity_provider = var.launch_type
   }
 }
+*/
 
 resource "aws_cloudwatch_log_group" "log_group" {
   name = local.name

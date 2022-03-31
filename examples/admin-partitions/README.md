@@ -2,8 +2,6 @@
 
 This folder provides an example of using Admin Partitions and Namespaces with Consul on ECS.
 
-![Admin Partitions Example](context.png)
-
 The [Terraform code](./terraform/) in this example manages the following infrastructure:
 - Consul Enterprise running on HashiCorp Cloud Platform.
 - Two AWS ECS clusters.
@@ -11,35 +9,52 @@ The [Terraform code](./terraform/) in this example manages the following infrast
 - A client [`mesh-task`](../../modules/mesh-task/) running in an ECS cluster scoped to a Consul Admin Partition and Namespace.
 - A server [`mesh-task`](../../modules/mesh-task/) running in a separate ECS cluster scoped to a different Consul Admin Partition and Namespace.
 
+![Admin Partitions Example](../../_docs/ap-example.png)
+
 To enable cross-partition communication the following conditions must be met:
 - Both ECS clusters must be in the same region and VPC. This is performed by the Terraform setup.
 - Consul must have an [`exported-services` config entry](https://www.consul.io/docs/connect/config-entries/exported-services) to expose the Admin Partition of the server to the client. This step is performed by the `ap-example` script.
 - Consul must have a [Service to service intention](https://www.consul.io/docs/connect/intentions) to allow the client to call the server.  This step is performed by the `ap-example` script.
 
-## Prerequisites
+## Requirements
 
-The following tools are required to run the example:
-- `curl`
-- `jq`
-- `terraform`
-- `aws` CLI
-- AWS Session Manager Plugin
-- AWS credentials
+* `curl`
+* `jq`
+* `terraform`
+* `aws` CLI
+* AWS Session Manager Plugin
+* AWS credentials
 
 ## Usage
 
+### Setup
+
+Clone this repository:
+
+```console
+$ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
+$ cd terraform-aws-consul-ecs/examples/admin-partitions
+```
+
+This module contains everything needed to spin up and run the example.
+
+### Terraform
+
 To stand up the necessary infrastructure:
 
-```sh
-cd terraform
-terraform apply -auto-approve
-cd ..
+```console
+$ cd terraform
+$ terraform init
+$ terraform apply -auto-approve
+$ cd ..
 ```
+
+### Call an Upstream in a different Admin Partition
 
 Run the example test to confirm communication between client and server in different Admin Partitions and Namespaces:
 
-```sh
-./ap-example
+```console
+$ ./ap-example
 ```
 
 This step can take several minutes, after which time you should see some JSON output similar to the following:
@@ -61,10 +76,17 @@ This step can take several minutes, after which time you should see some JSON ou
 }
 ```
 
+### Clean up
+
 To tear down the infrastructure that was created:
 
-```sh
-cd terraform
-terraform destroy -auto-approve
-cd ..
+```console
+$ cd terraform
+$ terraform destroy -auto-approve
+$ cd ..
 ```
+
+## Next Steps
+
+Next, see our [full documentation](https://www.consul.io/docs/ecs) when you're ready to deploy your own applications
+into the service mesh.

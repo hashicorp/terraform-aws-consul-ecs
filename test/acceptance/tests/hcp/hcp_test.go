@@ -20,21 +20,16 @@ import (
 
 const setupDir = "../../setup-terraform"
 
-var timeouts = struct {
-	Registration *retry.Timer
-	Health       *retry.Timer
-	Consul       *retry.Timer
-	MeshTask     *retry.Timer
-}{
+var (
 	// Timeout and polling interval for ECS mesh tasks to start and register with Consul.
-	Registration: &retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second},
+	registrationTimeout = &retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}
 	// Timeout and polling interval for ECS mesh tasks to start reporting healthy status.
-	Health: &retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second},
+	healthTimeout = &retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}
 	// Timeout and polling interval for making API calls to the Consul server.
-	Consul: &retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second},
+	consulTimeout = &retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second}
 	// Timeout and polling interval for making service calls (curl) between mesh tasks.
-	MeshTask: &retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second},
-}
+	meshTaskTimeout = &retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}
+)
 
 // retryFunc is a temporary replacement for the retry.RunWith function.
 // When using retry.RunWith some non-deterministic failures were observed
@@ -70,11 +65,11 @@ type HCPTestConfig struct {
 func TestHCP(t *testing.T) {
 	// read the configuration from the setup-terraform dir.
 	var cfg HCPTestConfig
-	require.NoError(t, config.UnmarshalTF(setupDir, &cfg))
+	require.NoError(t, UnmarshalTF(setupDir, &cfg))
 
 	// generate input variables to the test terraform using the config.
 	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
-	tfVars := config.TFVars(cfg, ignoreVars...)
+	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
@@ -86,22 +81,19 @@ func TestHCP(t *testing.T) {
 
 	randomSuffix := strings.ToLower(random.UniqueId())
 
-	clientTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_client_%s", randomSuffix),
+	taskConfig := helpers.MeshTaskConfig{
 		Partition:    "default",
 		Namespace:    "default",
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
 		ClusterARN:   cfg.ECSClusterARN,
 	}
-	serverTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_server_%s", randomSuffix),
-		Partition:    "default",
-		Namespace:    "default",
-		ConsulClient: consulClient,
-		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
-	}
+
+	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
+	clientTask := helpers.NewMeshTask(t, taskConfig)
+
+	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
+	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix"] = randomSuffix
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
@@ -162,11 +154,11 @@ func TestHCP(t *testing.T) {
 func TestNamespaces(t *testing.T) {
 	// read the configuration from the setup-terraform dir.
 	var cfg HCPTestConfig
-	require.NoError(t, config.UnmarshalTF(setupDir, &cfg))
+	require.NoError(t, UnmarshalTF(setupDir, &cfg))
 
 	// generate input variables to the test terraform using the config.
 	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
-	tfVars := config.TFVars(cfg, ignoreVars...)
+	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
@@ -178,22 +170,20 @@ func TestNamespaces(t *testing.T) {
 
 	randomSuffix := strings.ToLower(random.UniqueId())
 
-	clientTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_client_%s", randomSuffix),
-		Partition:    "default",
-		Namespace:    "ns1",
+	taskConfig := helpers.MeshTaskConfig{
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
 		ClusterARN:   cfg.ECSClusterARN,
-	}
-	serverTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_server_%s", randomSuffix),
 		Partition:    "default",
-		Namespace:    "ns2",
-		ConsulClient: consulClient,
-		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
 	}
+
+	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
+	taskConfig.Namespace = "ns1"
+	clientTask := helpers.NewMeshTask(t, taskConfig)
+
+	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
+	taskConfig.Namespace = "ns2"
+	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix"] = randomSuffix
 	tfVars["client_namespace"] = clientTask.Namespace
@@ -225,11 +215,11 @@ func TestNamespaces(t *testing.T) {
 func TestAdminPartitions(t *testing.T) {
 	// read the configuration from the setup-terraform dir.
 	var cfg HCPTestConfig
-	require.NoError(t, config.UnmarshalTF(setupDir, &cfg))
+	require.NoError(t, UnmarshalTF(setupDir, &cfg))
 
 	// generate input variables to the test terraform using the config.
 	ignoreVars := []string{"ecs_cluster_arn", "token"}
-	tfVars := config.TFVars(cfg, ignoreVars...)
+	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
 	require.NoError(t, err)
@@ -242,22 +232,22 @@ func TestAdminPartitions(t *testing.T) {
 	clientSuffix := strings.ToLower(random.UniqueId())
 	serverSuffix := strings.ToLower(random.UniqueId())
 
-	clientTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_client_%s", clientSuffix),
-		Partition:    "part1",
-		Namespace:    "ns1",
+	taskConfig := helpers.MeshTaskConfig{
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSCluster1ARN,
 	}
-	serverTask := &helpers.MeshTask{
-		Name:         fmt.Sprintf("test_server_%s", serverSuffix),
-		Partition:    "part2",
-		Namespace:    "ns2",
-		ConsulClient: consulClient,
-		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSCluster2ARN,
-	}
+
+	taskConfig.Name = fmt.Sprintf("test_client_%s", clientSuffix)
+	taskConfig.Partition = "part1"
+	taskConfig.Namespace = "ns1"
+	taskConfig.ClusterARN = cfg.ECSCluster1ARN
+	clientTask := helpers.NewMeshTask(t, taskConfig)
+
+	taskConfig.Name = fmt.Sprintf("test_server_%s", serverSuffix)
+	taskConfig.Partition = "part2"
+	taskConfig.Namespace = "ns2"
+	taskConfig.ClusterARN = cfg.ECSCluster2ARN
+	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix_1"] = clientSuffix
 	tfVars["client_partition"] = clientTask.Partition
@@ -322,7 +312,7 @@ func terraformDestroy(t *testing.T, tfOpts *terraform.Options, noCleanupOnFailur
 func waitForTasks(t *testing.T, tasks ...*helpers.MeshTask) {
 	// Wait for tasks to register with Consul.
 	logger.Log(t, "waiting for services to register with consul")
-	require.NoError(t, retryFunc(timeouts.Registration, t, func() error {
+	require.NoError(t, retryFunc(registrationTimeout, t, func() error {
 		for _, task := range tasks {
 			if !task.Registered() {
 				return fmt.Errorf("%s is not registered", task.Name)
@@ -333,7 +323,7 @@ func waitForTasks(t *testing.T, tasks ...*helpers.MeshTask) {
 
 	// Wait for passing health checks for the services.
 	logger.Log(t, "waiting for service health checks")
-	require.NoError(t, retryFunc(timeouts.Health, t, func() error {
+	require.NoError(t, retryFunc(healthTimeout, t, func() error {
 		for _, task := range tasks {
 			if !task.Healthy() {
 				return fmt.Errorf("%s is not healthy", task.Name)
@@ -344,7 +334,7 @@ func waitForTasks(t *testing.T, tasks ...*helpers.MeshTask) {
 }
 
 func expectCurlOutput(t *testing.T, task *helpers.MeshTask, expected string) {
-	require.NoError(t, retryFunc(timeouts.MeshTask, t, func() error {
+	require.NoError(t, retryFunc(meshTaskTimeout, t, func() error {
 		curlOut, err := task.ExecuteCommand("basic", `/bin/sh -c "curl localhost:1234"`)
 		if err != nil {
 			return fmt.Errorf("failed to execute command: %w", err)
@@ -358,7 +348,7 @@ func expectCurlOutput(t *testing.T, task *helpers.MeshTask, expected string) {
 }
 
 func upsertIntention(t *testing.T, consulClient *api.Client, action api.IntentionAction, src, dst *helpers.MeshTask) {
-	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
 		_, _, err := consulClient.ConfigEntries().Set(&api.ServiceIntentionsConfigEntry{
 			Kind:      api.ServiceIntentions,
 			Name:      dst.Name,
@@ -381,7 +371,7 @@ func upsertIntention(t *testing.T, consulClient *api.Client, action api.Intentio
 }
 
 func deleteIntention(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
-	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
 		_, err := consulClient.ConfigEntries().Delete(api.ServiceIntentions, dst.Name, dst.WriteOpts())
 		if err != nil {
 			return fmt.Errorf("failed to delete intention: %w", err)
@@ -391,7 +381,7 @@ func deleteIntention(t *testing.T, consulClient *api.Client, dst *helpers.MeshTa
 }
 
 func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *helpers.MeshTask) {
-	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
 		_, _, err := consulClient.ConfigEntries().Set(&api.ExportedServicesConfigEntry{
 			Name:      dst.Partition,
 			Partition: dst.Partition,
@@ -409,7 +399,7 @@ func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *he
 }
 
 func deleteExportedServices(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
-	require.NoError(t, retryFunc(timeouts.Consul, t, func() error {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
 		_, err := consulClient.ConfigEntries().Delete(api.ExportedServices, dst.Partition, dst.WriteOpts())
 		if err != nil {
 			return fmt.Errorf("failed to delete exported-services for %s: %w", dst.Partition, err)

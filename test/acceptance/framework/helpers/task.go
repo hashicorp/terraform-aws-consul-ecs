@@ -4,26 +4,43 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
-// MeshTask represents a Consul ECS mesh task and provides utility functions for interacting with it.
-type MeshTask struct {
+// MeshTaskConfig holds the configuration for a Consul ECS MeshTask.
+type MeshTaskConfig struct {
 	ConsulClient *api.Client
 	Name         string
 	Partition    string
 	Namespace    string
 	Region       string
 	ClusterARN   string
-	taskARN      string
+}
+
+// MeshTask represents a Consul ECS mesh task and provides utility functions for interacting with it.
+type MeshTask struct {
+	MeshTaskConfig
+	taskARN string
+}
+
+// NewMeshTask creates an instance of a MeshTask.
+// It returns an error if any required configuration fields are missing.
+func NewMeshTask(t *testing.T, cfg MeshTaskConfig) *MeshTask {
+	require.NotNil(t, cfg.ConsulClient)
+	require.NotEmpty(t, cfg.Name)
+	require.NotEmpty(t, cfg.Partition)
+	require.NotEmpty(t, cfg.Namespace)
+	require.NotEmpty(t, cfg.Region)
+	require.NotEmpty(t, cfg.ClusterARN)
+
+	return &MeshTask{MeshTaskConfig: cfg}
 }
 
 // Registered indicates if the service for the task is registered in Consul.
 func (task *MeshTask) Registered() bool {
-	if task.ConsulClient == nil {
-		panic("MeshTask.Registered() called with nil Consul client")
-	}
 	services, _, err := task.ConsulClient.Catalog().Services(task.QueryOpts())
 	if err == nil {
 		for name := range services {
@@ -37,9 +54,6 @@ func (task *MeshTask) Registered() bool {
 
 // Healthy indicates if all the service checks for the task are passing.
 func (task *MeshTask) Healthy() bool {
-	if task.ConsulClient == nil {
-		panic("MeshTask.Healthy() called with nil Consul client")
-	}
 	// list services by name filtered by ones with passing health checks
 	services, _, err := task.ConsulClient.Health().Service(task.Name, "", true, task.QueryOpts())
 	if err == nil && len(services) > 0 {
@@ -79,14 +93,6 @@ func (task *MeshTask) TaskARN() (string, error) {
 	// if the task ARN is already known then return it.
 	if task.taskARN != "" {
 		return task.taskARN, nil
-	}
-
-	// find the ARN for this task, we only need to do this once.
-	if task.Region == "" {
-		return "", fmt.Errorf("region for task is not set")
-	}
-	if task.ClusterARN == "" {
-		return "", fmt.Errorf("cluster ARN for task is not set")
 	}
 
 	args := []string{
