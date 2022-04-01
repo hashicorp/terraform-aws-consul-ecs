@@ -3,11 +3,11 @@ package config
 // TestConfig holds configuration for the test suite.
 type TestConfig struct {
 	NoCleanupOnFailure bool
-	ECSClusterARN      string `json:"ecs_cluster_arn"`
-	LaunchType         string `json:"launch_type"`
-	Subnets            interface{}
+	ECSClusterARN      string      `json:"ecs_cluster_arn"`
+	LaunchType         string      `json:"launch_type"`
+	Subnets            interface{} `json:"subnets"`
 	Suffix             string
-	Region             string
+	Region             string   `json:"region"`
 	VpcID              string   `json:"vpc_id"`
 	RouteTableIDs      []string `json:"route_table_ids"`
 	LogGroupName       string   `json:"log_group_name"`

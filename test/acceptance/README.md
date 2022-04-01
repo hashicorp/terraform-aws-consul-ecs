@@ -2,6 +2,18 @@
 
 These tests run the Terraform code.
 
+### Prerequisites
+
+The following prerequisites are needed to run the acceptance tests: 
+
+- [Go](https://go.dev/dl/) (`go test`)
+- [Terraform](https://www.terraform.io/downloads) (`terraform`)
+   - [Authentication for AWS provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication)
+   - [Authentication for HCP provider](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs/guides/auth)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (`aws`)
+   - [AWS Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+- [Amazon ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html) (`ecs-cli`)
+
 ### Instructions
 
 1. To run the tests, first you must run the setup terraform in `setup-terraform`.

@@ -61,8 +61,9 @@ module "test_client" {
   retry_join = var.retry_join
   upstreams = [
     {
-      destinationName = "test_server_${var.suffix}"
-      localBindPort   = 1234
+      destinationName      = "test_server_${var.suffix}"
+      destinationNamespace = var.server_namespace
+      localBindPort        = 1234
     }
   ]
   log_configuration = {
@@ -83,7 +84,7 @@ module "test_client" {
   consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
   consul_image                   = var.consul_image
-  consul_namespace               = "default"
+  consul_namespace               = var.client_namespace
   consul_partition               = "default"
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
@@ -143,7 +144,7 @@ module "test_server" {
   consul_ecs_image               = var.consul_ecs_image
   consul_image                   = var.consul_image
   consul_partition               = "default"
-  consul_namespace               = "default"
+  consul_namespace               = var.server_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }

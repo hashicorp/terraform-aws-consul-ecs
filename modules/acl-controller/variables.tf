@@ -64,6 +64,18 @@ variable "assign_public_ip" {
   default     = false
 }
 
+variable "consul_partitions_enabled" {
+  description = "Enable admin partitions [Consul Enterprise]."
+  type        = bool
+  default     = false
+}
+
+variable "consul_partition" {
+  description = "Admin partition the controller will manage [Consul Enterprise]."
+  type        = string
+  default     = "default"
+}
+
 variable "security_groups" {
   description = "Configure the ECS service with security groups. If not specified, the default security group for the VPC is used."
   type        = list(string)

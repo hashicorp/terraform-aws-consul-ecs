@@ -86,3 +86,15 @@ variable "consul_ca_cert_secret_arn" {
   description = "ARN of the secret holding the Consul CA certificate."
   type        = string
 }
+
+variable "client_namespace" {
+  description = "The namespace that the client belongs to."
+  type        = string
+  default     = "ns1"
+}
+
+variable "server_namespace" {
+  description = "The namespace that the server belongs to."
+  type        = string
+  default     = "ns2"
+}

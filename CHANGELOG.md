@@ -1,5 +1,9 @@
 ## Unreleased
 
+FEATURES
+* Add support for Admin Partitions and Namespaces.
+  [[GH-87](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/87)]
+
 IMPROVEMENTS
 * module/acl-controller: Support `security_groups` input variable.
   [[GH-89](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/89)]

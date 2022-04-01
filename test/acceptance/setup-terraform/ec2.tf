@@ -30,29 +30,56 @@ resource "aws_iam_role" "instance_role" {
   ]
 }
 
-resource "aws_iam_instance_profile" "instance_profile" {
+resource "aws_iam_instance_profile" "instance_profile_1" {
   count = local.ec2_enabled ? 1 : 0
 
-  name = local.name
+  name = "${local.name}-1"
   role = aws_iam_role.instance_role[count.index].name
 }
 
-resource "aws_instance" "instances" {
+resource "aws_instance" "instances_1" {
   count = local.ec2_enabled ? var.instance_count : 0
 
   ami                  = local.ecs_optimized_ami
   instance_type        = var.instance_type
-  iam_instance_profile = aws_iam_instance_profile.instance_profile[0].name
+  iam_instance_profile = aws_iam_instance_profile.instance_profile_1[0].name
   // Spread instances across subnets
   subnet_id              = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
   vpc_security_group_ids = [module.vpc.default_security_group_id]
 
   user_data = <<EOF
 #!/bin/bash
-echo ECS_CLUSTER=${aws_ecs_cluster.this.name} >> /etc/ecs/ecs.config
+echo ECS_CLUSTER=${aws_ecs_cluster.cluster_1.name} >> /etc/ecs/ecs.config
 EOF
 
   tags = merge(var.tags, {
-    Name = local.name
+    Name = "${local.name}-1"
+  })
+}
+
+resource "aws_iam_instance_profile" "instance_profile_2" {
+  count = local.ec2_enabled ? 1 : 0
+
+  name = "${local.name}-2"
+  role = aws_iam_role.instance_role[count.index].name
+}
+
+resource "aws_instance" "instances_2" {
+  count = local.ec2_enabled ? var.instance_count : 0
+
+  ami                  = local.ecs_optimized_ami
+  instance_type        = var.instance_type
+  iam_instance_profile = aws_iam_instance_profile.instance_profile_2[0].name
+  // Spread instances across subnets
+  subnet_id              = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+
+  user_data = <<EOF
+#!/bin/bash
+echo ECS_CLUSTER=${aws_ecs_cluster.cluster_2.name} >> /etc/ecs/ecs.config
+EOF
+
+  tags = merge(var.tags, {
+    Name = "${local.name}-2"
   })
 }
