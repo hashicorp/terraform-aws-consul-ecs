@@ -49,6 +49,32 @@ $ terraform apply -auto-approve
 $ cd ..
 ```
 
+**NOTE:** Terraform may output an error similar to the following related to the `service-intentions` resource:
+
+```
+╷
+│ Error: failed to read config entry after setting it.
+│ This may happen when some attributes have an unexpected value.
+│ Read the documentation at https://www.consul.io/docs/agent/config-entries/service-intentions.html
+│ to see what values are expected.
+│ 
+│   with consul_config_entry.service_intentions,
+│   on hcp_consul.tf line 101, in resource "consul_config_entry" "service_intentions":
+│  101: resource "consul_config_entry" "service_intentions" {
+│ 
+╵
+```
+
+This is a known issue and the service intention should still be created.
+This can be confirmed by checking the service intention config entry has been added to Consul:
+
+```console
+$ export CONSUL_HTTP_ADDR=$(cd terraform ; terraform output -json | jq -rc '.hcp_public_endpoint.value')
+$ export CONSUL_HTTP_TOKEN=$(cd terraform ; terraform output -json | jq -rc '.token.value')
+$ consul config read -kind service-intentions -partition part2 -namespace ns2 \
+  -name $(consul config list -kind service-intentions -partition part2 -namespace ns2)
+```
+
 ### Call an Upstream in a different Admin Partition
 
 Run the example test to confirm communication between client and server in different Admin Partitions and Namespaces:

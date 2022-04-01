@@ -57,34 +57,27 @@ provider "consul" {
 
 // Create Admin Partition and Namespace for the client
 resource "consul_admin_partition" "part1" {
-  name        = "part1"
+  name        = var.client_partition
   description = "Partition for client service"
 }
 
 resource "consul_namespace" "ns1" {
-  name        = "ns1"
+  name        = var.client_namespace
   description = "Namespace for client service"
-  partition   = "part1"
+  partition   = consul_admin_partition.part1.name
 }
 
 // Create Admin Partition and Namespace for the server
 resource "consul_admin_partition" "part2" {
-  name        = "part2"
+  name        = var.server_partition
   description = "Partition for server service"
 }
 
 resource "consul_namespace" "ns2" {
-  name        = "ns2"
+  name        = var.server_namespace
   description = "Namespace for server service"
-  partition   = "part2"
+  partition   = consul_admin_partition.part2.name
 }
-
-/*
-TODO: Use the Consul Terraform Provider to create the config entries
-for exported-services and service-intentions once the TF provider supports
-admin partitions.
-
-For now the ap-example script creates these entries via the API.
 
 // Create exported-services config entry to export the server to the client
 resource "consul_config_entry" "exported_services" {
@@ -92,6 +85,7 @@ resource "consul_config_entry" "exported_services" {
   name = consul_admin_partition.part2.name
 
   config_json = jsonencode({
+    Partition = consul_admin_partition.part2.name
     Services = [{
       Name      = "example_server_${local.server_suffix}"
       Partition = consul_admin_partition.part2.name
@@ -107,22 +101,22 @@ resource "consul_config_entry" "exported_services" {
 resource "consul_config_entry" "service_intentions" {
   kind      = "service-intentions"
   name      = "example_server_${local.server_suffix}"
-  partition = consul_admin_partition.part2.name
   namespace = consul_namespace.ns2.name
 
   config_json = jsonencode({
+    Partition = consul_admin_partition.part2.name
     Sources = [
       {
         Name      = "example_client_${local.client_suffix}"
         Partition = consul_admin_partition.part1.name
         Namespace = consul_namespace.ns1.name
         Action    = "allow"
+        Precedence = 9
         Type      = "consul"
       }
     ]
   })
 }
-*/
 
 // Create AWS Secrets Manager secrets required by the mesh-tasks and ACL controllers
 resource "aws_secretsmanager_secret" "bootstrap_token" {

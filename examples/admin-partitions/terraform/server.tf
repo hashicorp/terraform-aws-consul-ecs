@@ -27,7 +27,7 @@ module "acl_controller_server" {
   name_prefix                       = local.server_suffix
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
-  consul_partition                  = var.server_partition
+  consul_partition                  = consul_admin_partition.part2.name
 }
 
 // Create services.
@@ -82,8 +82,8 @@ module "example_server" {
   consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
   consul_client_token_secret_arn = module.acl_controller_server.client_token_secret_arn
   consul_ecs_image               = var.consul_ecs_image
-  consul_partition               = var.server_partition
-  consul_namespace               = var.server_namespace
+  consul_partition               = consul_admin_partition.part2.name
+  consul_namespace               = consul_namespace.ns2.name
   consul_image                   = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]

@@ -41,16 +41,6 @@ echo ""
 waitfor ${SERVER_AP} ${SERVER_NS} ${SERVER_NAME}
 echo ""
 
-# create exported-services config entry to expose the example_server in partition 2 to the services in partition 1
-echo "creating exported-services config entry"
-curl -sS -X PUT -H "Authorization: Bearer ${CONSUL_HTTP_TOKEN}" "${CONSUL_HTTP_ADDR}/v1/config?partition=${SERVER_AP}&ns=${SERVER_NS}" -d"{\"Kind\":\"exported-services\",\"Partition\":\"${SERVER_AP}\",\"Name\":\"${SERVER_AP}\",\"Services\":[{\"Consumers\":[{\"Partition\":\"${CLIENT_AP}\"}],\"Name\":\"${SERVER_NAME}\",\"Namespace\":\"${SERVER_NS}\"}]}"
-curl -sS -X GET -H "Authorization: Bearer ${CONSUL_HTTP_TOKEN}" "${CONSUL_HTTP_ADDR}/v1/config/exported-services/${SERVER_AP}?partition=${SERVER_AP}" | jq .
-
-# create the intention allowing the client to call the server
-echo "creating service intention: Allow ${CLIENT_AP}/${CLIENT_NS}/${CLIENT_NAME} -> ${SERVER_AP}/${SERVER_NS}/${SERVER_NAME}"
-curl -sS -X PUT -H "Authorization: Bearer ${CONSUL_HTTP_TOKEN}" "${CONSUL_HTTP_ADDR}/v1/connect/intentions/exact?source=${CLIENT_AP}/${CLIENT_NS}/${CLIENT_NAME}&destination=${SERVER_AP}/${SERVER_NS}/${SERVER_NAME}" -d'{"SourceType":"consul","Action":"allow"}' > /dev/null
-curl -sS -X GET -H "Authorization: Bearer ${CONSUL_HTTP_TOKEN}" "${CONSUL_HTTP_ADDR}/v1/config/service-intentions?partition=${SERVER_AP}&ns=${SERVER_NS}" | jq .
-
 # retrieve the ECS task ID for the client
 CLIENT_TASK_ID=$(aws ecs list-tasks --region ${CLIENT_REGION} --cluster ${CLIENT_CLUSTER_ARN} --family ${CLIENT_NAME} | jq -r '.taskArns[0]')
 
