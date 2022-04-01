@@ -107,12 +107,12 @@ resource "consul_config_entry" "service_intentions" {
     Partition = consul_admin_partition.part2.name
     Sources = [
       {
-        Name      = "example_client_${local.client_suffix}"
-        Partition = consul_admin_partition.part1.name
-        Namespace = consul_namespace.ns1.name
-        Action    = "allow"
+        Name       = "example_client_${local.client_suffix}"
+        Partition  = consul_admin_partition.part1.name
+        Namespace  = consul_namespace.ns1.name
+        Action     = "allow"
         Precedence = 9
-        Type      = "consul"
+        Type       = "consul"
       }
     ]
   })
