@@ -1,3 +1,7 @@
+locals {
+  log_level_flag = var.consul_ecs_log_level != "" ? ["-log-level", var.consul_ecs_log_level] : []
+}
+
 resource "aws_secretsmanager_secret" "client_token" {
   name                    = "${var.name_prefix}-consul-client-token"
   recovery_window_in_days = 0
@@ -40,6 +44,7 @@ resource "aws_ecs_task_definition" "this" {
         "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
         "-secret-name-prefix", var.name_prefix
         ],
+        local.log_level_flag,
         var.consul_partitions_enabled ? [
           "-partitions-enabled",
           "-partition", var.consul_partition

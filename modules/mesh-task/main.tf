@@ -29,6 +29,8 @@ locals {
   partition_tag = var.consul_partition != null ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
   namespace_tag = var.consul_namespace != null ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
+  log_level_flag = var.consul_ecs_log_level != "" ? ["-log-level", var.consul_ecs_log_level] : []
+
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
   // We add these dependencies in so that the app containers don't start until the proxy
@@ -196,7 +198,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.consul_ecs_image
             essential        = false
             logConfiguration = var.log_configuration
-            command          = ["mesh-init"]
+            command          = concat(["mesh-init"], local.log_level_flag)
             mountPoints = [
               local.consul_data_mount_read_write,
               {
@@ -282,7 +284,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.envoy_image
             essential        = false
             logConfiguration = var.log_configuration
-            entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
+            entryPoint       = concat(["/consul/consul-ecs", "envoy-entrypoint"], local.log_level_flag)
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
             portMappings     = []
             mountPoints = [
@@ -318,7 +320,7 @@ resource "aws_ecs_task_definition" "this" {
           image            = var.consul_ecs_image
           essential        = false
           logConfiguration = var.log_configuration
-          command          = ["health-sync"]
+          command          = concat(["health-sync"], local.log_level_flag)
           cpu              = 0
           volumesFrom      = []
           environment = [

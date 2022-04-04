@@ -4,6 +4,12 @@ variable "consul_ecs_image" {
   default     = "public.ecr.aws/hashicorp/consul-ecs:0.3.0"
 }
 
+variable "consul_ecs_log_level" {
+  description = "Log level for the consul-ecs binary"
+  type        = string
+  default     = ""
+}
+
 variable "ecs_cluster_arn" {
   description = "The ARN of the ECS cluster where the controller will be running."
   type        = string

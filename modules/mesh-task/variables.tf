@@ -111,6 +111,12 @@ variable "consul_ecs_image" {
   default     = "public.ecr.aws/hashicorp/consul-ecs:0.3.0"
 }
 
+variable "consul_ecs_log_level" {
+  description = "Log level for consul-ecs binary"
+  type        = string
+  default     = ""
+}
+
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
