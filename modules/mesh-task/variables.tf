@@ -108,19 +108,19 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.11.2"
+  default     = "public.ecr.aws/hashicorp/consul:1.11.4"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.3.0"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.0"
 }
 
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.20.1"
+  default     = "envoyproxy/envoy-alpine:v1.20.2"
 }
 
 variable "log_configuration" {
