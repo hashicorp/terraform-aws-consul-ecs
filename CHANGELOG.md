@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.0 (April 4, 2022)
 
 FEATURES
 * Add support for Admin Partitions and Namespaces.
@@ -7,6 +7,10 @@ FEATURES
 IMPROVEMENTS
 * module/acl-controller: Support `security_groups` input variable.
   [[GH-89](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/89)]
+* modules/mesh-task, modules/dev-server: Update default Consul image to 1.11.4
+  and default Envoy image to 1.20.2.
+  [[GH-93](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/93)]
+
 
 ## 0.3.0 (Jan 27, 2022)
 
