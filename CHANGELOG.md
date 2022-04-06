@@ -1,6 +1,6 @@
 ## 0.4.1 (April 6, 2022)
 BUG FIXES
-* modules/mesh-task: Fix a bug that results in a invalid secret names
+* modules/mesh-task: Fix a bug that results in invalid secret names
   when admin partitions are enabled.
   [[GH-95](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/95)]
 
