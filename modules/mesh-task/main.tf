@@ -80,7 +80,7 @@ locals {
     }
   )
 
-  secret_name = var.consul_partition != "" ? "${var.acl_secret_name_prefix}-${var.family}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${var.family}"
+  secret_name = var.consul_partition != "" ? "${var.acl_secret_name_prefix}-${local.service_name}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${local.service_name}"
 }
 
 resource "aws_secretsmanager_secret" "service_token" {

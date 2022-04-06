@@ -352,10 +352,8 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 	}
 }
 
-// Test the validation that if a partition is provided, a namespace must also be provided.
-func TestValidation_NamespaceIsRequiredIfPartitionIsSet(t *testing.T) {
-	t.Parallel()
-
+// Test the validation that both partition and namespace must be provided or neither.
+func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 	cases := map[string]struct {
 		partition string
 		namespace string
@@ -379,24 +377,27 @@ func TestValidation_NamespaceIsRequiredIfPartitionIsSet(t *testing.T) {
 		"without partition, with namespace": {
 			partition: "",
 			namespace: "default",
-			errMsg:    "",
+			errMsg:    "ERROR: consul_partition must be set if consul_namespace is set",
 		},
 	}
 
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/admin-partition-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./terraform/admin-partition-validate",
-				NoColor:      true,
-				Vars: map[string]interface{}{
-					"partition": c.partition,
-					"namespace": c.namespace,
-				},
-			})
+			t.Parallel()
+			terraformOptions.Vars = map[string]interface{}{
+				"partition": c.partition,
+				"namespace": c.namespace,
+			}
 			t.Cleanup(func() {
 				_, _ = terraform.DestroyE(t, terraformOptions)
 			})
-			_, err := terraform.InitAndPlanE(t, terraformOptions)
+			_, err := terraform.PlanE(t, terraformOptions)
 			if c.errMsg == "" {
 				require.NoError(t, err)
 			} else {
@@ -419,7 +420,7 @@ func TestBasic(t *testing.T) {
 			clientServiceName := "test_client"
 
 			serverServiceName := "test_server"
-			if !secure {
+			if secure {
 				// This uses the explicitly passed service name rather than the task's family name.
 				serverServiceName = "custom_test_server"
 			}
