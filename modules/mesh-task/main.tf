@@ -2,7 +2,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.4.0-dev"
+  version_string = "0.4.1"
 
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   consul_data_volume_name   = "consul_data"
@@ -27,8 +27,8 @@ locals {
   service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // Optionally, users can provide a partition and namespace for the service.
-  partition_tag = var.consul_partition != null ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
-  namespace_tag = var.consul_namespace != null ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
+  partition_tag = var.consul_partition != "" ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
+  namespace_tag = var.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
   // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
@@ -80,7 +80,7 @@ locals {
     }
   )
 
-  secret_name = var.consul_partition != null ? "${var.acl_secret_name_prefix}-${var.family}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${var.family}"
+  secret_name = var.consul_partition != "" ? "${var.acl_secret_name_prefix}-${var.family}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${var.family}"
 }
 
 resource "aws_secretsmanager_secret" "service_token" {

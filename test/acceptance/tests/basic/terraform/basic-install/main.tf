@@ -281,10 +281,6 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  // Test passing both a role resource and role data source objects to make sure both
-  // have the necessary fields ("arn" and "id").
-  task_role                     = aws_iam_role.task
-  execution_role                = aws_iam_role.execution
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
