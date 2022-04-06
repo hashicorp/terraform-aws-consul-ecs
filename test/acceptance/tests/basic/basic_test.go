@@ -541,7 +541,7 @@ func TestBasic(t *testing.T) {
 					}
 				})
 				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-					consulCmd := fmt.Sprintf(`/bin/sh -c "consul intention create test_client_%s test_server_%s"`, randomSuffix, randomSuffix)
+					consulCmd := fmt.Sprintf(`/bin/sh -c "consul intention create %s_%s %s_%s"`, clientServiceName, randomSuffix, serverServiceName, randomSuffix)
 					_, err := helpers.ExecuteRemoteCommand(t, suite.Config(), consulServerTaskARN, "consul-server", consulCmd)
 					r.Check(err)
 				})
