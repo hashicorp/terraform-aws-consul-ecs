@@ -34,6 +34,11 @@ output "server_dns" {
 }
 
 output "bootstrap_token_secret_arn" {
-  description = "The ARN of the ACL bootstrap token secret."
+  description = "The Secrets Manager ARN of the ACL bootstrap token secret."
   value       = var.acls ? aws_secretsmanager_secret.bootstrap_token[0].arn : null
+}
+
+output "bootstrap_token_id" {
+  description = "The Consul secret ID of the bootstrap ACL token."
+  value       = var.acls ? random_uuid.bootstrap_token[0].result : null
 }
