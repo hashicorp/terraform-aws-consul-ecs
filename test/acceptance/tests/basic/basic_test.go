@@ -533,7 +533,7 @@ func TestBasic(t *testing.T) {
 			// Create an intention.
 			if secure {
 				// First check that connection between apps is unsuccessful.
-				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 					curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 					r.Check(err)
 					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
@@ -547,7 +547,7 @@ func TestBasic(t *testing.T) {
 				})
 			}
 
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 				curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 				r.Check(err)
 				if !strings.Contains(curlOut, `"code": 200`) {
