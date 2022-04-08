@@ -1,4 +1,5 @@
-## 0.4.1 (April 6, 2022)
+## 0.4.1 (April 8, 2022)
+
 BUG FIXES
 * modules/mesh-task: Fix a bug that results in invalid secret names
   when admin partitions are enabled.
