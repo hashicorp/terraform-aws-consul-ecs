@@ -214,6 +214,9 @@ resource "aws_ecs_task_definition" "this" {
                 value = local.encoded_config
               }
             ]
+            linuxParameters = {
+              initProcessEnabled = true
+            }
             portMappings = []
             secrets = var.acls ? [
               {
@@ -335,6 +338,9 @@ resource "aws_ecs_task_definition" "this" {
               condition     = "SUCCESS"
             },
           ]
+          linuxParameters = {
+            initProcessEnabled = true
+          }
           secrets = var.acls ? [
             {
               name      = "CONSUL_HTTP_TOKEN",
