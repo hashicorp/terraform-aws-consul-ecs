@@ -61,6 +61,13 @@ variable "consul_image" {
   default     = "public.ecr.aws/hashicorp/consul:1.11.4"
 }
 
+variable "consul_license" {
+  description = "A Consul Enterprise license key. Requires consul_image to be set to a Consul Enterprise image."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "log_configuration" {
   description = "Task definition log configuration object (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html)."
   type        = any
@@ -111,6 +118,12 @@ variable "gossip_key_secret_arn" {
 
 variable "acls" {
   description = "Whether to enable ACLs on the server."
+  type        = bool
+  default     = false
+}
+
+variable "wait_for_steady_state" {
+  description = "Set wait_for_steady_state on the ECS service. This causes Terraform to wait for the Consul server task to be deployed."
   type        = bool
   default     = false
 }

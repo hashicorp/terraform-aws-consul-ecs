@@ -5,6 +5,8 @@ locals {
     container_name   = "consul-server"
     container_port   = 8500
   }] : []
+
+  consul_enterprise_enabled = var.consul_license != ""
 }
 
 resource "tls_private_key" "ca" {
@@ -58,6 +60,18 @@ resource "aws_secretsmanager_secret_version" "ca_cert" {
   secret_string = tls_self_signed_cert.ca[count.index].cert_pem
 }
 
+// Optional Enterprise license.
+resource "aws_secretsmanager_secret" "license" {
+  count = local.consul_enterprise_enabled ? 1 : 0
+  name  = "${var.name}-consul-license"
+}
+
+resource "aws_secretsmanager_secret_version" "license" {
+  count         = local.consul_enterprise_enabled ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.license[count.index].id
+  secret_string = chomp(var.consul_license) // trim trailing newlines
+}
+
 resource "aws_ecs_service" "this" {
   name            = var.name
   cluster         = var.ecs_cluster_arn
@@ -82,6 +96,7 @@ resource "aws_ecs_service" "this" {
     }
   }
   enable_execute_command = true
+  wait_for_steady_state  = var.wait_for_steady_state
 
   depends_on = [
     aws_iam_role.this_task
@@ -138,14 +153,20 @@ resource "aws_ecs_task_definition" "this" {
         secrets = concat(
           local.gossip_encryption_enabled ? [
             {
-              name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+              name      = "CONSUL_GOSSIP_ENCRYPTION_KEY"
               valueFrom = var.gossip_key_secret_arn
             },
           ] : [],
           var.acls ? [
             {
-              name      = "CONSUL_HTTP_TOKEN",
+              name      = "CONSUL_HTTP_TOKEN"
               valueFrom = aws_secretsmanager_secret.bootstrap_token[0].arn
+            },
+          ] : [],
+          local.consul_enterprise_enabled ? [
+            {
+              name      = "CONSUL_LICENSE"
+              valueFrom = aws_secretsmanager_secret.license[0].arn
             },
           ] : [],
         )
@@ -182,6 +203,17 @@ resource "aws_iam_policy" "this_execution" {
       ],
       "Resource": [
         "${aws_secretsmanager_secret.bootstrap_token[0].arn}"
+      ]
+    },
+%{endif~}
+%{if local.consul_enterprise_enabled~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${aws_secretsmanager_secret.license[0].arn}"
       ]
     },
 %{endif~}
@@ -306,7 +338,15 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
 }
 
 locals {
-  consul_dns_name       = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
+  consul_dns_name = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
+  // TODO: Deprecated fields
+  //   The 'ca_file' field is deprecated. Use the 'tls.defaults.ca_file' field instead.
+  //   The 'cert_file' field is deprecated. Use the 'tls.defaults.cert_file' field instead.
+  //   The 'key_file' field is deprecated. Use the 'tls.defaults.key_file' field instead.
+  //   The 'verify_incoming_rpc' field is deprecated. Use the 'tls.internal_rpc.verify_incoming' field instead.
+  //   The 'verify_outgoing' field is deprecated. Use the 'tls.defaults.verify_outgoing' field instead.
+  //   The 'verify_server_hostname' field is deprecated. Use the 'tls.internal_rpc.verify_server_hostname' field instead.
+  //   The 'acl.tokens.master' field is deprecated. Use the 'acl.tokens.initial_management' field instead.
   consul_server_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 
