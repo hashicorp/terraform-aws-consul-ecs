@@ -1,10 +1,17 @@
+## Unreleased
+
+FEATURES
+* modules/dev-server: Add `consul_license` input variable to support
+  passing a Consul enterprise license.
+  [[GH-96](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/96)]
+
+
 ## 0.4.1 (April 8, 2022)
 
 BUG FIXES
 * modules/mesh-task: Fix a bug that results in invalid secret names
   when admin partitions are enabled.
   [[GH-95](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/95)]
-
 
 ## 0.4.0 (April 4, 2022)
 
