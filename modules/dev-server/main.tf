@@ -6,7 +6,7 @@ locals {
     container_port   = 8500
   }] : []
 
-  consul_license_enabled = var.consul_license != ""
+  consul_enterprise_enabled = var.consul_license != ""
 }
 
 resource "tls_private_key" "ca" {
@@ -62,12 +62,12 @@ resource "aws_secretsmanager_secret_version" "ca_cert" {
 
 // Optional Enterprise license.
 resource "aws_secretsmanager_secret" "license" {
-  count = local.consul_license_enabled ? 1 : 0
+  count = local.consul_enterprise_enabled ? 1 : 0
   name  = "${var.name}-consul-license"
 }
 
 resource "aws_secretsmanager_secret_version" "license" {
-  count         = local.consul_license_enabled ? 1 : 0
+  count         = local.consul_enterprise_enabled ? 1 : 0
   secret_id     = aws_secretsmanager_secret.license[count.index].id
   secret_string = chomp(var.consul_license) // trim trailing newlines
 }
@@ -163,7 +163,7 @@ resource "aws_ecs_task_definition" "this" {
               valueFrom = aws_secretsmanager_secret.bootstrap_token[0].arn
             },
           ] : [],
-          local.consul_license_enabled ? [
+          local.consul_enterprise_enabled ? [
             {
               name      = "CONSUL_LICENSE"
               valueFrom = aws_secretsmanager_secret.license[0].arn
@@ -206,7 +206,7 @@ resource "aws_iam_policy" "this_execution" {
       ]
     },
 %{endif~}
-%{if local.consul_license_enabled~}
+%{if local.consul_enterprise_enabled~}
     {
       "Effect": "Allow",
       "Action": [
