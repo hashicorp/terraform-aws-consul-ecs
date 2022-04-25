@@ -220,6 +220,7 @@ resource "aws_ecs_task_definition" "this" {
             portMappings = []
             secrets = var.acls ? [
               {
+                // TODO: Remove once switched to auth method
                 name      = "CONSUL_HTTP_TOKEN",
                 valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
               }
@@ -239,6 +240,11 @@ resource "aws_ecs_task_definition" "this" {
                   consul_agent_defaults_hcl      = local.consul_agent_defaults_hcl
                   consul_agent_configuration_hcl = var.consul_agent_configuration
                   tls                            = var.tls
+                  acls                           = var.acls
+                  consul_http_addr               = var.consul_http_addr
+                  client_token_auth_method_name  = var.client_token_auth_method_name
+                  consul_partition               = var.consul_partition
+                  region                         = data.aws_region.current.name
                 }
               ), "\r", "")
             ]
@@ -275,6 +281,7 @@ resource "aws_ecs_task_definition" "this" {
               ] : [],
               var.acls ? [
                 {
+                  // TODO: Remove once switched to auth method
                   name      = "AGENT_TOKEN",
                   valueFrom = "${var.consul_client_token_secret_arn}:token::"
                 }
@@ -343,6 +350,7 @@ resource "aws_ecs_task_definition" "this" {
           }
           secrets = var.acls ? [
             {
+              // TODO: Remove once switched to auth method
               name      = "CONSUL_HTTP_TOKEN",
               valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
             }

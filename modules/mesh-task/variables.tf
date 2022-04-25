@@ -230,6 +230,24 @@ variable "retry_join" {
   type        = list(string)
 }
 
+variable "consul_http_addr" {
+  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
+  type        = string
+  default     = ""
+}
+
+variable "client_token_auth_method_name" {
+  description = "The name of the Consul Auth Method to login to for client tokens."
+  type        = string
+  default     = ""
+}
+
+variable "service_token_auth_method_name" {
+  description = "The name of the Consul Auth Method to login to for service tokens."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "A map of tags to add to all resources."
   type        = map(string)
