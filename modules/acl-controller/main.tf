@@ -36,15 +36,20 @@ resource "aws_ecs_task_definition" "this" {
       image            = var.consul_ecs_image
       essential        = true
       logConfiguration = var.log_configuration,
-      command = concat([
-        "acl-controller",
-        "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
-        "-secret-name-prefix", var.name_prefix
+      command = concat(
+        [
+          "acl-controller",
+          "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
+          "-secret-name-prefix", var.name_prefix
         ],
         var.consul_partitions_enabled ? [
           "-partitions-enabled",
           "-partition", var.consul_partition
-      ] : [])
+        ] : [],
+        var.iam_role_path != "" ? [
+          "-iam-role-path", var.iam_role_path,
+        ] : [],
+      )
       linuxParameters = {
         initProcessEnabled = true
       }

@@ -37,6 +37,12 @@ variable "log_configuration" {
   default     = null
 }
 
+variable "iam_role_path" {
+  description = "IAM roles at this path will be permitted to login to the Consul AWS IAM auth method configured by this controller."
+  type        = string
+  default     = ""
+}
+
 variable "subnets" {
   description = "Subnets where the controller task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
   type        = list(string)
