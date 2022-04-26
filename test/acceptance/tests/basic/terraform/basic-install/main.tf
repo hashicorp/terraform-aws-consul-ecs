@@ -207,6 +207,9 @@ module "test_client" {
         name  = "GOLANG_MAIN_B64"
         value = base64encode(file("${path.module}/shutdown-monitor.go"))
       }]
+      linuxParameters = {
+        initProcessEnabled = true
+      }
       # NOTE: `go run <file>` signal handling is different: https://github.com/golang/go/issues/40467
       entryPoint = ["/bin/sh", "-c", <<EOT
 echo "$GOLANG_MAIN_B64" | base64 -d > main.go
