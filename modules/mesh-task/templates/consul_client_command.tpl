@@ -20,7 +20,7 @@ login() {
     %{ endif ~}
       -type aws -method ${ client_token_auth_method_name } \
       -aws-auto-bearer-token -aws-include-entity \
-      -token-sink-file /consul/token.txt
+      -token-sink-file /consul/client-token
 }
 
 while ! login; do
@@ -28,7 +28,7 @@ while ! login; do
 done
 
 # This is an env var which is interpolated into the agent-defaults.hcl
-export AGENT_TOKEN=$(cat /consul/token.txt)
+export AGENT_TOKEN=$(cat /consul/client-token)
 %{ endif ~}
 
 cat << EOF > /consul/agent-defaults.hcl
