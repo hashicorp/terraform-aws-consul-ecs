@@ -1,9 +1,11 @@
 locals {
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
+  http_port                 = var.tls ? 8501 : 8500
+  protocol                  = var.tls ? "HTTPS" : "HTTP"
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
-    container_port   = 8500
+    container_port   = local.http_port
   }] : []
 
   consul_enterprise_enabled = var.consul_license != ""
@@ -129,7 +131,7 @@ resource "aws_ecs_task_definition" "this" {
             containerPort = 8300
           },
           {
-            containerPort = 8500
+            containerPort = local.http_port
           }
         ]
         logConfiguration = var.log_configuration
@@ -419,8 +421,8 @@ EOF
 resource "aws_lb_target_group" "this" {
   count                = var.lb_enabled ? 1 : 0
   name                 = var.name
-  port                 = 8500
-  protocol             = "HTTP"
+  port                 = local.http_port
+  protocol             = local.protocol
   vpc_id               = var.vpc_id
   target_type          = "ip"
   deregistration_delay = 10
@@ -445,7 +447,7 @@ resource "aws_lb" "this" {
 resource "aws_lb_listener" "this" {
   count             = var.lb_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this[count.index].arn
-  port              = "8500"
+  port              = local.http_port
   protocol          = "HTTP"
   default_action {
     type             = "forward"
@@ -460,8 +462,8 @@ resource "aws_security_group" "load_balancer" {
 
   ingress {
     description     = "Access to Consul dev server HTTP API and UI."
-    from_port       = 8500
-    to_port         = 8500
+    from_port       = local.http_port
+    to_port         = local.http_port
     protocol        = "tcp"
     cidr_blocks     = var.lb_ingress_rule_cidr_blocks
     security_groups = var.lb_ingress_rule_security_groups
