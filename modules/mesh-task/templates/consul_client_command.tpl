@@ -7,19 +7,25 @@ echo "$CONSUL_CACERT" > /consul/consul-ca-cert.pem
 %{ endif ~}
 
 %{ if acls && client_token_auth_method_name != "" ~}
-echo "Logging into auth method: name=${ client_token_auth_method_name }"
 
-consul login \
-  -http-addr ${ consul_http_addr } \
-%{ if tls ~}
-  -ca-file /consul/consul-ca-cert.pem \
-%{ endif ~}
-%{ if consul_partition != "" ~}
-  -partition ${ consul_partition } \
-%{ endif ~}
-  -type aws -method ${ client_token_auth_method_name } \
-  -aws-auto-bearer-token -aws-include-entity \
-  -token-sink-file /consul/token.txt
+login() {
+    echo "Logging into auth method: name=${ client_token_auth_method_name }"
+    consul login \
+      -http-addr ${ consul_http_addr } \
+    %{ if tls ~}
+      -ca-file /consul/consul-ca-cert.pem \
+    %{ endif ~}
+    %{ if consul_partition != "" ~}
+      -partition ${ consul_partition } \
+    %{ endif ~}
+      -type aws -method ${ client_token_auth_method_name } \
+      -aws-auto-bearer-token -aws-include-entity \
+      -token-sink-file /consul/token.txt
+}
+
+while ! login; do
+    sleep 2
+done
 
 # This is an env var which is interpolated into the agent-defaults.hcl
 export AGENT_TOKEN=$(cat /consul/token.txt)
