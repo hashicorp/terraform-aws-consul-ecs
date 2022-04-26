@@ -39,8 +39,9 @@ resource "tls_self_signed_cert" "ca" {
 }
 
 resource "aws_secretsmanager_secret" "ca_key" {
-  count = var.tls ? 1 : 0
-  name  = "${var.name}-ca-key"
+  count                   = var.tls ? 1 : 0
+  name                    = "${var.name}-ca-key"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_key" {
@@ -50,8 +51,9 @@ resource "aws_secretsmanager_secret_version" "ca_key" {
 }
 
 resource "aws_secretsmanager_secret" "ca_cert" {
-  count = var.tls ? 1 : 0
-  name  = "${var.name}-ca-cert"
+  count                   = var.tls ? 1 : 0
+  name                    = "${var.name}-ca-cert"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_cert" {
@@ -62,8 +64,9 @@ resource "aws_secretsmanager_secret_version" "ca_cert" {
 
 // Optional Enterprise license.
 resource "aws_secretsmanager_secret" "license" {
-  count = local.consul_enterprise_enabled ? 1 : 0
-  name  = "${var.name}-consul-license"
+  count                   = local.consul_enterprise_enabled ? 1 : 0
+  name                    = "${var.name}-consul-license"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "license" {
