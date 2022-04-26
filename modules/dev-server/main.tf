@@ -1,13 +1,12 @@
 locals {
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   http_port                 = var.tls ? 8501 : 8500
-  protocol                  = var.tls ? "HTTPS" : "HTTP"
+  protocol                  = var.tls ? "TCP" : "HTTP"
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
     container_port   = local.http_port
   }] : []
-
   consul_enterprise_enabled = var.consul_license != ""
 }
 
@@ -41,8 +40,9 @@ resource "tls_self_signed_cert" "ca" {
 }
 
 resource "aws_secretsmanager_secret" "ca_key" {
-  count = var.tls ? 1 : 0
-  name  = "${var.name}-ca-key"
+  count                   = var.tls ? 1 : 0
+  name                    = "${var.name}-ca-key"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_key" {
@@ -52,8 +52,9 @@ resource "aws_secretsmanager_secret_version" "ca_key" {
 }
 
 resource "aws_secretsmanager_secret" "ca_cert" {
-  count = var.tls ? 1 : 0
-  name  = "${var.name}-ca-cert"
+  count                   = var.tls ? 1 : 0
+  name                    = "${var.name}-ca-cert"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_cert" {
@@ -64,8 +65,9 @@ resource "aws_secretsmanager_secret_version" "ca_cert" {
 
 // Optional Enterprise license.
 resource "aws_secretsmanager_secret" "license" {
-  count = local.consul_enterprise_enabled ? 1 : 0
-  name  = "${var.name}-consul-license"
+  count                   = local.consul_enterprise_enabled ? 1 : 0
+  name                    = "${var.name}-consul-license"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "license" {
@@ -339,6 +341,8 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
   secret_string = random_uuid.bootstrap_token[count.index].result
 }
 
+data "aws_region" "current" {}
+
 locals {
   consul_dns_name = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
   // TODO: Deprecated fields
@@ -383,12 +387,13 @@ EOF
   // We use this command to generate the server certs dynamically before the servers start
   // because we need to add the IP of the task as a SAN to the certificate, and we don't know that
   // IP ahead of time.
+// TODO this is lazy
   consul_server_tls_init_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 cd /consul
 echo "$CONSUL_CACERT" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
-consul tls cert create -server -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name}
+consul tls cert create -server -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name} -additional-dnsname=*.elb.${data.aws_region.current.name}.amazonaws.com
 EOF
 
   tls_init_container = {
@@ -428,10 +433,12 @@ resource "aws_lb_target_group" "this" {
   deregistration_delay = 10
   health_check {
     path                = "/v1/status/leader"
-    healthy_threshold   = 2
-    unhealthy_threshold = 10
-    timeout             = 30
-    interval            = 60
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    interval            = 10
+    // // With HTTPS, this fails because of the self-signed certificate.
+    port = 8500
+    protocol = "HTTP"
   }
 }
 
@@ -439,8 +446,7 @@ resource "aws_lb" "this" {
   count              = var.lb_enabled ? 1 : 0
   name               = var.name
   internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.load_balancer[count.index].id]
+  load_balancer_type = "network"
   subnets            = var.lb_subnets
 }
 
@@ -448,32 +454,10 @@ resource "aws_lb_listener" "this" {
   count             = var.lb_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this[count.index].arn
   port              = local.http_port
-  protocol          = "HTTP"
+  protocol = "TCP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.this[count.index].arn
-  }
-}
-
-resource "aws_security_group" "load_balancer" {
-  count  = var.lb_enabled ? 1 : 0
-  name   = "${var.name}-lb-sg"
-  vpc_id = var.vpc_id
-
-  ingress {
-    description     = "Access to Consul dev server HTTP API and UI."
-    from_port       = local.http_port
-    to_port         = local.http_port
-    protocol        = "tcp"
-    cidr_blocks     = var.lb_ingress_rule_cidr_blocks
-    security_groups = var.lb_ingress_rule_security_groups
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -485,13 +469,18 @@ resource "aws_security_group" "ecs_service" {
 resource "aws_security_group_rule" "lb_ingress_to_service" {
   count = var.lb_enabled ? 1 : 0
 
-  description              = "Access to Consul dev server from security group attached to load balancer"
   type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.load_balancer[0].id
+  // from_port                = 0
+  // to_port                  = 0
+  // protocol                 = "-1"
+  // source_security_group_id = aws_security_group.load_balancer[0].id
   security_group_id        = aws_security_group.ecs_service.id
+
+  description     = "Access to Consul dev server HTTP API and UI."
+  from_port       = local.http_port
+  to_port         = local.http_port
+  protocol        = "tcp"
+  cidr_blocks     = var.lb_ingress_rule_cidr_blocks
 }
 
 

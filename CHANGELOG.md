@@ -1,6 +1,9 @@
 ## Unreleased
 
 FEATURES
+* modules/dev-server: Immediately delete all Secrets Manager secrets rather
+ than leaving a 30 day recovery window.
+ [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
 * modules/dev-server: Add `consul_license` input variable to support
   passing a Consul enterprise license.
   [[GH-96](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/96)]
