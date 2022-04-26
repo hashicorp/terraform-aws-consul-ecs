@@ -342,6 +342,9 @@ resource "aws_ecs_task_definition" "this" {
             }
           ]
           portMappings = []
+          mountPoints = [
+            local.consul_data_mount
+          ]
           dependsOn = [
             {
               containerName = "consul-ecs-mesh-init"
