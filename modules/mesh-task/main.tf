@@ -81,6 +81,9 @@ locals {
   )
 
   secret_name = var.consul_partition != "" ? "${var.acl_secret_name_prefix}-${local.service_name}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${local.service_name}"
+
+  // TODO: Remove this "feature flag" once switched over to the auth method
+  auth_method_enabled = var.client_token_auth_method_name != "" && var.service_token_auth_method_name != ""
 }
 
 resource "aws_secretsmanager_secret" "service_token" {
@@ -218,7 +221,7 @@ resource "aws_ecs_task_definition" "this" {
               initProcessEnabled = true
             }
             portMappings = []
-            secrets = var.acls ? [
+            secrets = var.acls && !local.auth_method_enabled ? [
               {
                 // TODO: Remove once switched to auth method
                 name      = "CONSUL_HTTP_TOKEN",
@@ -279,7 +282,7 @@ resource "aws_ecs_task_definition" "this" {
                   valueFrom = var.gossip_key_secret_arn
                 }
               ] : [],
-              var.acls ? [
+              var.acls && !local.auth_method_enabled ? [
                 {
                   // TODO: Remove once switched to auth method
                   name      = "AGENT_TOKEN",
@@ -348,7 +351,7 @@ resource "aws_ecs_task_definition" "this" {
           linuxParameters = {
             initProcessEnabled = true
           }
-          secrets = var.acls ? [
+          secrets = var.acls && !local.auth_method_enabled ? [
             {
               // TODO: Remove once switched to auth method
               name      = "CONSUL_HTTP_TOKEN",
