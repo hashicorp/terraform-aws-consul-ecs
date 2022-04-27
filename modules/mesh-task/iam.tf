@@ -47,7 +47,8 @@ resource "aws_iam_role" "task" {
   }
 }
 
-// If acls enabled, we need the task role configure for the auth method.
+// If acls are enabled, the task role must be configured with an `iam:GetRole` permission
+// to fetch itself, in order to be compatbile with the auth method.
 resource "aws_iam_policy" "task" {
   count       = var.acls ? 1 : 0
   name        = "${var.family}-task"

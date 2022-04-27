@@ -324,13 +324,12 @@ resource "aws_iam_role" "task" {
     ]
   })
 
-  // TODO: When using the auth method, mesh-task should add these tags if the task role
-  // is passed in.
+  // Terraform does not support managing individual tags for IAM roles yet.
+  // These tags must be set when a role is passed in to mesh-task, if acls are enabled.
   tags = {
     "consul.hashicorp.com.service-name" = "${var.server_service_name}_${var.suffix}"
-    // "consul.hashicorp.com.namespace"    = ""
+    "consul.hashicorp.com.namespace"    = ""
   }
-
 }
 
 
