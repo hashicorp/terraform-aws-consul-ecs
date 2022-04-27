@@ -1,6 +1,8 @@
 cp /bin/consul /bin/consul-inject/consul
 
-ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
+ECS_TASK_META=$(curl -s $ECS_CONTAINER_METADATA_URI_V4)
+ECS_IPV4=$(echo "$ECS_TASK_META" | jq -r '.Networks[0].IPv4Addresses[0]')
+TASK_REGION=$(echo "$ECS_TASK_META" | jq -r .ContainerARN | cut -d':' -f4)
 
 %{ if tls ~}
 echo "$CONSUL_CACERT" > /consul/consul-ca-cert.pem
@@ -19,6 +21,7 @@ login() {
       -partition ${ consul_partition } \
     %{ endif ~}
       -type aws -method ${ client_token_auth_method_name } \
+      -aws-region "$TASK_REGION" \
       -aws-auto-bearer-token -aws-include-entity \
       -token-sink-file /consul/client-token
 }
