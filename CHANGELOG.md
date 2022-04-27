@@ -4,6 +4,12 @@ FEATURES
 * modules/dev-server: Add `consul_license` input variable to support
   passing a Consul enterprise license.
   [[GH-96](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/96)]
+* modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
+  Consul 1.12.0+. Add `consul_http_addr`, `client_token_auth_method_name`, and
+  `service_token_auth_method_name` variables to `mesh-task`. Add `iam_role_path` variable to
+  `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
+  `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
+  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
 
 
 ## 0.4.1 (April 8, 2022)
