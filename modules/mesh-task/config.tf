@@ -15,7 +15,6 @@ locals {
     consulHTTPAddr   = var.consul_http_addr
     consulCACertFile = "/consul/consul-ca-cert.pem"
     consulLogin      = local.consulLogin
-    logLevel         = "DEBUG"
     service = merge(
       {
         name      = local.service_name
