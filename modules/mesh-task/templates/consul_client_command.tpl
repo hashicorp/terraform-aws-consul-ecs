@@ -26,9 +26,36 @@ login() {
       -token-sink-file /consul/client-token
 }
 
+read_token_stale() {
+    consul acl token read -http-addr ${ consul_http_addr } \
+    %{ if tls ~}
+      -ca-file /consul/consul-ca-cert.pem \
+    %{ endif ~}
+      -stale -self -token-file /consul/client-token
+}
+
+# Retry in order to login successfully.
 while ! login; do
     sleep 2
 done
+
+# Wait for raft replication to hopefully occur. Without this, an "ACL not found" may be cached for a while.
+# Technically, the problem could still occur but this should handle most cases.
+# This waits at most 2s (20 attempts with 0.1s sleep)
+COUNT=20
+while [ "$COUNT" -gt "0" ]; do
+    echo "Checking that the ACL token exists when reading it in the stale consistency mode ($COUNT attempts remaining)"
+    if read_token_stale; then
+        echo "Successfully read ACL token from the server"
+        break
+    fi
+    sleep 0.1
+    COUNT=$((COUNT - 1))
+done
+if [ "$COUNT" -eq "0" ]; then
+   echo "Unable to read ACL token from a Consul server; please check that your server cluster is healthy"
+   exit 1
+fi
 
 # This is an env var which is interpolated into the agent-defaults.hcl
 export AGENT_TOKEN=$(cat /consul/client-token)
