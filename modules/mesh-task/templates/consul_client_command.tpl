@@ -10,7 +10,7 @@ echo "$CONSUL_CACERT" > /consul/consul-ca-cert.pem
 
 %{ if acls && client_token_auth_method_name != "" ~}
 
-login() {
+consul_login() {
     echo "Logging into auth method: name=${ client_token_auth_method_name }"
     consul login \
       -http-addr ${ consul_http_addr } \
@@ -36,7 +36,7 @@ read_token_stale() {
 }
 
 # Retry in order to login successfully.
-while ! login; do
+while ! consul_login; do
     sleep 2
 done
 
@@ -44,7 +44,7 @@ done
 # Technically, the problem could still occur but this should handle most cases.
 # This waits at most 2s (20 attempts with 0.1s sleep)
 COUNT=20
-while [ "$COUNT" -gt "0" ]; do
+while [ "$COUNT" -gt 0 ]; do
     echo "Checking that the ACL token exists when reading it in the stale consistency mode ($COUNT attempts remaining)"
     if read_token_stale; then
         echo "Successfully read ACL token from the server"
@@ -53,7 +53,7 @@ while [ "$COUNT" -gt "0" ]; do
     sleep 0.1
     COUNT=$((COUNT - 1))
 done
-if [ "$COUNT" -eq "0" ]; then
+if [ "$COUNT" -eq 0 ]; then
    echo "Unable to read ACL token from a Consul server; please check that your server cluster is healthy"
    exit 1
 fi
