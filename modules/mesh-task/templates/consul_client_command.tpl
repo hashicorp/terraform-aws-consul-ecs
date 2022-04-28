@@ -31,7 +31,8 @@ read_token_stale() {
     %{ if tls ~}
       -ca-file /consul/consul-ca-cert.pem \
     %{ endif ~}
-      -stale -self -token-file /consul/client-token
+      -stale -self -token-file /consul/client-token \
+      &> /dev/null
 }
 
 # Retry in order to login successfully.
