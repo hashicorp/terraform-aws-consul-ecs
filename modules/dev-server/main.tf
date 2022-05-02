@@ -17,7 +17,6 @@ resource "tls_private_key" "ca" {
 
 resource "tls_self_signed_cert" "ca" {
   count           = var.tls ? 1 : 0
-  key_algorithm   = "ECDSA"
   private_key_pem = tls_private_key.ca[count.index].private_key_pem
 
   subject {
