@@ -193,7 +193,7 @@ resource "aws_lb_target_group" "example_client_app" {
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
-    path                = "/"
+    path                = "/health"
     healthy_threshold   = 2
     unhealthy_threshold = 10
     timeout             = 30
