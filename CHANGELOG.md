@@ -14,6 +14,8 @@ FEATURES
   `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
   [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
 
+BUG FIXES
+* modules/mesh-task: Remove deprecated `key_algorithm` field. [[GH-104](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/104)]
 
 ## 0.4.1 (April 8, 2022)
 
