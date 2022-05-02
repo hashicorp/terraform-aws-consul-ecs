@@ -4,7 +4,7 @@ orbs:
 executors:
   consul-ecs-test:
     docker:
-      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.0
+      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.1
     environment:
       TEST_RESULTS: &TEST_RESULTS /tmp/test-results # path to where test results are saved
 
@@ -17,7 +17,7 @@ jobs:
       # Restore go module cache if there is one
       - restore_cache:
           keys:
-            - consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+            - consul-ecs-acceptance-modcache-v2-{{ checksum "test/acceptance/go.mod" }}
 
       - run:
           name: go mod download
@@ -26,9 +26,9 @@ jobs:
 
       # Save go module cache if the go.mod file has changed
       - save_cache:
-          key: consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+          key: consul-ecs-acceptance-modcache-v2-{{ checksum "test/acceptance/go.mod" }}
           paths:
-            - "/go/pkg/mod"
+            - "/home/circleci/go/pkg/mod"
 
       # check go fmt output because it does not report non-zero when there are fmt changes
       - run:
@@ -99,7 +99,7 @@ jobs:
       # Restore go module cache if there is one
       - restore_cache:
           keys:
-            - consul-ecs-acceptance-modcache-v1-{{ checksum "test/acceptance/go.mod" }}
+            - consul-ecs-acceptance-modcache-v2-{{ checksum "test/acceptance/go.mod" }}
 
       - run: mkdir -p $TEST_RESULTS
 
@@ -108,7 +108,7 @@ jobs:
           working_directory: test/acceptance/tests
           no_output_timeout: 1h
           command: |
-            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" -- ./... -p 1 -timeout 1h -v -failfast
+            gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
 
       - store_test_results:
           path: *TEST_RESULTS

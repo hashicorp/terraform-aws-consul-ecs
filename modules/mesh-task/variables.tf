@@ -108,7 +108,7 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.11.4"
+  default     = "public.ecr.aws/hashicorp/consul:1.12.0"
 }
 
 variable "consul_ecs_image" {
@@ -228,6 +228,24 @@ variable "checks" {
 variable "retry_join" {
   description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
   type        = list(string)
+}
+
+variable "consul_http_addr" {
+  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
+  type        = string
+  default     = ""
+}
+
+variable "client_token_auth_method_name" {
+  description = "The name of the Consul Auth Method to login to for client tokens."
+  type        = string
+  default     = ""
+}
+
+variable "service_token_auth_method_name" {
+  description = "The name of the Consul Auth Method to login to for service tokens."
+  type        = string
+  default     = ""
 }
 
 variable "tags" {

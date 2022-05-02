@@ -25,6 +25,7 @@ locals {
 // Create the task role
 resource "aws_iam_role" "task" {
   count = local.create_task_role ? 1 : 0
+  path  = "/ecs/"
 
   name = "${var.family}-task"
   assume_role_policy = jsonencode({
@@ -39,6 +40,44 @@ resource "aws_iam_role" "task" {
       }
     ]
   })
+
+  tags = {
+    "consul.hashicorp.com.service-name" = local.service_name
+    "consul.hashicorp.com.namespace"    = var.consul_namespace
+  }
+}
+
+// If acls are enabled, the task role must be configured with an `iam:GetRole` permission
+// to fetch itself, in order to be compatbile with the auth method.
+resource "aws_iam_policy" "task" {
+  count       = var.acls ? 1 : 0
+  name        = "${var.family}-task"
+  path        = "/ecs/"
+  description = "${var.family} mesh-task task policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole"
+      ],
+      "Resource": [
+        "${local.task_role_arn}"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+
+resource "aws_iam_role_policy_attachment" "task" {
+  count      = var.acls ? 1 : 0
+  role       = local.task_role_id
+  policy_arn = aws_iam_policy.task[count.index].arn
 }
 
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
@@ -73,6 +112,7 @@ resource "aws_iam_policy" "execution" {
   path        = "/ecs/"
   description = "${var.family} mesh-task execution policy"
 
+  // TODO: Remove client and service token secrets once switched to the auth method.
   policy = <<EOF
 {
   "Version": "2012-10-17",

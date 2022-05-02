@@ -41,6 +41,13 @@ variable "secure" {
   default     = false
 }
 
+// TODO: Remove this once switched over to the auth method.
+variable "auth_method" {
+  description = "When secure=true, whether the secure configuration uses the auth method."
+  type        = bool
+  default     = false
+}
+
 variable "launch_type" {
   description = "Whether to launch tasks on Fargate or EC2"
   type        = string
@@ -143,6 +150,8 @@ module "acl_controller" {
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
+
+  iam_role_path = var.secure && var.auth_method ? "/ecs" : ""
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -198,6 +207,9 @@ module "test_client" {
         name  = "GOLANG_MAIN_B64"
         value = base64encode(file("${path.module}/shutdown-monitor.go"))
       }]
+      linuxParameters = {
+        initProcessEnabled = true
+      }
       # NOTE: `go run <file>` signal handling is different: https://github.com/golang/go/issues/40467
       entryPoint = ["/bin/sh", "-c", <<EOT
 echo "$GOLANG_MAIN_B64" | base64 -d > main.go
@@ -228,6 +240,12 @@ EOT
   consul_ecs_image               = var.consul_ecs_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
+
+  consul_http_addr = var.secure && var.auth_method ? "https://${module.consul_server.server_dns}:8501" : ""
+  // TODO: Remove these once fully switched over to the auth method.
+  // These should default to the correct value.
+  client_token_auth_method_name  = var.secure && var.auth_method ? "iam-ecs-client-token" : ""
+  service_token_auth_method_name = var.secure && var.auth_method ? "iam-ecs-service-token" : ""
 
   consul_agent_configuration = <<-EOT
   log_level = "debug"
@@ -281,6 +299,12 @@ module "test_server" {
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
+  consul_http_addr = var.secure && var.auth_method ? "https://${module.consul_server.server_dns}:8501" : ""
+  // TODO: Remove these once fully switched over to the auth method.
+  // These should default to the correct value.
+  client_token_auth_method_name  = var.secure && var.auth_method ? "iam-ecs-client-token" : ""
+  service_token_auth_method_name = var.secure && var.auth_method ? "iam-ecs-service-token" : ""
+
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
@@ -299,6 +323,13 @@ resource "aws_iam_role" "task" {
       },
     ]
   })
+
+  // Terraform does not support managing individual tags for IAM roles yet.
+  // These tags must be set when a role is passed in to mesh-task, if acls are enabled.
+  tags = {
+    "consul.hashicorp.com.service-name" = "${var.server_service_name}_${var.suffix}"
+    "consul.hashicorp.com.namespace"    = ""
+  }
 }
 
 

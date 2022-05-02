@@ -409,18 +409,30 @@ func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 }
 
 func TestBasic(t *testing.T) {
-	cases := []bool{false, true}
+	cases := []struct {
+		secure     bool
+		authMethod bool
+	}{
+		{secure: false},
+		{secure: true},
+		{secure: true, authMethod: true},
+	}
 
-	for _, secure := range cases {
-		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
+	for _, c := range cases {
+		name := fmt.Sprintf("secure: %t", c.secure)
+		if c.authMethod {
+			name += ",authMethod: true"
+		}
+		t.Run(name, func(t *testing.T) {
 			randomSuffix := strings.ToLower(random.UniqueId())
 			tfVars := suite.Config().TFVars("route_table_ids")
-			tfVars["secure"] = secure
+			tfVars["secure"] = c.secure
+			tfVars["auth_method"] = c.authMethod
 			tfVars["suffix"] = randomSuffix
 			clientServiceName := "test_client"
 
 			serverServiceName := "test_server"
-			if secure {
+			if c.secure {
 				// This uses the explicitly passed service name rather than the task's family name.
 				serverServiceName = "custom_test_server"
 			}
@@ -482,7 +494,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for passing health check for test_server and test_client
 			tokenHeader := ""
-			if secure {
+			if c.secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
@@ -531,7 +543,7 @@ func TestBasic(t *testing.T) {
 			testClientTaskID := arnParts[len(arnParts)-1]
 
 			// Create an intention.
-			if secure {
+			if c.secure {
 				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 					curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
