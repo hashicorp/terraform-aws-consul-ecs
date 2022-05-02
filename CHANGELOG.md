@@ -12,7 +12,9 @@ FEATURES
   `service_token_auth_method_name` variables to `mesh-task`. Add `iam_role_path` variable to
   `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
   `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
+  `health-sync` runs when ACLs are enabled, in order to do a `consul logout` when the task stops.
   [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
+  [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
 
 
 ## 0.4.1 (April 8, 2022)
