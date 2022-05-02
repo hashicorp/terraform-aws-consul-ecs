@@ -33,6 +33,7 @@ Clone this repository:
 
 ```console
 $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
+$ git checkout tags/<latest-version>
 $ cd terraform-aws-consul-ecs/examples/admin-partitions
 ```
 
