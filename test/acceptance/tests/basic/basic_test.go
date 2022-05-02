@@ -662,6 +662,17 @@ func TestBasic(t *testing.T) {
 				require.Contains(r, agentLogs[0].Message, logMsg)
 			})
 
+			if c.secure && c.authMethod {
+				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+					// Validate that health-sync attempts the 'consul logout' for each of the tokens
+					syncLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "consul-ecs-health-sync")
+					require.NoError(r, err)
+					syncLogs = syncLogs.Filter("[INFO]  log out token:")
+					require.Contains(r, syncLogs[0].Message, "/consul/service-token")
+					require.Contains(r, syncLogs[1].Message, "/consul/client-token")
+				})
+			}
+
 			logger.Log(t, "Test successful!")
 		})
 	}

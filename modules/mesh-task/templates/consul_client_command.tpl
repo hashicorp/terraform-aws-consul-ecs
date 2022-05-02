@@ -40,6 +40,10 @@ while ! consul_login; do
     sleep 2
 done
 
+# Allow the health-sync container to read this token for consul logout.
+# The user here is root, but health-sync runs as a 'consul-ecs' user.
+chmod 0644 /consul/client-token
+
 # Wait for raft replication to hopefully occur. Without this, an "ACL not found" may be cached for a while.
 # Technically, the problem could still occur but this should handle most cases.
 # This waits at most 2s (20 attempts with 0.1s sleep)
