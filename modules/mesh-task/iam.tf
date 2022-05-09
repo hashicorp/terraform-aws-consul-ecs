@@ -112,7 +112,6 @@ resource "aws_iam_policy" "execution" {
   path        = "/ecs/"
   description = "${var.family} mesh-task execution policy"
 
-  // TODO: Remove client and service token secrets once switched to the auth method.
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -125,18 +124,6 @@ resource "aws_iam_policy" "execution" {
       ],
       "Resource": [
         "${var.consul_server_ca_cert_arn}"
-      ]
-    },
-%{endif~}
-%{if var.acls~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": [
-        "${var.consul_client_token_secret_arn}",
-        "${aws_secretsmanager_secret.service_token[0].arn}"
       ]
     },
 %{endif~}

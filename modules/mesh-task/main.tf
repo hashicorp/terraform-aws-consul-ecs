@@ -81,23 +81,6 @@ locals {
       partition                 = var.consul_partition
     }
   )
-
-  secret_name = var.consul_partition != "" ? "${var.acl_secret_name_prefix}-${local.service_name}-${var.consul_namespace}-${var.consul_partition}" : "${var.acl_secret_name_prefix}-${local.service_name}"
-
-  // TODO: Remove this "feature flag" once switched over to the auth method
-  auth_method_enabled = var.client_token_auth_method_name != "" && var.service_token_auth_method_name != ""
-}
-
-resource "aws_secretsmanager_secret" "service_token" {
-  count                   = var.acls ? 1 : 0
-  name                    = local.secret_name
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "service_token" {
-  count         = var.acls ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.service_token[count.index].id
-  secret_string = jsonencode({})
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -222,14 +205,6 @@ resource "aws_ecs_task_definition" "this" {
             linuxParameters = {
               initProcessEnabled = true
             }
-            portMappings = []
-            secrets = var.acls && !local.auth_method_enabled ? [
-              {
-                // TODO: Remove once switched to auth method
-                name      = "CONSUL_HTTP_TOKEN",
-                valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
-              }
-            ] : [],
           },
           {
             name             = "consul-client"
@@ -247,6 +222,7 @@ resource "aws_ecs_task_definition" "this" {
                   tls                            = var.tls
                   acls                           = var.acls
                   consul_http_addr               = var.consul_http_addr
+                  https                          = var.consul_https_ca_cert_arn != ""
                   client_token_auth_method_name  = var.client_token_auth_method_name
                   consul_partition               = var.consul_partition
                   region                         = data.aws_region.current.name
@@ -274,21 +250,20 @@ resource "aws_ecs_task_definition" "this" {
             secrets = concat(
               var.tls ? [
                 {
-                  name      = "CONSUL_CACERT",
+                  name      = "CONSUL_CACERT_PEM",
                   valueFrom = var.consul_server_ca_cert_arn
+                }
+              ] : [],
+              var.consul_https_ca_cert_arn != "" ? [
+                {
+                  name      = "CONSUL_HTTPS_CACERT_PEM",
+                  valueFrom = var.consul_https_ca_cert_arn
                 }
               ] : [],
               local.gossip_encryption_enabled ? [
                 {
                   name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
                   valueFrom = var.gossip_key_secret_arn
-                }
-              ] : [],
-              var.acls && !local.auth_method_enabled ? [
-                {
-                  // TODO: Remove once switched to auth method
-                  name      = "AGENT_TOKEN",
-                  valueFrom = "${var.consul_client_token_secret_arn}:token::"
                 }
               ] : [],
             )
@@ -356,13 +331,6 @@ resource "aws_ecs_task_definition" "this" {
           linuxParameters = {
             initProcessEnabled = true
           }
-          secrets = var.acls && !local.auth_method_enabled ? [
-            {
-              // TODO: Remove once switched to auth method
-              name      = "CONSUL_HTTP_TOKEN",
-              valueFrom = "${aws_secretsmanager_secret.service_token[0].arn}:token::"
-            }
-          ] : []
         }] : [],
       )
     )

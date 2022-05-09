@@ -386,7 +386,7 @@ EOF
   consul_server_tls_init_command = <<EOF
 ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
 cd /consul
-echo "$CONSUL_CACERT" > ./consul-agent-ca.pem
+echo "$CONSUL_CACERT_PEM" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
 consul tls cert create -server -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name}
 EOF
@@ -406,7 +406,7 @@ EOF
     command    = [local.consul_server_tls_init_command]
     secrets = var.tls ? [
       {
-        name      = "CONSUL_CACERT",
+        name      = "CONSUL_CACERT_PEM",
         valueFrom = aws_secretsmanager_secret.ca_cert[0].arn
       },
       {

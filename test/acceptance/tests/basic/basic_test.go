@@ -33,36 +33,6 @@ func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
 	require.Contains(t, err.Error(), "ERROR: consul_server_ca_cert_arn must be set if tls is true")
 }
 
-// Test the validation that if ACLs are enabled, Consul client token must also be provided.
-func TestValidation_ConsulClientTokenIsRequiredIfACLsIsEnabled(t *testing.T) {
-	t.Parallel()
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/consul-client-token-validate",
-		NoColor:      true,
-	})
-	t.Cleanup(func() {
-		_, _ = terraform.DestroyE(t, terraformOptions)
-	})
-	_, err := terraform.InitAndPlanE(t, terraformOptions)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: consul_client_token_secret_arn must be set if acls is true")
-}
-
-// Test the validation that if ACLs are enabled, ACL secret name prefix must also be provided.
-func TestValidation_ACLSecretNamePrefixIsRequiredIfACLsIsEnabled(t *testing.T) {
-	t.Parallel()
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/acl-secret-name-prefix-validate",
-		NoColor:      true,
-	})
-	t.Cleanup(func() {
-		_, _ = terraform.DestroyE(t, terraformOptions)
-	})
-	_, err := terraform.InitAndPlanE(t, terraformOptions)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: acl_secret_name_prefix must be set if acls is true")
-}
-
 // TestVolumeVariable tests passing a list of volumes to mesh-task.
 // This validates a big nested dynamic block in mesh-task.
 func TestVolumeVariable(t *testing.T) {
@@ -409,30 +379,17 @@ func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 }
 
 func TestBasic(t *testing.T) {
-	cases := []struct {
-		secure     bool
-		authMethod bool
-	}{
-		{secure: false},
-		{secure: true},
-		{secure: true, authMethod: true},
-	}
-
-	for _, c := range cases {
-		name := fmt.Sprintf("secure: %t", c.secure)
-		if c.authMethod {
-			name += ",authMethod: true"
-		}
-		t.Run(name, func(t *testing.T) {
+	cases := []bool{true, false}
+	for _, secure := range cases {
+		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
 			randomSuffix := strings.ToLower(random.UniqueId())
 			tfVars := suite.Config().TFVars("route_table_ids")
-			tfVars["secure"] = c.secure
-			tfVars["auth_method"] = c.authMethod
+			tfVars["secure"] = secure
 			tfVars["suffix"] = randomSuffix
 			clientServiceName := "test_client"
 
 			serverServiceName := "test_server"
-			if c.secure {
+			if secure {
 				// This uses the explicitly passed service name rather than the task's family name.
 				serverServiceName = "custom_test_server"
 			}
@@ -494,7 +451,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for passing health check for test_server and test_client
 			tokenHeader := ""
-			if c.secure {
+			if secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
@@ -543,7 +500,7 @@ func TestBasic(t *testing.T) {
 			testClientTaskID := arnParts[len(arnParts)-1]
 
 			// Create an intention.
-			if c.secure {
+			if secure {
 				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 					curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
@@ -662,7 +619,7 @@ func TestBasic(t *testing.T) {
 				require.Contains(r, agentLogs[0].Message, logMsg)
 			})
 
-			if c.secure && c.authMethod {
+			if secure {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					// Validate that health-sync attempts the 'consul logout' for each of the tokens
 					syncLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "consul-ecs-health-sync")

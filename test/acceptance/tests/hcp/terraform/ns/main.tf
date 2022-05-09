@@ -76,16 +76,15 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                            = true
-  acls                           = true
-  acl_secret_name_prefix         = var.suffix
-  gossip_key_secret_arn          = var.gossip_key_secret_arn
-  consul_server_ca_cert_arn      = var.consul_ca_cert_secret_arn
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
-  consul_ecs_image               = var.consul_ecs_image
-  consul_image                   = var.consul_image
-  consul_namespace               = var.client_namespace
-  consul_partition               = "default"
+  tls                       = true
+  acls                      = true
+  gossip_key_secret_arn     = var.gossip_key_secret_arn
+  consul_http_addr          = var.consul_private_endpoint_url
+  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
+  consul_ecs_image          = var.consul_ecs_image
+  consul_image              = var.consul_image
+  consul_namespace          = var.client_namespace
+  consul_partition          = "default"
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
@@ -135,16 +134,15 @@ module "test_server" {
   ]
   port = 9090
 
-  tls                            = true
-  acls                           = true
-  acl_secret_name_prefix         = var.suffix
-  gossip_key_secret_arn          = var.gossip_key_secret_arn
-  consul_server_ca_cert_arn      = var.consul_ca_cert_secret_arn
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
-  consul_ecs_image               = var.consul_ecs_image
-  consul_image                   = var.consul_image
-  consul_partition               = "default"
-  consul_namespace               = var.server_namespace
+  tls                       = true
+  acls                      = true
+  gossip_key_secret_arn     = var.gossip_key_secret_arn
+  consul_http_addr          = var.consul_private_endpoint_url
+  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
+  consul_ecs_image          = var.consul_ecs_image
+  consul_image              = var.consul_image
+  consul_partition          = "default"
+  consul_namespace          = var.server_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
