@@ -483,6 +483,17 @@ func recordConsulState(t *testing.T, consul *api.Client) (ConsulState, error) {
 				nsState.Policies[p.ID] = struct{}{}
 			}
 
+			// Auth methods
+			nsState.AuthMethods = map[string]struct{}{}
+			methods, _, err := consul.ACL().AuthMethodList(opts)
+			if err != nil {
+				return ConsulState{}, err
+			}
+			for _, method := range methods {
+				t.Logf("    recording auth method %s in %s/%s", method.Name, part.Name, ns.Name)
+				nsState.AuthMethods[method.Name] = struct{}{}
+			}
+
 			partState.Namespaces[ns.Name] = nsState
 		}
 		state.Partitions[part.Name] = partState
@@ -553,6 +564,19 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 				if _, existing := nsState.Policies[p.ID]; !existing {
 					t.Logf("    deleting policy %s (%s) from %s/%s", p.Name, p.ID, part.Name, ns.Name)
 					if _, err = consul.ACL().PolicyDelete(p.ID, wopts); err != nil {
+						return err
+					}
+				}
+			}
+
+			methods, _, err := consul.ACL().AuthMethodList(qopts)
+			if err != nil {
+				return err
+			}
+			for _, method := range methods {
+				if _, existing := nsState.AuthMethods[method.Name]; !existing {
+					t.Logf("    deleting auth method %s from %s/%s", method.Name, part.Name, ns.Name)
+					if _, err = consul.ACL().AuthMethodDelete(method.Name, wopts); err != nil {
 						return err
 					}
 				}

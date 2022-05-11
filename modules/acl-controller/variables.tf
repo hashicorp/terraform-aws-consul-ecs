@@ -40,7 +40,7 @@ variable "log_configuration" {
 variable "iam_role_path" {
   description = "IAM roles at this path will be permitted to login to the Consul AWS IAM auth method configured by this controller."
   type        = string
-  default     = "/ecs/"
+  default     = "/consul-ecs/"
 }
 
 variable "subnets" {

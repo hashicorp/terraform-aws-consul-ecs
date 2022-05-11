@@ -81,6 +81,17 @@ variable "execution_role" {
   }
 }
 
+variable "iam_role_path" {
+  description = "The path where IAM roles will be created."
+  type        = string
+  default     = "/consul-ecs/"
+
+  validation {
+    error_message = "The iam_role_path must begin with '/'."
+    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/"
+  }
+}
+
 variable "additional_task_role_policies" {
   description = "List of additional policy ARNs to attach to the task role."
   type        = list(string)

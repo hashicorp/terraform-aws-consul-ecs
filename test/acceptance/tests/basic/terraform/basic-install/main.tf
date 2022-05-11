@@ -143,8 +143,6 @@ module "acl_controller" {
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
-
-  iam_role_path = var.secure ? "/ecs" : ""
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -321,7 +319,7 @@ resource "aws_iam_role" "task" {
 // Policy to allow `aws execute-command`
 resource "aws_iam_policy" "execute-command" {
   name   = "ecs-execute-command-${var.suffix}"
-  path   = "/"
+  path   = "/consul-ecs/"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -348,7 +346,7 @@ EOF
 
 resource "aws_iam_role" "execution" {
   name = "test_server_${var.suffix}_execution_role"
-  path = "/ecs/"
+  path = "/consul-ecs/"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

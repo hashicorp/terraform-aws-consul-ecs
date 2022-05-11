@@ -378,6 +378,53 @@ func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 	}
 }
 
+func TestValidation_RolePath(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/role-path-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := []struct {
+		path     string
+		expError bool
+	}{
+		{"", true},
+		{"test", true},
+		{"/test", false},
+		{"/test/", false},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(fmt.Sprintf("path=%q", c.path), func(t *testing.T) {
+			t.Parallel()
+
+			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      terraformOptions.NoColor,
+				Vars: map[string]interface{}{
+					"iam_role_path": c.path,
+				},
+			})
+
+			t.Cleanup(func() {
+				_, _ = terraform.DestroyE(t, applyOpts)
+			})
+			_, err := terraform.PlanE(t, applyOpts)
+			if c.expError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "iam_role_path must begin with '/'")
+			} else {
+				require.NoError(t, err)
+			}
+
+		})
+	}
+
+}
+
 func TestBasic(t *testing.T) {
 	cases := []bool{true, false}
 	for _, secure := range cases {
