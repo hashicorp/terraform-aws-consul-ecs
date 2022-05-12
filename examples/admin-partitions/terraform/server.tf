@@ -75,16 +75,15 @@ module "example_server" {
   ]
   port = 9090
 
-  tls                            = true
-  acls                           = true
-  acl_secret_name_prefix         = local.server_suffix
-  gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
-  consul_server_ca_cert_arn      = aws_secretsmanager_secret.consul_ca_cert.arn
-  consul_client_token_secret_arn = module.acl_controller_server.client_token_secret_arn
-  consul_ecs_image               = var.consul_ecs_image
-  consul_partition               = consul_admin_partition.part2.name
-  consul_namespace               = consul_namespace.ns2.name
-  consul_image                   = var.consul_image
+  tls                       = true
+  acls                      = true
+  consul_http_addr          = hcp_consul_cluster.this.consul_private_endpoint_url
+  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
+  consul_server_ca_cert_arn = aws_secretsmanager_secret.consul_ca_cert.arn
+  consul_ecs_image          = var.consul_ecs_image
+  consul_partition          = consul_admin_partition.part2.name
+  consul_namespace          = consul_namespace.ns2.name
+  consul_image              = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }

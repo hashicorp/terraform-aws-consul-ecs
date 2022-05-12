@@ -1,5 +1,18 @@
 ## Unreleased
 
+BREAKING CHANGES
+* modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
+  Consul 1.12.0+. Add `consul_http_addr`, `consul_https_ca_cert_arn`, `client_token_auth_method_name`,
+  `service_token_auth_method_name`, and `iam_role_path` variables to `mesh-task`. Add `iam_role_path`
+  variable to `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
+  `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
+  `health-sync` runs when ACLs are enabled, in order to do a `consul logout` when the task stops.
+  Remove `consul_client_token_secret_arn` and `acl_secret_name_prefix` variables from `mesh-task`.
+  No longer create Secrets Manager secrets for client or service tokens.
+  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
+  [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
+  [[GH-107](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/107)]
+
 FEATURES
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather
  than leaving a 30 day recovery window.
@@ -7,14 +20,6 @@ FEATURES
 * modules/dev-server: Add `consul_license` input variable to support
   passing a Consul enterprise license.
   [[GH-96](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/96)]
-* modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
-  Consul 1.12.0+. Add `consul_http_addr`, `client_token_auth_method_name`, and
-  `service_token_auth_method_name` variables to `mesh-task`. Add `iam_role_path` variable to
-  `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
-  `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
-  `health-sync` runs when ACLs are enabled, in order to do a `consul logout` when the task stops.
-  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
-  [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
 
 BUG FIXES
 * modules/mesh-task: Remove deprecated `key_algorithm` field. [[GH-104](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/104)]

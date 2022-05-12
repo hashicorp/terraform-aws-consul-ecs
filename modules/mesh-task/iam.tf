@@ -25,7 +25,7 @@ locals {
 // Create the task role
 resource "aws_iam_role" "task" {
   count = local.create_task_role ? 1 : 0
-  path  = "/ecs/"
+  path  = var.iam_role_path
 
   name = "${var.family}-task"
   assume_role_policy = jsonencode({
@@ -52,7 +52,7 @@ resource "aws_iam_role" "task" {
 resource "aws_iam_policy" "task" {
   count       = var.acls ? 1 : 0
   name        = "${var.family}-task"
-  path        = "/ecs/"
+  path        = var.iam_role_path
   description = "${var.family} mesh-task task policy"
 
   policy = <<EOF
@@ -90,7 +90,7 @@ resource "aws_iam_role_policy_attachment" "additional_task_policies" {
 resource "aws_iam_role" "execution" {
   count = local.create_execution_role ? 1 : 0
   name  = "${var.family}-execution"
-  path  = "/ecs/"
+  path  = var.iam_role_path
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -109,10 +109,9 @@ resource "aws_iam_role" "execution" {
 
 resource "aws_iam_policy" "execution" {
   name        = "${var.family}-execution"
-  path        = "/ecs/"
+  path        = var.iam_role_path
   description = "${var.family} mesh-task execution policy"
 
-  // TODO: Remove client and service token secrets once switched to the auth method.
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -125,18 +124,6 @@ resource "aws_iam_policy" "execution" {
       ],
       "Resource": [
         "${var.consul_server_ca_cert_arn}"
-      ]
-    },
-%{endif~}
-%{if var.acls~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": [
-        "${var.consul_client_token_secret_arn}",
-        "${aws_secretsmanager_secret.service_token[0].arn}"
       ]
     },
 %{endif~}

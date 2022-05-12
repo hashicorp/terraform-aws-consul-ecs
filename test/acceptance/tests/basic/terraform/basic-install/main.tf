@@ -41,13 +41,6 @@ variable "secure" {
   default     = false
 }
 
-// TODO: Remove this once switched over to the auth method.
-variable "auth_method" {
-  description = "When secure=true, whether the secure configuration uses the auth method."
-  type        = bool
-  default     = false
-}
-
 variable "launch_type" {
   description = "Whether to launch tasks on Fargate or EC2"
   type        = string
@@ -150,8 +143,6 @@ module "acl_controller" {
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
-
-  iam_role_path = var.secure && var.auth_method ? "/ecs" : ""
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -231,21 +222,18 @@ EOT
   // This keeps the application running for 10 seconds.
   application_shutdown_delay_seconds = 10
 
-  tls                            = var.secure
-  consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
-  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                           = var.secure
-  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
-  acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
+  tls                       = var.secure
+  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                      = var.secure
+  consul_ecs_image          = var.consul_ecs_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
-  consul_http_addr = var.secure && var.auth_method ? "https://${module.consul_server.server_dns}:8501" : ""
-  // TODO: Remove these once fully switched over to the auth method.
-  // These should default to the correct value.
-  client_token_auth_method_name  = var.secure && var.auth_method ? "iam-ecs-client-token" : ""
-  service_token_auth_method_name = var.secure && var.auth_method ? "iam-ecs-service-token" : ""
+  consul_http_addr = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
+  # For dev-server, the server_ca_cert (internal rpc) and the https ca cert are the same.
+  # But, they are different in HCP.
+  consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
 
   consul_agent_configuration = <<-EOT
   log_level = "debug"
@@ -291,19 +279,14 @@ module "test_server" {
   ]
   port = 9090
 
-  tls                            = var.secure
-  consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
-  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                           = var.secure
-  consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
-  acl_secret_name_prefix         = var.suffix
-  consul_ecs_image               = var.consul_ecs_image
+  tls                       = var.secure
+  consul_server_ca_cert_arn = module.consul_server.ca_cert_arn
+  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                      = var.secure
+  consul_ecs_image          = var.consul_ecs_image
 
-  consul_http_addr = var.secure && var.auth_method ? "https://${module.consul_server.server_dns}:8501" : ""
-  // TODO: Remove these once fully switched over to the auth method.
-  // These should default to the correct value.
-  client_token_auth_method_name  = var.secure && var.auth_method ? "iam-ecs-client-token" : ""
-  service_token_auth_method_name = var.secure && var.auth_method ? "iam-ecs-service-token" : ""
+  consul_http_addr         = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
+  consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
@@ -336,7 +319,7 @@ resource "aws_iam_role" "task" {
 // Policy to allow `aws execute-command`
 resource "aws_iam_policy" "execute-command" {
   name   = "ecs-execute-command-${var.suffix}"
-  path   = "/"
+  path   = "/consul-ecs/"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -363,7 +346,7 @@ EOF
 
 resource "aws_iam_role" "execution" {
   name = "test_server_${var.suffix}_execution_role"
-  path = "/ecs/"
+  path = "/consul-ecs/"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

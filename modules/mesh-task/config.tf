@@ -4,8 +4,7 @@ locals {
   proxyExtra   = lookup(var.consul_ecs_config, "proxy", {})
 
   consulLogin = var.acls ? {
-    // TODO: Switch this to `enabled = var.acls` once the auth method is fully supported.
-    enabled = var.service_token_auth_method_name != ""
+    enabled = var.acls
     method  = var.service_token_auth_method_name
     // TODO: Move this to a top-level partition field in the CONSUL_ECS_CONFIG_JSON
     extraLoginFlags = var.consul_partition != "" ? ["-partition", var.consul_partition] : []
@@ -13,7 +12,7 @@ locals {
 
   config = {
     consulHTTPAddr   = var.consul_http_addr
-    consulCACertFile = "/consul/consul-ca-cert.pem"
+    consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
     consulLogin      = local.consulLogin
     service = merge(
       {

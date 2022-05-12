@@ -1,26 +1,34 @@
 cp /bin/consul /bin/consul-inject/consul
 
-ECS_TASK_META=$(curl -s $ECS_CONTAINER_METADATA_URI_V4)
-ECS_IPV4=$(echo "$ECS_TASK_META" | jq -r '.Networks[0].IPv4Addresses[0]')
-TASK_REGION=$(echo "$ECS_TASK_META" | jq -r .ContainerARN | cut -d':' -f4)
+ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')
+
+ECS_TASK_META=$(curl -s $ECS_CONTAINER_METADATA_URI_V4/task)
+TASK_REGION=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d ':' -f 4)
+TASK_ID=$(echo "$ECS_TASK_META" | jq -r .TaskARN | cut -d '/' -f 3)
+CLUSTER_ARN=$(echo "$ECS_TASK_META" | jq -r .TaskARN | sed -E 's|:task/([^/]+).*|:cluster/\1|')
 
 %{ if tls ~}
-echo "$CONSUL_CACERT" > /consul/consul-ca-cert.pem
+echo "$CONSUL_CACERT_PEM" > /consul/consul-ca-cert.pem
 %{ endif ~}
 
-%{ if acls && client_token_auth_method_name != "" ~}
+%{ if https ~}
+echo "$CONSUL_HTTPS_CACERT_PEM" > /consul/consul-https-ca-cert.pem
+%{ endif ~}
 
+%{ if acls ~}
 consul_login() {
     echo "Logging into auth method: name=${ client_token_auth_method_name }"
     consul login \
       -http-addr ${ consul_http_addr } \
-    %{ if tls ~}
-      -ca-file /consul/consul-ca-cert.pem \
+    %{ if https ~}
+      -ca-file /consul/consul-https-ca-cert.pem \
     %{ endif ~}
     %{ if consul_partition != "" ~}
       -partition ${ consul_partition } \
     %{ endif ~}
       -type aws -method ${ client_token_auth_method_name } \
+      -meta "consul.hashicorp.com/task-id=$TASK_ID" \
+      -meta "consul.hashicorp.com/cluster=$CLUSTER_ARN" \
       -aws-region "$TASK_REGION" \
       -aws-auto-bearer-token -aws-include-entity \
       -token-sink-file /consul/client-token
@@ -28,11 +36,11 @@ consul_login() {
 
 read_token_stale() {
     consul acl token read -http-addr ${ consul_http_addr } \
-    %{ if tls ~}
-      -ca-file /consul/consul-ca-cert.pem \
+    %{ if https ~}
+      -ca-file /consul/consul-https-ca-cert.pem \
     %{ endif ~}
       -stale -self -token-file /consul/client-token \
-      &> /dev/null
+      > /dev/null
 }
 
 # Retry in order to login successfully.

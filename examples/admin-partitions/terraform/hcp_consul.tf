@@ -41,11 +41,12 @@ resource "aws_route" "peering" {
 }
 
 resource "hcp_consul_cluster" "this" {
-  cluster_id      = "server-${local.rand_suffix}"
-  datacenter      = "dc1"
-  hvn_id          = hcp_hvn.server.hvn_id
-  tier            = "development"
-  public_endpoint = true
+  cluster_id         = "server-${local.rand_suffix}"
+  datacenter         = "dc1"
+  hvn_id             = hcp_hvn.server.hvn_id
+  tier               = "development"
+  public_endpoint    = true
+  min_consul_version = "1.12.0"
 }
 
 // Configure Consul resources to allow cross-partition and cross-namespace communication.
@@ -101,6 +102,7 @@ resource "consul_config_entry" "exported_services" {
 resource "consul_config_entry" "service_intentions" {
   kind      = "service-intentions"
   name      = "example_server_${local.server_suffix}"
+  partition = consul_admin_partition.part2.name
   namespace = consul_namespace.ns2.name
 
   config_json = jsonencode({

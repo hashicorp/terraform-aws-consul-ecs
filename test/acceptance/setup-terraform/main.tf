@@ -128,11 +128,12 @@ resource "aws_route" "peering" {
 }
 
 resource "hcp_consul_cluster" "this" {
-  cluster_id      = "server-${local.suffix}"
-  datacenter      = "dc1"
-  hvn_id          = hcp_hvn.server.hvn_id
-  tier            = "development"
-  public_endpoint = true
+  cluster_id         = "server-${local.suffix}"
+  datacenter         = "dc1"
+  hvn_id             = hcp_hvn.server.hvn_id
+  tier               = "development"
+  public_endpoint    = true
+  min_consul_version = "1.12.0"
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {

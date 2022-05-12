@@ -1,13 +1,3 @@
-resource "aws_secretsmanager_secret" "client_token" {
-  name                    = "${var.name_prefix}-consul-client-token"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "client_token" {
-  secret_id     = aws_secretsmanager_secret.client_token.id
-  secret_string = jsonencode({})
-}
-
 resource "aws_ecs_service" "this" {
   name            = "consul-acl-controller"
   cluster         = var.ecs_cluster_arn
@@ -38,16 +28,11 @@ resource "aws_ecs_task_definition" "this" {
       logConfiguration = var.log_configuration,
       command = concat(
         [
-          "acl-controller",
-          "-consul-client-secret-arn", aws_secretsmanager_secret.client_token.arn,
-          "-secret-name-prefix", var.name_prefix
+          "acl-controller", "-iam-role-path", var.iam_role_path,
         ],
         var.consul_partitions_enabled ? [
           "-partitions-enabled",
           "-partition", var.consul_partition
-        ] : [],
-        var.iam_role_path != "" ? [
-          "-iam-role-path", var.iam_role_path,
         ] : [],
       )
       linuxParameters = {
@@ -108,14 +93,6 @@ resource "aws_iam_role" "this_task" {
           ]
           Resource = "*"
         },
-        {
-          Effect = "Allow"
-          Action = [
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:UpdateSecret"
-          ]
-          Resource = "arn:aws:secretsmanager:${var.region}:*:secret:${var.name_prefix}-*"
-        }
       ]
     })
   }
