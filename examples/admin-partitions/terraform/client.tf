@@ -84,6 +84,7 @@ module "example_client" {
 
   tls                       = true
   acls                      = true
+  consul_http_addr          = hcp_consul_cluster.this.consul_private_endpoint_url
   gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
   consul_server_ca_cert_arn = aws_secretsmanager_secret.consul_ca_cert.arn
   consul_ecs_image          = var.consul_ecs_image
