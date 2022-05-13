@@ -370,7 +370,7 @@ exec consul agent -server \
   -hcl='cert_file = "/consul/dc1-server-consul-0.pem"' \
   -hcl='key_file = "/consul/dc1-server-consul-0-key.pem"' \
   -hcl='auto_encrypt = {allow_tls = true}' \
-  -hcl='ports { https = 8501 }' \
+  -hcl='ports { https = 8501, http = 8500 }' \
   -hcl='verify_incoming_rpc = true' \
   -hcl='verify_outgoing = true' \
   -hcl='verify_server_hostname = true' \
