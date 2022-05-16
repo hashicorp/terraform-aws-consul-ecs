@@ -7,6 +7,8 @@ locals {
   }] : []
 
   consul_enterprise_enabled = var.consul_license != ""
+
+  enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation || var.primary_gateways != null ? true : false
 }
 
 resource "tls_private_key" "ca" {
@@ -377,6 +379,29 @@ exec consul agent -server \
 %{if var.acls~}
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
   -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
+%{endif~}
+%{if var.datacenter != ""~}
+  -hcl='datacenter = "${var.datacenter}"' \
+%{endif~}
+%{if var.primary_datacenter != ""~}
+  -hcl='primary_datacenter = "${var.primary_datacenter}"' \
+%{endif~}
+%{if var.retry_join_wan != null~}
+  -hcl='retry_join_wan = [
+  %{for addr in var.retry_join_wan~}
+    "${addr}",
+  %{endfor~}
+  ]' \
+%{endif~}
+%{if local.enable_mesh_gateway_wan_federation~}
+  -hcl='connect { enable_mesh_gateway_wan_federation = true }' \
+%{endif~}
+%{if var.primary_gateways != null~}
+  -hcl='primary_gateways = [
+  %{for addr in var.primary_gateways~}
+    "${addr}",
+  %{endfor~}
+  ]' \
 %{endif~}
 EOF
 

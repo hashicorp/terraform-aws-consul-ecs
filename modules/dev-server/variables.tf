@@ -127,3 +127,37 @@ variable "wait_for_steady_state" {
   type        = bool
   default     = false
 }
+
+variable "datacenter" {
+  description = "Consul datacenter."
+  type        = string
+  default     = "dc1"
+}
+
+variable "primary_datacenter" {
+  description = "Consul primary datacenter. Required when joining Consul datacenters via mesh gateways. All datacenters are required to use the same primary datacenter."
+  type        = string
+  default     = ""
+}
+
+variable "retry_join_wan" {
+  description = "List of WAN addresses to join for Consul datacenter federation. Must not be provided when using mesh-gateway federation."
+  type        = list(string)
+  default     = null
+}
+
+variable "primary_gateways" {
+  description = "List of WAN addresses for mesh gateway federation. This must be set for all secondary datacenters and is mutually exclusive with retry_join_wan."
+  type        = list(string)
+  default     = null
+}
+
+variable "enable_mesh_gateway_wan_federation" {
+  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
+  type        = bool
+  default     = false
+}
+
+locals {
+  require_retry_join_wan_or_primary_gateways = var.retry_join_wan != null && var.primary_gateways != null ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
+}
