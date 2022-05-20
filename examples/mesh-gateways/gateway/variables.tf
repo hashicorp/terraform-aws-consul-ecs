@@ -55,3 +55,39 @@ variable "enable_mesh_gateway_wan_federation" {
   type        = bool
   default     = false
 }
+
+variable "ca_cert_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate. A CA certificate will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  type        = string
+  default     = ""
+}
+
+variable "ca_key_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate key. A CA certificate key will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  type        = string
+  default     = ""
+}
+
+variable "gossip_encryption_enabled" {
+  description = "Whether or not to enable gossip encryption."
+  type        = bool
+  default     = false
+}
+
+variable "gossip_key_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will be generated if gossip encryption is enabled and this is not provided."
+  type        = string
+  default     = ""
+}
+
+variable "wan_address" {
+  description = "The WAN address of the mesh gateway."
+  type        = string
+  default     = ""
+}
+
+variable "wan_port" {
+  description = "The WAN port of the mesh gateway. Default is 8443"
+  type        = number
+  default     = 8443
+}

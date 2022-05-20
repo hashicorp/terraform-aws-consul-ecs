@@ -17,6 +17,12 @@ module "mesh_gateway" {
   kind                               = "mesh-gateway"
   consul_datacenter                  = var.datacenter
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
+  tls                                = true
+  consul_server_ca_cert_arn          = var.ca_cert_arn
+  gossip_key_secret_arn              = var.gossip_key_arn
+  wan_address                        = aws_lb.mesh_gateway.dns_name
+  wan_port                           = 8443
+
 }
 
 resource "aws_ecs_service" "mesh_gateway" {
@@ -68,6 +74,19 @@ resource "aws_lb_listener" "mesh_gateway" {
   }
 }
 
+// TODO: This rule allows all public internet traffic to reach the
+// mesh gateway through the NLB. This is for testing only and is not secure.
+// Need to find a way to limit ingress to the mesh gateway to the NLB.
+resource "aws_security_group_rule" "ingress_from_internet" {
+  type              = "ingress"
+  description       = "TEST ONLY - public internet to NLB"
+  from_port         = 8443
+  to_port           = 8443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"] // TODO: limit this to the other NLB.
+  security_group_id = var.vpc.default_security_group_id
+}
+
 
 # resource "aws_security_group" "mesh_gateway" {
 #   name   = "${local.example_client_app_name}-alb"
@@ -88,6 +107,8 @@ resource "aws_lb_listener" "mesh_gateway" {
 #     cidr_blocks = ["0.0.0.0/0"]
 #   }
 # }
+
+
 
 # resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
 #   type                     = "ingress"

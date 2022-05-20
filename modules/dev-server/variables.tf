@@ -110,8 +110,26 @@ variable "tls" {
   default     = false
 }
 
+variable "ca_cert_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate. A CA certificate will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  type        = string
+  default     = ""
+}
+
+variable "ca_key_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate key. A CA certificate key will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  type        = string
+  default     = ""
+}
+
+variable "gossip_encryption_enabled" {
+  description = "Whether or not to enable gossip encryption."
+  type        = bool
+  default     = false
+}
+
 variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will automatically be created and stored in Secrets Manager if gossip encryption is enabled and this variable is not provided."
   type        = string
   default     = ""
 }
@@ -158,6 +176,12 @@ variable "enable_mesh_gateway_wan_federation" {
   default     = false
 }
 
+variable "additional_dns_names" {
+  description = "Additional DNS names to add to the Subject Alternative Name (SAN) field of the cert"
+  type        = list(string)
+  default     = null
+}
+
 locals {
-  require_retry_join_wan_or_primary_gateways = var.retry_join_wan != null && var.primary_gateways != null ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
+  retry_join_wan_xor_primary_gateways = var.retry_join_wan != null && var.primary_gateways != null ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
 }

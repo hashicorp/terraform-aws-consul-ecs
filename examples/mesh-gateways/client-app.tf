@@ -15,11 +15,14 @@ locals {
 
 
 module "example_client_app" {
-  source            = "../../modules/mesh-task"
-  family            = local.example_client_app_name
-  port              = "9090"
-  consul_ecs_image  = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
-  consul_datacenter = var.datacenter_names[0]
+  source                    = "../../modules/mesh-task"
+  family                    = local.example_client_app_name
+  port                      = "9090"
+  consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  consul_datacenter         = var.datacenter_names[0]
+  tls                       = true
+  consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
   upstreams = [
     {
       destinationName = "${var.name}-${var.datacenter_names[1]}-example-server-app"
