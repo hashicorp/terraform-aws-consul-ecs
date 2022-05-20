@@ -13,6 +13,12 @@ module "dev_consul_server" {
   lb_enabled                  = true
   lb_subnets                  = var.public_subnets
   lb_ingress_rule_cidr_blocks = ["${var.lb_ingress_ip}/32"]
+  tls                         = true
+  ca_cert_arn                 = var.ca_cert_arn
+  ca_key_arn                  = var.ca_key_arn
+  gossip_encryption_enabled   = true
+  gossip_key_secret_arn       = var.gossip_key_arn
+  additional_dns_names        = var.additional_dns_names
   log_configuration = {
     logDriver = "awslogs"
     options = {

@@ -1,5 +1,13 @@
 locals {
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
+  // generate_gossip_key       = var.gossip_encryption_enabled && var.gossip_key_secret_arn == ""
+  // generate_ca_cert          = var.tls && var.ca_cert_arn == ""
+  // generate_ca_key           = var.tls && var.ca_key_arn == ""
+  gossip_key_secret_arn = var.gossip_key_secret_arn != "" ? var.gossip_key_secret_arn : aws_secretsmanager_secret.gossip_key[0].arn
+  ca_cert_arn           = var.ca_cert_arn != "" ? var.ca_cert_arn : aws_secretsmanager_secret.ca_cert[0].arn
+  ca_key_arn            = var.ca_key_arn != "" ? var.ca_key_arn : aws_secretsmanager_secret.ca_key[0].arn
+
+
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
@@ -74,6 +82,23 @@ resource "aws_secretsmanager_secret_version" "license" {
   count         = local.consul_enterprise_enabled ? 1 : 0
   secret_id     = aws_secretsmanager_secret.license[count.index].id
   secret_string = chomp(var.consul_license) // trim trailing newlines
+}
+
+resource "random_id" "gossip_key" {
+  count       = var.gossip_encryption_enabled ? 1 : 0
+  byte_length = 32
+}
+
+resource "aws_secretsmanager_secret" "gossip_key" {
+  count                   = var.gossip_encryption_enabled ? 1 : 0
+  name                    = "${var.name}-gossip-key"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "gossip_key" {
+  count         = var.gossip_encryption_enabled ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.gossip_key[count.index].id
+  secret_string = random_id.gossip_key[count.index].b64_std
 }
 
 resource "aws_ecs_service" "this" {
@@ -155,10 +180,10 @@ resource "aws_ecs_task_definition" "this" {
           },
         ] : []
         secrets = concat(
-          local.gossip_encryption_enabled ? [
+          var.gossip_encryption_enabled ? [
             {
               name      = "CONSUL_GOSSIP_ENCRYPTION_KEY"
-              valueFrom = var.gossip_key_secret_arn
+              valueFrom = local.gossip_key_secret_arn
             },
           ] : [],
           var.acls ? [
@@ -194,8 +219,8 @@ resource "aws_iam_policy" "this_execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${aws_secretsmanager_secret.ca_cert[0].arn}",
-        "${aws_secretsmanager_secret.ca_key[0].arn}"
+        "${local.ca_cert_arn}",
+        "${local.ca_key_arn}"
       ]
     },
 %{endif~}
@@ -221,7 +246,7 @@ resource "aws_iam_policy" "this_execution" {
       ]
     },
 %{endif~}
-%{if local.gossip_encryption_enabled~}
+%{if var.gossip_encryption_enabled~}
     {
       "Effect": "Allow",
       "Action": [
@@ -360,7 +385,7 @@ exec consul agent -server \
   -advertise "$ECS_IPV4" \
   -client 0.0.0.0 \
   -data-dir /tmp/consul-data \
-%{if local.gossip_encryption_enabled~}
+%{if var.gossip_encryption_enabled~}
   -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
 %{endif~}
   -hcl 'telemetry { disable_compat_1.9 = true }' \
@@ -368,8 +393,8 @@ exec consul agent -server \
   -hcl 'enable_central_service_config = true' \
 %{if var.tls~}
   -hcl='ca_file = "/consul/consul-agent-ca.pem"' \
-  -hcl='cert_file = "/consul/dc1-server-consul-0.pem"' \
-  -hcl='key_file = "/consul/dc1-server-consul-0-key.pem"' \
+  -hcl='cert_file = "/consul/${var.datacenter}-server-consul-0.pem"' \
+  -hcl='key_file = "/consul/${var.datacenter}-server-consul-0-key.pem"' \
   -hcl='auto_encrypt = {allow_tls = true}' \
   -hcl='ports { https = 8501 }' \
   -hcl='verify_incoming_rpc = true' \
@@ -413,7 +438,12 @@ ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addr
 cd /consul
 echo "$CONSUL_CACERT_PEM" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
-consul tls cert create -server -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name}
+consul tls cert create -server -dc=${var.datacenter} -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name} \
+%{if var.additional_dns_names != null~}
+  %{for dnsname in var.additional_dns_names~}
+    -additional-dnsname="${dnsname}" \
+  %{endfor~}
+%{endif}
 EOF
 
   tls_init_container = {
@@ -432,11 +462,11 @@ EOF
     secrets = var.tls ? [
       {
         name      = "CONSUL_CACERT_PEM",
-        valueFrom = aws_secretsmanager_secret.ca_cert[0].arn
+        valueFrom = local.ca_cert_arn
       },
       {
         name      = "CONSUL_CAKEY",
-        valueFrom = aws_secretsmanager_secret.ca_key[0].arn
+        valueFrom = local.ca_key_arn
       }
     ] : []
   }

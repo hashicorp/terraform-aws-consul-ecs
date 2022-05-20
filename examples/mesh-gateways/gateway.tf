@@ -14,6 +14,8 @@ module "dc1_gateway" {
   log_group_name  = module.dc1.log_group.name
   datacenter      = var.datacenter_names[0]
   retry_join      = [module.dc1.dev_consul_server.server_dns]
+  ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
   enable_mesh_gateway_wan_federation = true
 }
@@ -30,6 +32,8 @@ module "dc2_gateway" {
   log_group_name  = module.dc2.log_group.name
   datacenter      = var.datacenter_names[1]
   retry_join      = [module.dc2.dev_consul_server.server_dns]
+  ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
   enable_mesh_gateway_wan_federation = true
 }
