@@ -12,12 +12,16 @@ locals {
 }
 
 module "example_server_app" {
-  source            = "../../modules/mesh-task"
-  family            = local.example_server_app_name
-  port              = "9090"
-  log_configuration = local.example_server_app_log_config
-  consul_datacenter = var.datacenter_names[1]
-  consul_ecs_image  = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  source                    = "../../modules/mesh-task"
+  family                    = local.example_server_app_name
+  port                      = "9090"
+  consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+  consul_datacenter         = var.datacenter_names[1]
+  tls                       = true
+  consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
+  retry_join                = [module.dc2.dev_consul_server.server_dns]
+  log_configuration         = local.example_server_app_log_config
   container_definitions = [{
     name             = "example-server-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -30,7 +34,6 @@ module "example_server_app" {
       }
     ]
   }]
-  retry_join = [module.dc2.dev_consul_server.server_dns]
 }
 
 resource "aws_ecs_service" "example_server_app" {

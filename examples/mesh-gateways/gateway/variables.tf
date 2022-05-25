@@ -50,8 +50,8 @@ variable "log_group_name" {
   type = string
 }
 
-variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
+variable "enable_mesh_gateway_wan_peering" {
+  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
@@ -91,3 +91,10 @@ variable "wan_port" {
   type        = number
   default     = 8443
 }
+
+variable "additional_task_role_policies" {
+  description = "List of additional policy ARNs to attach to the task role."
+  type        = list(string)
+  default     = []
+}
+

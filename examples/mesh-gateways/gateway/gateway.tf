@@ -10,19 +10,21 @@ locals {
 }
 
 module "mesh_gateway" {
-  source                             = "../../../modules/gateway-task"
-  family                             = var.name
-  log_configuration                  = local.log_config
-  retry_join                         = var.retry_join
-  kind                               = "mesh-gateway"
-  consul_datacenter                  = var.datacenter
-  enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
-  tls                                = true
-  consul_server_ca_cert_arn          = var.ca_cert_arn
-  gossip_key_secret_arn              = var.gossip_key_arn
-  wan_address                        = aws_lb.mesh_gateway.dns_name
-  wan_port                           = 8443
+  source                          = "../../../modules/gateway-task"
+  family                          = var.name
+  log_configuration               = local.log_config
+  retry_join                      = var.retry_join
+  kind                            = "mesh-gateway"
+  consul_datacenter               = var.datacenter
+  enable_mesh_gateway_wan_peering = var.enable_mesh_gateway_wan_peering
+  tls                             = true
+  consul_server_ca_cert_arn       = var.ca_cert_arn
+  gossip_key_secret_arn           = var.gossip_key_arn
+  wan_address                     = aws_lb.mesh_gateway.dns_name
+  wan_port                        = 8443
+  additional_task_role_policies   = var.additional_task_role_policies
 
+  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
 }
 
 resource "aws_ecs_service" "mesh_gateway" {

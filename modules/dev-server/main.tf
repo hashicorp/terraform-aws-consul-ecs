@@ -1,5 +1,8 @@
 locals {
-  gossip_encryption_enabled = var.gossip_key_secret_arn != ""
+  // TODO Figure out a way to conditionally enable secret generation. This is not easy in TF and splat workaround is broken in newer TF versions.
+  // If gossip encryption is enabled (via flag) and no key is provided we need to generate one.
+  // or if a key is provided then use that and don't generate one.
+  // otherwise no gossip encryption.
   // generate_gossip_key       = var.gossip_encryption_enabled && var.gossip_key_secret_arn == ""
   // generate_ca_cert          = var.tls && var.ca_cert_arn == ""
   // generate_ca_key           = var.tls && var.ca_key_arn == ""
@@ -16,7 +19,9 @@ locals {
 
   consul_enterprise_enabled = var.consul_license != ""
 
-  enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation || var.primary_gateways != null ? true : false
+  enable_mesh_gateway_wan_peering = var.enable_mesh_gateway_wan_peering || var.primary_gateways != null ? true : false
+
+  node_name = var.node_name != "" ? var.node_name : var.name
 }
 
 resource "tls_private_key" "ca" {
@@ -333,7 +338,8 @@ resource "aws_iam_role" "this_task" {
 }
 
 resource "aws_service_discovery_private_dns_namespace" "server" {
-  name        = var.service_discovery_namespace
+  //TODO name        = var.service_discovery_namespace
+  name        = var.datacenter
   description = "The namespace for the Consul dev server."
   vpc         = var.vpc_id
 }
@@ -367,7 +373,6 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
 }
 
 locals {
-  consul_dns_name = "${aws_service_discovery_service.server.name}.${aws_service_discovery_private_dns_namespace.server.name}"
   // TODO: Deprecated fields
   //   The 'ca_file' field is deprecated. Use the 'tls.defaults.ca_file' field instead.
   //   The 'cert_file' field is deprecated. Use the 'tls.defaults.cert_file' field instead.
@@ -388,6 +393,7 @@ exec consul agent -server \
 %{if var.gossip_encryption_enabled~}
   -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
 %{endif~}
+  -hcl 'node_name = "${var.name}"' \
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
@@ -411,17 +417,17 @@ exec consul agent -server \
 %{if var.primary_datacenter != ""~}
   -hcl='primary_datacenter = "${var.primary_datacenter}"' \
 %{endif~}
-%{if var.retry_join_wan != null~}
+%{if length(var.retry_join_wan) > 0~}
   -hcl='retry_join_wan = [
   %{for addr in var.retry_join_wan~}
     "${addr}",
   %{endfor~}
   ]' \
 %{endif~}
-%{if local.enable_mesh_gateway_wan_federation~}
+%{if local.enable_mesh_gateway_wan_peering~}
   -hcl='connect { enable_mesh_gateway_wan_federation = true }' \
 %{endif~}
-%{if var.primary_gateways != null~}
+%{if length(var.primary_gateways) > 0~}
   -hcl='primary_gateways = [
   %{for addr in var.primary_gateways~}
     "${addr}",
@@ -438,12 +444,15 @@ ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addr
 cd /consul
 echo "$CONSUL_CACERT_PEM" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
-consul tls cert create -server -dc=${var.datacenter} -additional-ipaddress=$ECS_IPV4 -additional-dnsname=${local.consul_dns_name} \
+consul tls cert create -server -dc=${var.datacenter} -additional-ipaddress=$ECS_IPV4 \
 %{if var.additional_dns_names != null~}
   %{for dnsname in var.additional_dns_names~}
     -additional-dnsname="${dnsname}" \
   %{endfor~}
-%{endif}
+%{endif~}
+%{if local.enable_mesh_gateway_wan_peering~}
+  -node="${var.name}" \
+%{endif~}
 EOF
 
   tls_init_container = {

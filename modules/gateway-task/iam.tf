@@ -12,8 +12,8 @@ locals {
   // it into a single-element list...If the value is null then the splat expression will return
   // an empty tuple."
   // https://www.terraform.io/docs/language/expressions/splat.html#single-values-as-lists
-  create_task_role      = length(var.task_role[*]) == 0
-  create_execution_role = length(var.execution_role[*]) == 0
+  create_task_role      = length(var.task_role[*]) == 0 ? true : length(var.task_role.id[*]) == 0
+  create_execution_role = length(var.execution_role[*]) == 0 ? true : length(var.execution_role.id[*]) == 0
 
   execution_role_id = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
   task_role_id      = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
@@ -25,6 +25,7 @@ locals {
 // Create the task role
 resource "aws_iam_role" "task" {
   count = local.create_task_role ? 1 : 0
+  path  = var.iam_role_path
 
   name = "${var.family}-task"
   assume_role_policy = jsonencode({
@@ -39,6 +40,44 @@ resource "aws_iam_role" "task" {
       }
     ]
   })
+
+  tags = {
+    "consul.hashicorp.com.service-name" = local.service_name
+    "consul.hashicorp.com.namespace"    = var.consul_namespace
+  }
+}
+
+// If acls are enabled, the task role must be configured with an `iam:GetRole` permission
+// to fetch itself, in order to be compatbile with the auth method.
+resource "aws_iam_policy" "task" {
+  count       = var.acls ? 1 : 0
+  name        = "${var.family}-task"
+  path        = var.iam_role_path
+  description = "${var.family} mesh-task task policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole"
+      ],
+      "Resource": [
+        "${local.task_role_arn}"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+
+resource "aws_iam_role_policy_attachment" "task" {
+  count      = var.acls ? 1 : 0
+  role       = local.task_role_id
+  policy_arn = aws_iam_policy.task[count.index].arn
 }
 
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
@@ -51,7 +90,7 @@ resource "aws_iam_role_policy_attachment" "additional_task_policies" {
 resource "aws_iam_role" "execution" {
   count = local.create_execution_role ? 1 : 0
   name  = "${var.family}-execution"
-  path  = "/ecs/"
+  path  = var.iam_role_path
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -70,7 +109,7 @@ resource "aws_iam_role" "execution" {
 
 resource "aws_iam_policy" "execution" {
   name        = "${var.family}-execution"
-  path        = "/ecs/"
+  path        = var.iam_role_path
   description = "${var.family} mesh-task execution policy"
 
   policy = <<EOF
@@ -85,18 +124,6 @@ resource "aws_iam_policy" "execution" {
       ],
       "Resource": [
         "${var.consul_server_ca_cert_arn}"
-      ]
-    },
-%{endif~}
-%{if var.acls~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": [
-        "${var.consul_client_token_secret_arn}",
-        "${aws_secretsmanager_secret.service_token[0].arn}"
       ]
     },
 %{endif~}
