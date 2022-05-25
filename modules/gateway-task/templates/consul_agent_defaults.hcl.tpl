@@ -29,7 +29,7 @@ auto_encrypt = {
   tls = true
   ip_san = ["$ECS_IPV4"]
 }
-ca_file = "/tmp/consul-ca-cert.pem"
+ca_file = "/consul/consul-ca-cert.pem"
 verify_outgoing = true
 %{ endif ~}
 
@@ -42,4 +42,8 @@ acl {
     agent = "$AGENT_TOKEN"
   }
 }
+%{ endif ~}
+
+%{ if partition != null && partition != "" ~}
+partition = "${partition}"
 %{ endif ~}

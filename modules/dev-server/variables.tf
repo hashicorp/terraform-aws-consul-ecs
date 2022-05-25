@@ -159,19 +159,19 @@ variable "primary_datacenter" {
 }
 
 variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul datacenter federation. Must not be provided when using mesh-gateway federation."
+  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway cluster peering."
   type        = list(string)
-  default     = null
+  default     = []
 }
 
 variable "primary_gateways" {
-  description = "List of WAN addresses for mesh gateway federation. This must be set for all secondary datacenters and is mutually exclusive with retry_join_wan."
+  description = "List of WAN addresses for mesh gateway cluster peering. This must be set for all secondary datacenters and is mutually exclusive with retry_join_wan."
   type        = list(string)
-  default     = null
+  default     = []
 }
 
-variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
+variable "enable_mesh_gateway_wan_peering" {
+  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
@@ -179,9 +179,14 @@ variable "enable_mesh_gateway_wan_federation" {
 variable "additional_dns_names" {
   description = "Additional DNS names to add to the Subject Alternative Name (SAN) field of the cert"
   type        = list(string)
-  default     = null
+  default     = []
+}
+
+variable "node_name" {
+  type    = string
+  default = ""
 }
 
 locals {
-  retry_join_wan_xor_primary_gateways = var.retry_join_wan != null && var.primary_gateways != null ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
+  retry_join_wan_xor_primary_gateways = length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0 ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
 }

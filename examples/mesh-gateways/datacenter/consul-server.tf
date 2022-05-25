@@ -7,7 +7,7 @@ module "dev_consul_server" {
   retry_join_wan              = var.retry_join_wan
   primary_gateways            = var.primary_gateways
   ecs_cluster_arn             = aws_ecs_cluster.this.arn
-  service_discovery_namespace = "consul-${var.datacenter}"
+  service_discovery_namespace = var.datacenter // TODO mesh gateway WAN fed requires the service discovery ns to be the datacenter? may need to remove this..
   subnet_ids                  = var.private_subnets
   vpc_id                      = var.vpc.vpc_id
   lb_enabled                  = true
@@ -28,6 +28,7 @@ module "dev_consul_server" {
     }
   }
   launch_type = "FARGATE"
+  node_name   = var.node_name
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {

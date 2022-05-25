@@ -38,9 +38,9 @@ variable "public_subnets" {
 }
 
 variable "retry_join_wan" {
-  description = "Consul retry_join_wan option for WAN federation."
+  description = "Consul retry_join_wan option for WAN cluster peering."
   type        = list(string)
-  default     = null
+  default     = []
 }
 
 variable "primary_datacenter" {
@@ -52,11 +52,11 @@ variable "primary_datacenter" {
 variable "primary_gateways" {
   description = "Primary datacenter for the consul agent (required to match across datacenters for CA to work right with WAN fed)."
   type        = list(string)
-  default     = null
+  default     = []
 }
 
-variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
+variable "enable_mesh_gateway_wan_peering" {
+  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
@@ -81,5 +81,10 @@ variable "gossip_key_arn" {
 
 variable "additional_dns_names" {
   type    = list(string)
-  default = null
+  default = []
+}
+
+variable "node_name" {
+  type    = string
+  default = ""
 }

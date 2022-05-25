@@ -17,7 +17,9 @@ module "dc1_gateway" {
   ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
-  enable_mesh_gateway_wan_federation = true
+  enable_mesh_gateway_wan_peering = true
+
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
 // DC2 gateway
@@ -35,8 +37,36 @@ module "dc2_gateway" {
   ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
-  enable_mesh_gateway_wan_federation = true
+  //enable_mesh_gateway_wan_peering = true
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
+
+// Policy that allows execution of remote commands in ECS tasks.
+resource "aws_iam_policy" "execute_command" {
+  name   = "${var.name}-ecs-execute-command"
+  path   = "/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+
+}
+
 
 
 # // Ingress to mesh gateway 1
