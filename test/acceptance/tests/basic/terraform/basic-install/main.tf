@@ -162,7 +162,8 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
-  family = "test_client_${var.suffix}"
+  // mesh-task will lower case this to `test_client_<suffix>` for the service name.
+  family = "Test_Client_${var.suffix}"
   container_definitions = [
     {
       name             = "basic"

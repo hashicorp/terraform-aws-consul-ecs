@@ -1,5 +1,5 @@
 variable "family" {
-  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). This is used by default as the Consul service name if `consul_service_name` is not provided."
+  description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The lower-cased family name is used by default as the Consul service name if `consul_service_name` is not provided."
   type        = string
 }
 
@@ -7,6 +7,11 @@ variable "consul_service_name" {
   description = "The name the service will be registered as in Consul. Defaults to the Task family name."
   type        = string
   default     = ""
+
+  validation {
+    error_message = "The consul_service_name must be lower case. It must match the regex, '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$'."
+    condition     = var.consul_service_name == "" || can(regex("^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$", var.consul_service_name))
+  }
 }
 
 variable "consul_service_tags" {
