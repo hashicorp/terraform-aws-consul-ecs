@@ -59,6 +59,8 @@ module "example_client_app" {
         }
       ]
   }]
+
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
 resource "aws_ecs_service" "example_client_app" {

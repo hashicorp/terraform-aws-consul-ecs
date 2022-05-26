@@ -37,7 +37,8 @@ module "dc2_gateway" {
   ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
-  //enable_mesh_gateway_wan_peering = true
+  enable_mesh_gateway_wan_peering = true
+
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
@@ -66,45 +67,3 @@ resource "aws_iam_policy" "execute_command" {
 EOF
 
 }
-
-
-
-# // Ingress to mesh gateway 1
-# resource "aws_security_group" "mesh_gateway_1" {
-#   name   = "${local.mgw_name_1}-elb"
-#   vpc_id = module.dc1_vpc.vpc_id
-
-#   ingress {
-#     description = "Access to the mesh gateway."
-#     from_port   = 8433
-#     to_port     = 8433
-#     protocol    = "tcp"
-#     # cidr_blocks = ["TODO: Mesh Gateway 2 IP/32"]
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# resource "aws_security_group_rule" "ingress_from_mgw_elb_to_ecs" {
-#   type                     = "ingress"
-#   from_port                = 0
-#   to_port                  = 65535
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.mesh_gateway_alb.id
-#   security_group_id        = module.dc1_vpc.default_security_group_id
-# }
-
-# resource "aws_security_group_rule" "egress_from_mgw_elb_to_ecs" {
-#   type                     = "ingress"
-#   from_port                = 0
-#   to_port                  = 65535
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.mesh_gateway_alb.id
-#   security_group_id        = module.dc1_vpc.default_security_group_id
-# }

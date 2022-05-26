@@ -1,52 +1,40 @@
 locals {
-  primary_datacenter  = var.datacenter_names[0]
-  primary_node_name   = "${var.name}-${var.datacenter_names[0]}-consul-server.${var.datacenter_names[0]}"
-  secondary_node_name = "${var.name}-${var.datacenter_names[1]}-consul.server.${var.datacenter_names[1]}"
+  primary_datacenter = var.datacenter_names[0]
 }
 
 module "dc1" {
   source = "./datacenter"
 
-  datacenter         = var.datacenter_names[0]
-  lb_ingress_ip      = var.lb_ingress_ip
-  name               = "${var.name}-${var.datacenter_names[0]}"
-  private_subnets    = module.dc1_vpc.private_subnets
-  public_subnets     = module.dc1_vpc.public_subnets
-  region             = var.region
-  vpc                = module.dc1_vpc
-  primary_datacenter = local.primary_datacenter
-  ca_cert_arn        = aws_secretsmanager_secret.ca_cert.arn
-  ca_key_arn         = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn     = aws_secretsmanager_secret.gossip_key.arn
-
-  // Should be `[module.dc2.dev_consul_server.server_dns]`
-  // But that would create a circular dependency. So predict the server name.
-  //TODO remove? additional_dns_names = [local.secondary_node_name]
-
+  datacenter                      = var.datacenter_names[0]
+  lb_ingress_ip                   = var.lb_ingress_ip
+  name                            = "${var.name}-${var.datacenter_names[0]}"
+  private_subnets                 = module.dc1_vpc.private_subnets
+  public_subnets                  = module.dc1_vpc.public_subnets
+  region                          = var.region
+  vpc                             = module.dc1_vpc
+  primary_datacenter              = local.primary_datacenter
+  ca_cert_arn                     = aws_secretsmanager_secret.ca_cert.arn
+  ca_key_arn                      = aws_secretsmanager_secret.ca_key.arn
+  gossip_key_arn                  = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_peering = true
-  //TODO remove? node_name                       = "primary"
 }
 
 module "dc2" {
   source = "./datacenter"
 
-  datacenter         = var.datacenter_names[1]
-  lb_ingress_ip      = var.lb_ingress_ip
-  name               = "${var.name}-${var.datacenter_names[1]}"
-  private_subnets    = module.dc2_vpc.private_subnets
-  public_subnets     = module.dc2_vpc.public_subnets
-  region             = var.region
-  vpc                = module.dc2_vpc
-  primary_datacenter = local.primary_datacenter
-  primary_gateways   = ["${module.dc1_gateway.lb_dns_name}:8443"]
-  ca_cert_arn        = aws_secretsmanager_secret.ca_cert.arn
-  ca_key_arn         = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn     = aws_secretsmanager_secret.gossip_key.arn
-
-  //TODO remove? additional_dns_names = ["${var.name}-${var.datacenter_names[0]}-consul-server.consul-${var.datacenter_names[0]}"]
-
+  datacenter                      = var.datacenter_names[1]
+  lb_ingress_ip                   = var.lb_ingress_ip
+  name                            = "${var.name}-${var.datacenter_names[1]}"
+  private_subnets                 = module.dc2_vpc.private_subnets
+  public_subnets                  = module.dc2_vpc.public_subnets
+  region                          = var.region
+  vpc                             = module.dc2_vpc
+  primary_datacenter              = local.primary_datacenter
+  primary_gateways                = ["${module.dc1_gateway.lb_dns_name}:8443"]
+  ca_cert_arn                     = aws_secretsmanager_secret.ca_cert.arn
+  ca_key_arn                      = aws_secretsmanager_secret.ca_key.arn
+  gossip_key_arn                  = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_peering = true
-  //TODO remove? node_name                       = "secondary"
 }
 
 resource "tls_private_key" "ca" {

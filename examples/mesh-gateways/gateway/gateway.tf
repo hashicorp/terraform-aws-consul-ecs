@@ -76,82 +76,19 @@ resource "aws_lb_listener" "mesh_gateway" {
   }
 }
 
-// TODO: This rule allows all public internet traffic to reach the
+// TODO: Ingress to each mesh gateway should only be allowed from the other
+// mesh gateway. This rule allows ALL public internet traffic to reach the
 // mesh gateway through the NLB. This is for testing only and is not secure.
-// Need to find a way to limit ingress to the mesh gateway to the NLB.
+// Not sure how to do this in terraform without creating a cyclic dependency:
+// - MGW's require a Public IP or an NLB because they use TCP (layer 4)
+// - NLBs don't support security groups
+// - Don't know the Public IPs of the task (or NLB) until after apply.
 resource "aws_security_group_rule" "ingress_from_internet" {
   type              = "ingress"
   description       = "TEST ONLY - public internet to NLB"
   from_port         = 8443
   to_port           = 8443
   protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"] // TODO: limit this to the other NLB.
+  cidr_blocks       = ["0.0.0.0/0"] // TODO: limit this to the other mesh gateway.
   security_group_id = var.vpc.default_security_group_id
 }
-
-
-# resource "aws_security_group" "mesh_gateway" {
-#   name   = "${local.example_client_app_name}-alb"
-#   vpc_id = var.vpc.vpc_id
-
-#   ingress {
-#     description = "Access to example client application."
-#     from_port   = 9090
-#     to_port     = 9090
-#     protocol    = "tcp"
-#     cidr_blocks = ["${var.lb_ingress_ip}/32"]
-#   }
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-
-
-# resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
-#   type                     = "ingress"
-#   from_port                = 0
-#   to_port                  = 65535
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.example_client_app_alb.id
-#   security_group_id        = var.vpc.default_security_group_id
-# }
-
-# resource "aws_security_group_rule" "ingress_from_server_alb_to_ecs" {
-#   type                     = "ingress"
-#   from_port                = 8500
-#   to_port                  = 8500
-#   protocol                 = "tcp"
-#   source_security_group_id = module.dc1.dev_consul_server.lb_security_group_id
-#   security_group_id        = var.vpc.default_security_group_id
-# }
-
-# resource "aws_lb_target_group" "example_client_app" {
-#   name                 = local.example_client_app_name
-#   port                 = 9090
-#   protocol             = "HTTP"
-#   vpc_id               = var.vpc.vpc_id
-#   target_type          = "ip"
-#   deregistration_delay = 10
-#   health_check {
-#     path                = "/health"
-#     healthy_threshold   = 2
-#     unhealthy_threshold = 10
-#     timeout             = 30
-#     interval            = 60
-#   }
-# }
-
-# resource "aws_lb_listener" "example_client_app" {
-#   load_balancer_arn = aws_lb.example_client_app.arn
-#   port              = "9090"
-#   protocol          = "HTTP"
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.example_client_app.arn
-#   }
-# }
