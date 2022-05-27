@@ -81,9 +81,9 @@ variable "name" {
 }
 
 variable "service_discovery_namespace" {
-  description = "The namespace where the Consul server service will be registered with AWS CloudMap."
+  description = "The namespace where the Consul server service will be registered with AWS Cloud Map. Defaults to the Consul server domain name: server.<datacenter>.<domain>."
   type        = string
-  default     = "consul"
+  default     = ""
 }
 
 variable "tags" {
@@ -146,10 +146,22 @@ variable "wait_for_steady_state" {
   default     = false
 }
 
+variable "domain" {
+  description = "Consul domain. Defaults to 'consul'."
+  type        = string
+  default     = "consul"
+}
+
 variable "datacenter" {
-  description = "Consul datacenter."
+  description = "Consul datacenter. Defaults to 'dc1'."
   type        = string
   default     = "dc1"
+}
+
+variable "node_name" {
+  description = "Node name of the Consul server. Defaults to the value of 'var.name'."
+  type        = string
+  default     = ""
 }
 
 variable "primary_datacenter" {
@@ -159,32 +171,27 @@ variable "primary_datacenter" {
 }
 
 variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway cluster peering."
+  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway WAN federation."
   type        = list(string)
   default     = []
 }
 
 variable "primary_gateways" {
-  description = "List of WAN addresses for mesh gateway cluster peering. This must be set for all secondary datacenters and is mutually exclusive with retry_join_wan."
+  description = "List of WAN addresses of the primary mesh gateways for Consul servers in secondary datacenters to use to reach the Consul servers in the primary datcenter."
   type        = list(string)
   default     = []
 }
 
-variable "enable_mesh_gateway_wan_peering" {
+variable "enable_mesh_gateway_wan_federation" {
   description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
 
 variable "additional_dns_names" {
-  description = "Additional DNS names to add to the Subject Alternative Name (SAN) field of the cert"
+  description = "List of additional DNS names to add to the Subject Alternative Name (SAN) field of the server's certificate."
   type        = list(string)
   default     = []
-}
-
-variable "node_name" {
-  type    = string
-  default = ""
 }
 
 locals {

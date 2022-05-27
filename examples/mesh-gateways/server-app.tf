@@ -1,6 +1,7 @@
 // The server app is deployed in the second datacenter.
+// It has no public ingress and can only be reached through the mesh gateways.
 locals {
-  example_server_app_name = "${var.name}-${var.datacenter_names[1]}-example-server-app"
+  example_server_app_name = "${var.name}-${local.secondary_datacenter}-example-server-app"
   example_server_app_log_config = {
     logDriver = "awslogs"
     options = {
@@ -16,7 +17,7 @@ module "example_server_app" {
   family                    = local.example_server_app_name
   port                      = "9090"
   consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
-  consul_datacenter         = var.datacenter_names[1]
+  consul_datacenter         = local.secondary_datacenter
   tls                       = true
   consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn

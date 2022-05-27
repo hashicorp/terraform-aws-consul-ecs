@@ -227,7 +227,7 @@ variable "wan_port" {
   default     = 0
 }
 
-variable "enable_mesh_gateway_wan_peering" {
+variable "enable_mesh_gateway_wan_federation" {
   description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false

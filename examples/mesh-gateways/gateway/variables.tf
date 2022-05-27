@@ -50,8 +50,8 @@ variable "log_group_name" {
   type = string
 }
 
-variable "enable_mesh_gateway_wan_peering" {
-  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
+variable "enable_mesh_gateway_wan_federation" {
+  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }

@@ -1,8 +1,8 @@
 // The client app will be deployed in the first datacenter.
 // It will reach its upstream located in the second datacenter.
-// It has a load balancer for ingress.
+// It has an application load balancer for ingress.
 locals {
-  example_client_app_name = "${var.name}-${var.datacenter_names[0]}-example-client-app"
+  example_client_app_name = "${var.name}-${local.primary_datacenter}-example-client-app"
   example_client_app_log_config = {
     logDriver = "awslogs"
     options = {
@@ -19,14 +19,14 @@ module "example_client_app" {
   family                    = local.example_client_app_name
   port                      = "9090"
   consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
-  consul_datacenter         = var.datacenter_names[0]
+  consul_datacenter         = local.primary_datacenter
   tls                       = true
   consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
   retry_join                = [module.dc1.dev_consul_server.server_dns]
   upstreams = [
     {
-      destinationName = "${var.name}-${var.datacenter_names[1]}-example-server-app"
+      destinationName = "${var.name}-${local.secondary_datacenter}-example-server-app"
       datacenter      = "dc2"
       localBindPort   = 1234
       meshGateway = {
