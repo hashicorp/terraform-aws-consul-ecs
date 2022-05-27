@@ -1,40 +1,51 @@
 locals {
-  primary_datacenter = var.datacenter_names[0]
+  primary_datacenter   = var.datacenter_names[0]
+  secondary_datacenter = var.datacenter_names[1]
 }
 
 module "dc1" {
   source = "./datacenter"
 
-  datacenter                      = var.datacenter_names[0]
-  lb_ingress_ip                   = var.lb_ingress_ip
-  name                            = "${var.name}-${var.datacenter_names[0]}"
-  private_subnets                 = module.dc1_vpc.private_subnets
-  public_subnets                  = module.dc1_vpc.public_subnets
-  region                          = var.region
-  vpc                             = module.dc1_vpc
-  primary_datacenter              = local.primary_datacenter
-  ca_cert_arn                     = aws_secretsmanager_secret.ca_cert.arn
-  ca_key_arn                      = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn                  = aws_secretsmanager_secret.gossip_key.arn
-  enable_mesh_gateway_wan_peering = true
+  name            = "${var.name}-${local.primary_datacenter}"
+  datacenter      = local.primary_datacenter
+  lb_ingress_ip   = var.lb_ingress_ip
+  private_subnets = module.dc1_vpc.private_subnets
+  public_subnets  = module.dc1_vpc.public_subnets
+  region          = var.region
+  vpc             = module.dc1_vpc
+
+  // To enable WAN federation via mesh gateways both servers must be configured with:
+  // - The same primary datacenter.
+  // - The same CA private key and certificate.
+  // - The same gossip encryption key.
+  // - The flag `enable_mesh_gateway_wan_federation` set to true. See https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#consul-server-options.
+  primary_datacenter                 = local.primary_datacenter
+  ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
+  ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
+  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
+  enable_mesh_gateway_wan_federation = true
 }
 
 module "dc2" {
   source = "./datacenter"
 
-  datacenter                      = var.datacenter_names[1]
-  lb_ingress_ip                   = var.lb_ingress_ip
-  name                            = "${var.name}-${var.datacenter_names[1]}"
-  private_subnets                 = module.dc2_vpc.private_subnets
-  public_subnets                  = module.dc2_vpc.public_subnets
-  region                          = var.region
-  vpc                             = module.dc2_vpc
-  primary_datacenter              = local.primary_datacenter
-  primary_gateways                = ["${module.dc1_gateway.lb_dns_name}:8443"]
-  ca_cert_arn                     = aws_secretsmanager_secret.ca_cert.arn
-  ca_key_arn                      = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn                  = aws_secretsmanager_secret.gossip_key.arn
-  enable_mesh_gateway_wan_peering = true
+  name            = "${var.name}-${local.secondary_datacenter}"
+  datacenter      = local.secondary_datacenter
+  lb_ingress_ip   = var.lb_ingress_ip
+  private_subnets = module.dc2_vpc.private_subnets
+  public_subnets  = module.dc2_vpc.public_subnets
+  region          = var.region
+  vpc             = module.dc2_vpc
+
+  primary_datacenter                 = local.primary_datacenter
+  ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
+  ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
+  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
+  enable_mesh_gateway_wan_federation = true
+
+  // To enable WAN federation via mesh gateways all secondary datacenters must be
+  // configured with the WAN address of the mesh gateway(s) in the primary datacenter.
+  primary_gateways = ["${module.dc1_gateway.lb_dns_name}:8443"]
 }
 
 resource "tls_private_key" "ca" {
@@ -96,29 +107,6 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
   secret_id     = aws_secretsmanager_secret.gossip_key.id
   secret_string = random_id.gossip_key.b64_std
 }
-
-
-# // Each Consul server has its own security group that needs to allow traffic from the other.
-# resource "aws_security_group_rule" "ingress_from_dc1" {
-#   description              = "Access from dc1"
-#   type                     = "ingress"
-#   from_port                = 0
-#   to_port                  = 0
-#   protocol                 = "-1"
-#   source_security_group_id = module.dc1.dev_consul_server.security_group_id
-#   security_group_id        = module.dc2.dev_consul_server.security_group_id
-# }
-
-# resource "aws_security_group_rule" "ingress_from_dc2" {
-#   description              = "Access from dc2"
-#   type                     = "ingress"
-#   from_port                = 0
-#   to_port                  = 0
-#   protocol                 = "-1"
-#   source_security_group_id = module.dc2.dev_consul_server.security_group_id
-#   security_group_id        = module.dc1.dev_consul_server.security_group_id
-# }
-
 
 // Our app tasks need to allow ingress from the dev-server (in the relevant dc).
 // The apps use the default security group so we allow ingress to default from both dev-servers.

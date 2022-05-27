@@ -46,45 +46,31 @@ variable "retry_join_wan" {
 variable "primary_datacenter" {
   description = "Primary datacenter for the consul agent (required to match across datacenters for CA to work right with WAN fed)."
   type        = string
-  default     = ""
 }
 
 variable "primary_gateways" {
-  description = "Primary datacenter for the consul agent (required to match across datacenters for CA to work right with WAN fed)."
+  description = "List of primary mesh gateway(s) for Consul servers in secondary datacenters to use to reach the Consul servers in the primary datcenter."
   type        = list(string)
   default     = []
 }
 
-variable "enable_mesh_gateway_wan_peering" {
+variable "enable_mesh_gateway_wan_federation" {
   description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
 
 variable "ca_cert_arn" {
-  description = "The Secrets Manager ARN of the Consul CA certificate. A CA certificate will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  description = "The Secrets Manager ARN of the Consul CA certificate."
   type        = string
-  default     = ""
 }
 
 variable "ca_key_arn" {
-  description = "The Secrets Manager ARN of the Consul CA certificate key. A CA certificate key will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  description = "The Secrets Manager ARN of the Consul CA certificate key."
   type        = string
-  default     = ""
 }
 
 variable "gossip_key_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will be generated if gossip encryption is enabled and this is not provided."
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
   type        = string
-  default     = ""
-}
-
-variable "additional_dns_names" {
-  type    = list(string)
-  default = []
-}
-
-variable "node_name" {
-  type    = string
-  default = ""
 }

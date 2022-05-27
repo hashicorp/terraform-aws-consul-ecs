@@ -1,15 +1,12 @@
 locals {
-  // TODO Figure out a way to conditionally enable secret generation. This is not easy in TF and splat workaround is broken in newer TF versions.
-  // If gossip encryption is enabled (via flag) and no key is provided we need to generate one.
-  // or if a key is provided then use that and don't generate one.
-  // otherwise no gossip encryption.
-  // generate_gossip_key       = var.gossip_encryption_enabled && var.gossip_key_secret_arn == ""
-  // generate_ca_cert          = var.tls && var.ca_cert_arn == ""
-  // generate_ca_key           = var.tls && var.ca_key_arn == ""
-  gossip_key_secret_arn = var.gossip_key_secret_arn != "" ? var.gossip_key_secret_arn : aws_secretsmanager_secret.gossip_key[0].arn
-  ca_cert_arn           = var.ca_cert_arn != "" ? var.ca_cert_arn : aws_secretsmanager_secret.ca_cert[0].arn
-  ca_key_arn            = var.ca_key_arn != "" ? var.ca_key_arn : aws_secretsmanager_secret.ca_key[0].arn
+  // Determine which secrets are provided and which ones need to be created.
+  generate_gossip_key = var.gossip_encryption_enabled ? var.gossip_key_secret_arn == "" : false
+  generate_ca_cert    = var.tls ? var.ca_cert_arn == "" : false
+  generate_ca_key     = var.tls ? var.ca_key_arn == "" : false
 
+  gossip_key_arn = local.generate_gossip_key ? aws_secretsmanager_secret.gossip_key[0].arn : var.gossip_key_secret_arn
+  ca_cert_arn    = local.generate_ca_cert ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
+  ca_key_arn     = local.generate_ca_key ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
 
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
@@ -17,21 +14,24 @@ locals {
     container_port   = 8500
   }] : []
 
-  consul_enterprise_enabled = var.consul_license != ""
+  // Setup Consul server options
+  consul_enterprise_enabled          = var.consul_license != ""
+  enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation || length(var.primary_gateways) > 0 ? true : false
+  node_name                          = var.node_name != "" ? var.node_name : var.name
 
-  enable_mesh_gateway_wan_peering = var.enable_mesh_gateway_wan_peering || var.primary_gateways != null ? true : false
-
-  node_name = var.node_name != "" ? var.node_name : var.name
+  // If the user has passed an explict Cloud Map service discovery namespace then use it.
+  // Otherwise set the namespace to match the SAN for the Consul server: server.<datacenter>.<domain>
+  service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : "server.${var.datacenter}.${var.domain}"
 }
 
 resource "tls_private_key" "ca" {
-  count       = var.tls ? 1 : 0
+  count       = local.generate_ca_key ? 1 : 0
   algorithm   = "ECDSA"
   ecdsa_curve = "P384"
 }
 
 resource "tls_self_signed_cert" "ca" {
-  count           = var.tls ? 1 : 0
+  count           = local.generate_ca_cert ? 1 : 0
   private_key_pem = tls_private_key.ca[count.index].private_key_pem
 
   subject {
@@ -53,25 +53,25 @@ resource "tls_self_signed_cert" "ca" {
 }
 
 resource "aws_secretsmanager_secret" "ca_key" {
-  count                   = var.tls ? 1 : 0
+  count                   = local.generate_ca_key ? 1 : 0
   name                    = "${var.name}-ca-key"
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_key" {
-  count         = var.tls ? 1 : 0
+  count         = local.generate_ca_key ? 1 : 0
   secret_id     = aws_secretsmanager_secret.ca_key[count.index].id
   secret_string = tls_private_key.ca[count.index].private_key_pem
 }
 
 resource "aws_secretsmanager_secret" "ca_cert" {
-  count                   = var.tls ? 1 : 0
+  count                   = local.generate_ca_cert ? 1 : 0
   name                    = "${var.name}-ca-cert"
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_cert" {
-  count         = var.tls ? 1 : 0
+  count         = local.generate_ca_cert ? 1 : 0
   secret_id     = aws_secretsmanager_secret.ca_cert[count.index].id
   secret_string = tls_self_signed_cert.ca[count.index].cert_pem
 }
@@ -90,18 +90,18 @@ resource "aws_secretsmanager_secret_version" "license" {
 }
 
 resource "random_id" "gossip_key" {
-  count       = var.gossip_encryption_enabled ? 1 : 0
+  count       = local.generate_gossip_key ? 1 : 0
   byte_length = 32
 }
 
 resource "aws_secretsmanager_secret" "gossip_key" {
-  count                   = var.gossip_encryption_enabled ? 1 : 0
+  count                   = local.generate_gossip_key ? 1 : 0
   name                    = "${var.name}-gossip-key"
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "gossip_key" {
-  count         = var.gossip_encryption_enabled ? 1 : 0
+  count         = local.generate_gossip_key ? 1 : 0
   secret_id     = aws_secretsmanager_secret.gossip_key[count.index].id
   secret_string = random_id.gossip_key[count.index].b64_std
 }
@@ -188,7 +188,7 @@ resource "aws_ecs_task_definition" "this" {
           var.gossip_encryption_enabled ? [
             {
               name      = "CONSUL_GOSSIP_ENCRYPTION_KEY"
-              valueFrom = local.gossip_key_secret_arn
+              valueFrom = local.gossip_key_arn
             },
           ] : [],
           var.acls ? [
@@ -338,9 +338,8 @@ resource "aws_iam_role" "this_task" {
 }
 
 resource "aws_service_discovery_private_dns_namespace" "server" {
-  //TODO name        = var.service_discovery_namespace
-  name        = var.datacenter
-  description = "The namespace for the Consul dev server."
+  name        = local.service_discovery_namespace
+  description = "The domain name for the Consul dev server in ${var.datacenter}."
   vpc         = var.vpc_id
 }
 
@@ -393,7 +392,9 @@ exec consul agent -server \
 %{if var.gossip_encryption_enabled~}
   -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
 %{endif~}
-  -hcl 'node_name = "${var.name}"' \
+  -hcl 'node_name = "${local.node_name}"' \
+  -hcl='datacenter = "${var.datacenter}"' \
+  -hcl='domain = "${var.domain}"' \
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
@@ -411,9 +412,6 @@ exec consul agent -server \
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
   -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
 %{endif~}
-%{if var.datacenter != ""~}
-  -hcl='datacenter = "${var.datacenter}"' \
-%{endif~}
 %{if var.primary_datacenter != ""~}
   -hcl='primary_datacenter = "${var.primary_datacenter}"' \
 %{endif~}
@@ -424,7 +422,7 @@ exec consul agent -server \
   %{endfor~}
   ]' \
 %{endif~}
-%{if local.enable_mesh_gateway_wan_peering~}
+%{if local.enable_mesh_gateway_wan_federation~}
   -hcl='connect { enable_mesh_gateway_wan_federation = true }' \
 %{endif~}
 %{if length(var.primary_gateways) > 0~}
@@ -444,14 +442,15 @@ ECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addr
 cd /consul
 echo "$CONSUL_CACERT_PEM" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
-consul tls cert create -server -dc=${var.datacenter} -additional-ipaddress=$ECS_IPV4 \
-%{if var.additional_dns_names != null~}
+consul tls cert create -server \
+  -node="${var.name}" \
+  -dc="${var.datacenter}" \
+  -domain="${var.domain}" \
+  -additional-ipaddress=$ECS_IPV4 \
+%{if length(var.additional_dns_names) > 0~}
   %{for dnsname in var.additional_dns_names~}
     -additional-dnsname="${dnsname}" \
   %{endfor~}
-%{endif~}
-%{if local.enable_mesh_gateway_wan_peering~}
-  -node="${var.name}" \
 %{endif~}
 EOF
 

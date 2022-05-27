@@ -8,8 +8,8 @@ locals {
 
   consul_service_meta = var.consul_service_meta
 
-  // if mesh gateway WAN cluster peering is enabled add the metadata to the gateway service registration that exposes the Consul servers.
-  consul_gateway_meta = var.enable_mesh_gateway_wan_peering ? { "consul-wan-federation" : "1" } : {}
+  // if mesh gateway WAN federation is enabled add the metadata to the gateway service registration that exposes the Consul servers.
+  consul_gateway_meta = var.enable_mesh_gateway_wan_federation ? { "consul-wan-federation" : "1" } : {}
 
   config = {
     consulHTTPAddr   = var.consul_http_addr

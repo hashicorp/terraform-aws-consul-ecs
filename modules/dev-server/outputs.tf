@@ -45,5 +45,5 @@ output "bootstrap_token_id" {
 
 output "gossip_key_arn" {
   description = "The Secrets Manager ARN of the gossip encryption key."
-  value       = local.gossip_key_secret_arn != "" ? local.gossip_key_secret_arn : null
+  value       = local.gossip_key_arn != "" ? local.gossip_key_arn : null
 }
