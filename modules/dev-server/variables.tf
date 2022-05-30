@@ -158,12 +158,6 @@ variable "wait_for_steady_state" {
   default     = false
 }
 
-variable "domain" {
-  description = "Consul domain. Defaults to 'consul'."
-  type        = string
-  default     = "consul"
-}
-
 variable "datacenter" {
   description = "Consul datacenter. Defaults to 'dc1'."
   type        = string

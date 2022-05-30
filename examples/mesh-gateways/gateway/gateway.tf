@@ -76,19 +76,15 @@ resource "aws_lb_listener" "mesh_gateway" {
   }
 }
 
-// TODO: Ingress to each mesh gateway should only be allowed from the other
-// mesh gateway. This rule allows ALL public internet traffic to reach the
-// mesh gateway through the NLB. This is for testing only and is not secure.
-// Not sure how to do this in terraform without creating a cyclic dependency:
-// - MGW's require a Public IP or an NLB because they use TCP (layer 4)
-// - NLBs don't support security groups
-// - Don't know the Public IPs of the task (or NLB) until after apply.
+// In a production environment ingress to each mesh gateway should only be allowed
+// from the other mesh gateway. This rule allows ALL public internet traffic to reach the
+// mesh gateway through the NLB. This setup is not secure and is for example purposes only.
 resource "aws_security_group_rule" "ingress_from_internet" {
   type              = "ingress"
   description       = "TEST ONLY - public internet to NLB"
   from_port         = 8443
   to_port           = 8443
   protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"] // TODO: limit this to the other mesh gateway.
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = var.vpc.default_security_group_id
 }
