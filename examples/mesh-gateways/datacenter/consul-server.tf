@@ -1,22 +1,24 @@
 # Run the Consul dev server as an ECS task.
 module "dev_consul_server" {
-  name                        = "${var.name}-consul-server"
-  source                      = "../../../modules/dev-server"
-  datacenter                  = var.datacenter
-  primary_datacenter          = var.primary_datacenter
-  retry_join_wan              = var.retry_join_wan
-  primary_gateways            = var.primary_gateways
-  ecs_cluster_arn             = aws_ecs_cluster.this.arn
-  subnet_ids                  = var.private_subnets
-  vpc_id                      = var.vpc.vpc_id
-  lb_enabled                  = true
-  lb_subnets                  = var.public_subnets
-  lb_ingress_rule_cidr_blocks = ["${var.lb_ingress_ip}/32"]
-  tls                         = true
-  ca_cert_arn                 = var.ca_cert_arn
-  ca_key_arn                  = var.ca_key_arn
-  gossip_encryption_enabled   = true
-  gossip_key_secret_arn       = var.gossip_key_arn
+  name                           = "${var.name}-consul-server"
+  source                         = "../../../modules/dev-server"
+  datacenter                     = var.datacenter
+  primary_datacenter             = var.primary_datacenter
+  retry_join_wan                 = var.retry_join_wan
+  primary_gateways               = var.primary_gateways
+  ecs_cluster_arn                = aws_ecs_cluster.this.arn
+  subnet_ids                     = var.private_subnets
+  vpc_id                         = var.vpc.vpc_id
+  lb_enabled                     = true
+  lb_subnets                     = var.public_subnets
+  lb_ingress_rule_cidr_blocks    = ["${var.lb_ingress_ip}/32"]
+  tls                            = true
+  generate_ca                    = false
+  ca_cert_arn                    = var.ca_cert_arn
+  ca_key_arn                     = var.ca_key_arn
+  gossip_encryption_enabled      = true
+  generate_gossip_encryption_key = false
+  gossip_key_secret_arn          = var.gossip_key_arn
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -26,6 +28,8 @@ module "dev_consul_server" {
     }
   }
   launch_type = "FARGATE"
+
+  enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {

@@ -110,14 +110,20 @@ variable "tls" {
   default     = false
 }
 
+variable "generate_ca" {
+  description = "Controls whether or not a CA key and certificate will automatically be created and stored in Secrets Manager. Default is true. Set this to false and set ca_cert_arn and ca_key_arn to provide pre-existing secrets."
+  type        = bool
+  default     = true
+}
+
 variable "ca_cert_arn" {
-  description = "The Secrets Manager ARN of the Consul CA certificate. A CA certificate will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  description = "The Secrets Manager ARN of the Consul CA certificate."
   type        = string
   default     = ""
 }
 
 variable "ca_key_arn" {
-  description = "The Secrets Manager ARN of the Consul CA certificate key. A CA certificate key will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
+  description = "The Secrets Manager ARN of the Consul CA certificate key."
   type        = string
   default     = ""
 }
@@ -126,6 +132,12 @@ variable "gossip_encryption_enabled" {
   description = "Whether or not to enable gossip encryption."
   type        = bool
   default     = false
+}
+
+variable "generate_gossip_encryption_key" {
+  description = "Controls whether or not a gossip encryption key will automatically be created and stored in Secrets Manager. Default is true. Set this to false and set gossip_key_secret_arn to provide a pre-existing secret."
+  type        = bool
+  default     = true
 }
 
 variable "gossip_key_secret_arn" {

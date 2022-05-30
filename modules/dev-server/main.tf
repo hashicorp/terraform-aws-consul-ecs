@@ -1,12 +1,11 @@
 locals {
   // Determine which secrets are provided and which ones need to be created.
-  generate_gossip_key = var.gossip_encryption_enabled ? var.gossip_key_secret_arn == "" : false
-  generate_ca_cert    = var.tls ? var.ca_cert_arn == "" : false
-  generate_ca_key     = var.tls ? var.ca_key_arn == "" : false
+  generate_gossip_key = var.gossip_encryption_enabled && var.generate_gossip_encryption_key
+  generate_ca         = var.tls && var.generate_ca
 
   gossip_key_arn = local.generate_gossip_key ? aws_secretsmanager_secret.gossip_key[0].arn : var.gossip_key_secret_arn
-  ca_cert_arn    = local.generate_ca_cert ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
-  ca_key_arn     = local.generate_ca_key ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
+  ca_cert_arn    = local.generate_ca ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
+  ca_key_arn     = local.generate_ca ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
 
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
@@ -19,19 +18,20 @@ locals {
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation || length(var.primary_gateways) > 0 ? true : false
   node_name                          = var.node_name != "" ? var.node_name : var.name
 
-  // If the user has passed an explict Cloud Map service discovery namespace then use it.
+  // If the user has passed an explicit Cloud Map service discovery namespace then use it.
   // Otherwise set the namespace to match the SAN for the Consul server: server.<datacenter>.<domain>
-  service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : "server.${var.datacenter}.${var.domain}"
+  // TODO service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : "server.${var.datacenter}.${var.domain}"
+  service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : var.datacenter
 }
 
 resource "tls_private_key" "ca" {
-  count       = local.generate_ca_key ? 1 : 0
+  count       = local.generate_ca ? 1 : 0
   algorithm   = "ECDSA"
   ecdsa_curve = "P384"
 }
 
 resource "tls_self_signed_cert" "ca" {
-  count           = local.generate_ca_cert ? 1 : 0
+  count           = local.generate_ca ? 1 : 0
   private_key_pem = tls_private_key.ca[count.index].private_key_pem
 
   subject {
@@ -53,25 +53,25 @@ resource "tls_self_signed_cert" "ca" {
 }
 
 resource "aws_secretsmanager_secret" "ca_key" {
-  count                   = local.generate_ca_key ? 1 : 0
+  count                   = local.generate_ca ? 1 : 0
   name                    = "${var.name}-ca-key"
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_key" {
-  count         = local.generate_ca_key ? 1 : 0
+  count         = local.generate_ca ? 1 : 0
   secret_id     = aws_secretsmanager_secret.ca_key[count.index].id
   secret_string = tls_private_key.ca[count.index].private_key_pem
 }
 
 resource "aws_secretsmanager_secret" "ca_cert" {
-  count                   = local.generate_ca_cert ? 1 : 0
+  count                   = local.generate_ca ? 1 : 0
   name                    = "${var.name}-ca-cert"
   recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ca_cert" {
-  count         = local.generate_ca_cert ? 1 : 0
+  count         = local.generate_ca ? 1 : 0
   secret_id     = aws_secretsmanager_secret.ca_cert[count.index].id
   secret_string = tls_self_signed_cert.ca[count.index].cert_pem
 }
@@ -394,7 +394,9 @@ exec consul agent -server \
 %{endif~}
   -hcl 'node_name = "${local.node_name}"' \
   -hcl='datacenter = "${var.datacenter}"' \
+%{if false~}
   -hcl='domain = "${var.domain}"' \
+%{endif~}
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
@@ -443,9 +445,11 @@ cd /consul
 echo "$CONSUL_CACERT_PEM" > ./consul-agent-ca.pem
 echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
 consul tls cert create -server \
-  -node="${var.name}" \
+  -node="${local.node_name}" \
   -dc="${var.datacenter}" \
+%{if false~}
   -domain="${var.domain}" \
+%{endif~}
   -additional-ipaddress=$ECS_IPV4 \
 %{if length(var.additional_dns_names) > 0~}
   %{for dnsname in var.additional_dns_names~}

@@ -228,13 +228,13 @@ variable "wan_port" {
 }
 
 variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
+  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
 }
 
 variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway for cluster peering."
+  description = "List of WAN addresses to join for Consul cluster federation. Must not be provided when using mesh-gateway for WAN federation."
   type        = list(string)
   default     = []
 }
