@@ -19,8 +19,7 @@ locals {
   node_name                          = var.node_name != "" ? var.node_name : var.name
 
   // If the user has passed an explicit Cloud Map service discovery namespace then use it.
-  // Otherwise set the namespace to match the SAN for the Consul server: server.<datacenter>.<domain>
-  // TODO service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : "server.${var.datacenter}.${var.domain}"
+  // Otherwise set the namespace to match the datacenter for the Consul server.
   service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : var.datacenter
 }
 
@@ -394,9 +393,6 @@ exec consul agent -server \
 %{endif~}
   -hcl 'node_name = "${local.node_name}"' \
   -hcl='datacenter = "${var.datacenter}"' \
-%{if false~}
-  -hcl='domain = "${var.domain}"' \
-%{endif~}
   -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
@@ -447,9 +443,6 @@ echo "$CONSUL_CAKEY" > ./consul-agent-ca-key.pem
 consul tls cert create -server \
   -node="${local.node_name}" \
   -dc="${var.datacenter}" \
-%{if false~}
-  -domain="${var.domain}" \
-%{endif~}
   -additional-ipaddress=$ECS_IPV4 \
 %{if length(var.additional_dns_names) > 0~}
   %{for dnsname in var.additional_dns_names~}

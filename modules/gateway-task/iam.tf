@@ -43,7 +43,7 @@ resource "aws_iam_role" "task" {
 
   tags = {
     "consul.hashicorp.com.service-name" = local.service_name
-    "consul.hashicorp.com.namespace"    = var.consul_namespace
+    "consul.hashicorp.com.partition"    = var.consul_partition
   }
 }
 

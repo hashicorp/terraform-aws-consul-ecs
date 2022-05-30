@@ -22,13 +22,19 @@ variable "consul_service_meta" {
 }
 
 variable "consul_namespace" {
-  description = "The Consul namespace to use to register this service [Consul Enterprise]."
+  description = "The Consul namespace to use to register this gateway [Consul Enterprise]."
   type        = string
   default     = ""
+
+  validation {
+    error_message = "Gateway namespace must be 'default' or the empty string."
+    condition     = var.consul_namespace == "" || var.consul_namespace == "default"
+  }
+
 }
 
 variable "consul_partition" {
-  description = "The Consul admin partition to use to register this service [Consul Enterprise]."
+  description = "The Consul admin partition to use to register this gateway [Consul Enterprise]."
   type        = string
   default     = ""
 }
@@ -198,8 +204,8 @@ variable "kind" {
   type        = string
 
   validation {
-    error_message = "Gateway kind must be one of 'mesh-gateway', 'terminating-gateway', 'ingress-gateway'."
-    condition     = contains(["mesh-gateway", "terminating-gateway", "ingress-gateway"], var.kind)
+    error_message = "Gateway kind must be 'mesh-gateway'."
+    condition     = contains(["mesh-gateway"], var.kind)
   }
 }
 
