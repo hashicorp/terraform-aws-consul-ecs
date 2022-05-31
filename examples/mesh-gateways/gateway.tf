@@ -17,6 +17,7 @@ module "dc1_gateway" {
   ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
+  consul_http_addr                   = "http://${module.dc1.dev_consul_server.server_dns}:8500"
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
@@ -37,6 +38,7 @@ module "dc2_gateway" {
   ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
+  consul_http_addr                   = "http://${module.dc2.dev_consul_server.server_dns}:8500"
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]

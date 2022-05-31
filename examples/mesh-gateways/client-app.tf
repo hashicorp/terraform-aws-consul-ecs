@@ -20,6 +20,9 @@ module "example_client_app" {
   port                      = "9090"
   consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
   consul_datacenter         = local.primary_datacenter
+  acls                      = true
+  consul_http_addr          = "http://${module.dc1.dev_consul_server.server_dns}:8500"
+  consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
   tls                       = true
   consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
   gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
