@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "3.63.0"
+      version = "~> 3.0"
     }
   }
 }
@@ -91,6 +91,8 @@ module "example_client_app" {
     }
   }]
   retry_join = [module.dev_consul_server.server_dns]
+
+  consul_http_addr = "http://${module.dev_consul_server.server_dns}:8500"
 }
 
 # The server app is part of the service mesh. It's called
@@ -137,6 +139,8 @@ module "example_server_app" {
     }
   ]
   retry_join = [module.dev_consul_server.server_dns]
+
+  consul_http_addr = "http://${module.dev_consul_server.server_dns}:8500"
 }
 
 resource "aws_lb" "example_client_app" {

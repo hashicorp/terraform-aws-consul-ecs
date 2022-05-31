@@ -136,13 +136,16 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
+  // This contains Iryna's changes for the 'consul connect envoy' command for agentless poc on k8s.
+  // https://github.com/hashicorp/consul-enterprise/commit/bd6a4296f98507928a9afec04ec84d952f97af63
+  default = "ghcr.io/pglass/consul-dev:ent"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
+  // This contains changes to do service registration with the Consul servers instead of the agent.
+  default = "ghcr.io/pglass/consul-ecs-dev:latest"
 }
 
 variable "envoy_image" {

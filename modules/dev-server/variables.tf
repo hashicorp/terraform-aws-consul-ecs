@@ -58,7 +58,10 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
+  // This commit of Consul enables servers to configure arbitrary proxies using catalog data.
+  // https://github.com/hashicorp/consul/pull/13244
+  default = "docker.mirror.hashicorp.services/hashicorpdev/consul:2427e3883"
+  // default  = "public.ecr.aws/hashicorp/consul:1.12.0"
 }
 
 variable "consul_license" {

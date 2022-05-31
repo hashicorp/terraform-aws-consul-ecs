@@ -389,6 +389,7 @@ exec consul agent -server \
   -advertise "$ECS_IPV4" \
   -client 0.0.0.0 \
   -data-dir /tmp/consul-data \
+  -hcl='ports { grpc = 8502 }' \
 %{if var.gossip_encryption_enabled~}
   -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
 %{endif~}
