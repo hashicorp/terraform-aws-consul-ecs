@@ -19,6 +19,11 @@ module "dev_consul_server" {
   gossip_encryption_enabled      = true
   generate_gossip_encryption_key = false
   gossip_key_secret_arn          = var.gossip_key_arn
+  acls                           = true
+  bootstrap_token                = var.bootstrap_token
+  bootstrap_token_arn            = var.bootstrap_token_arn
+  generate_bootstrap_token       = false
+  replication_token              = var.replication_token
   log_configuration = {
     logDriver = "awslogs"
     options = {

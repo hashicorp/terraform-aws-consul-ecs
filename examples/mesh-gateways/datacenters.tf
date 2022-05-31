@@ -24,6 +24,9 @@ module "dc1" {
   ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
   gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_federation = true
+
+  bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  bootstrap_token     = random_uuid.bootstrap_token.result
 }
 
 module "dc2" {
@@ -46,6 +49,23 @@ module "dc2" {
   // To enable WAN federation via mesh gateways all secondary datacenters must be
   // configured with the WAN address of the mesh gateway(s) in the primary datacenter.
   primary_gateways = ["${module.dc1_gateway.lb_dns_name}:8443"]
+
+  // To enable ACL replication for secondary datacenters we need to provide a replication token.
+  bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  bootstrap_token     = random_uuid.bootstrap_token.result
+  // TODO this should be a replication token with only the necessary ACL policies.
+  replication_token = random_uuid.bootstrap_token.result
+}
+
+resource "random_uuid" "bootstrap_token" {}
+
+resource "aws_secretsmanager_secret" "bootstrap_token" {
+  name = "${var.name}-bootstrap-token-shared"
+}
+
+resource "aws_secretsmanager_secret_version" "bootstrap_token" {
+  secret_id     = aws_secretsmanager_secret.bootstrap_token.id
+  secret_string = random_uuid.bootstrap_token.result
 }
 
 resource "tls_private_key" "ca" {
