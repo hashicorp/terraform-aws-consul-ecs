@@ -1,30 +1,14 @@
 locals {
-  // We use a splat trick to workaround a Terraform limitation: `The "count" value
-  // depends on resource attributes that cannot be determined until apply`
-  //
-  // Basically, users will pass in the output value of another resource. That resource
-  // may not be created during the planning phase, so Terraform cannot inspect the value
-  // to set a `count` field. So it errors.
-  //
-  // The workaround uses a splat to convert to 1-length or 0-length list.
-  //
-  // "If the value is anything other than a null value then the splat expression will transform
-  // it into a single-element list...If the value is null then the splat expression will return
-  // an empty tuple."
-  // https://www.terraform.io/docs/language/expressions/splat.html#single-values-as-lists
-  create_task_role      = length(var.task_role[*]) == 0 ? true : length(var.task_role.id[*]) == 0
-  create_execution_role = length(var.execution_role[*]) == 0 ? true : length(var.execution_role.id[*]) == 0
-
-  execution_role_id = local.create_execution_role ? aws_iam_role.execution[0].id : var.execution_role.id
-  task_role_id      = local.create_task_role ? aws_iam_role.task[0].id : var.task_role.id
+  execution_role_id = var.create_execution_role ? aws_iam_role.execution[0].id : lookup(var.execution_role, "id", null)
+  task_role_id      = var.create_task_role ? aws_iam_role.task[0].id : lookup(var.task_role, "id", null)
   // We need the ARN for the task definition.
-  execution_role_arn = local.create_execution_role ? aws_iam_role.execution[0].arn : var.execution_role.arn
-  task_role_arn      = local.create_task_role ? aws_iam_role.task[0].arn : var.task_role.arn
+  execution_role_arn = var.create_execution_role ? aws_iam_role.execution[0].arn : lookup(var.execution_role, "arn", null)
+  task_role_arn      = var.create_task_role ? aws_iam_role.task[0].arn : lookup(var.task_role, "arn", null)
 }
 
-// Create the task role
+// Create the task role if create_task_role=true
 resource "aws_iam_role" "task" {
-  count = local.create_task_role ? 1 : 0
+  count = var.create_task_role ? 1 : 0
   path  = var.iam_role_path
 
   name = "${var.family}-task"
@@ -49,8 +33,10 @@ resource "aws_iam_role" "task" {
 
 // If acls are enabled, the task role must be configured with an `iam:GetRole` permission
 // to fetch itself, in order to be compatbile with the auth method.
+//
+// Only create this if create_task_role=true
 resource "aws_iam_policy" "task" {
-  count       = var.acls ? 1 : 0
+  count       = var.acls && var.create_task_role ? 1 : 0
   name        = "${var.family}-task"
   path        = var.iam_role_path
   description = "${var.family} mesh-task task policy"
@@ -73,22 +59,24 @@ resource "aws_iam_policy" "task" {
 EOF
 }
 
-
 resource "aws_iam_role_policy_attachment" "task" {
-  count      = var.acls ? 1 : 0
+  count      = var.acls && var.create_task_role ? 1 : 0
   role       = local.task_role_id
   policy_arn = aws_iam_policy.task[count.index].arn
 }
 
+// Only attach extra policies if create_task_role=true.
+// We have a validation to ensure additional_task_role_policies can only
+// be passed when var.create_task_role=true.
 resource "aws_iam_role_policy_attachment" "additional_task_policies" {
-  count      = length(var.additional_task_role_policies)
+  count      = var.create_task_role ? length(var.additional_task_role_policies) : 0
   role       = local.task_role_id
   policy_arn = var.additional_task_role_policies[count.index]
 }
 
-// Create the execution role and attach policies
+// Create the execution role if var.create_execution_role=true
 resource "aws_iam_role" "execution" {
-  count = local.create_execution_role ? 1 : 0
+  count = var.create_execution_role ? 1 : 0
   name  = "${var.family}-execution"
   path  = var.iam_role_path
 
@@ -104,10 +92,11 @@ resource "aws_iam_role" "execution" {
       }
     ]
   })
-
 }
 
+// Only create and attach this policy if var.create_execution_role=true
 resource "aws_iam_policy" "execution" {
+  count       = var.create_execution_role ? 1 : 0
   name        = "${var.family}-execution"
   path        = var.iam_role_path
   description = "${var.family} mesh-task execution policy"
@@ -152,12 +141,16 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "execution" {
+  count      = var.create_execution_role ? 1 : 0
   role       = local.execution_role_id
-  policy_arn = aws_iam_policy.execution.arn
+  policy_arn = aws_iam_policy.execution[count.index].arn
 }
 
+// Only attach extra policies if create_execution_role=true.
+// We have a validation to ensure additional_execution_role_policies can only
+// be passed when var.create_execution_role=true.
 resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
-  count      = length(var.additional_execution_role_policies)
+  count      = var.create_execution_role ? length(var.additional_execution_role_policies) : 0
   role       = local.execution_role_id
   policy_arn = var.additional_execution_role_policies[count.index]
 }

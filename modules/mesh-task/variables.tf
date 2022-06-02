@@ -62,6 +62,12 @@ variable "volumes" {
   default     = []
 }
 
+variable "create_task_role" {
+  description = "Whether mesh-task will create the task IAM role. Defaults to true."
+  type        = bool
+  default     = true
+}
+
 variable "task_role" {
   description = "ECS task role to include in the task definition. If not provided, a role is created."
   type = object({
@@ -72,6 +78,12 @@ variable "task_role" {
     id  = null
     arn = null
   }
+}
+
+variable "create_execution_role" {
+  description = "Whether mesh-task will create the execution IAM role. Defaults to true."
+  type        = bool
+  default     = true
 }
 
 variable "execution_role" {
