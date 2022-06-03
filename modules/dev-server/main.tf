@@ -1,11 +1,15 @@
 locals {
   // Determine which secrets are provided and which ones need to be created.
-  generate_gossip_key = var.gossip_encryption_enabled && var.generate_gossip_encryption_key
-  generate_ca         = var.tls && var.generate_ca
+  generate_gossip_key      = var.gossip_encryption_enabled && var.generate_gossip_encryption_key
+  generate_ca              = var.tls && var.generate_ca
+  generate_bootstrap_token = var.acls && var.generate_bootstrap_token
 
-  gossip_key_arn = local.generate_gossip_key ? aws_secretsmanager_secret.gossip_key[0].arn : var.gossip_key_secret_arn
-  ca_cert_arn    = local.generate_ca ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
-  ca_key_arn     = local.generate_ca ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
+  gossip_key_arn      = local.generate_gossip_key ? aws_secretsmanager_secret.gossip_key[0].arn : var.gossip_key_secret_arn
+  ca_cert_arn         = local.generate_ca ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
+  ca_key_arn          = local.generate_ca ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
+  bootstrap_token_arn = local.generate_bootstrap_token ? aws_secretsmanager_secret.bootstrap_token[0].arn : var.bootstrap_token_arn
+
+  bootstrap_token = var.bootstrap_token != "" ? var.bootstrap_token : random_uuid.bootstrap_token[0].result
 
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
@@ -193,7 +197,7 @@ resource "aws_ecs_task_definition" "this" {
           var.acls ? [
             {
               name      = "CONSUL_HTTP_TOKEN"
-              valueFrom = aws_secretsmanager_secret.bootstrap_token[0].arn
+              valueFrom = local.bootstrap_token_arn
             },
           ] : [],
           local.consul_enterprise_enabled ? [
@@ -235,7 +239,7 @@ resource "aws_iam_policy" "this_execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${aws_secretsmanager_secret.bootstrap_token[0].arn}"
+        "${local.bootstrap_token_arn}"
       ]
     },
 %{endif~}
@@ -356,18 +360,18 @@ resource "aws_service_discovery_service" "server" {
 }
 
 resource "random_uuid" "bootstrap_token" {
-  count = var.acls ? 1 : 0
+  count = local.generate_bootstrap_token ? 1 : 0
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
-  count = var.acls ? 1 : 0
+  count = local.generate_bootstrap_token ? 1 : 0
   name  = "${var.name}-bootstrap-token"
 }
 
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
-  count         = var.acls ? 1 : 0
+  count         = local.generate_bootstrap_token ? 1 : 0
   secret_id     = aws_secretsmanager_secret.bootstrap_token[count.index].id
-  secret_string = random_uuid.bootstrap_token[count.index].result
+  secret_string = local.bootstrap_token
 }
 
 locals {
@@ -408,7 +412,13 @@ exec consul agent -server \
 %{endif~}
 %{if var.acls~}
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \
-  -hcl='acl = { tokens = { master = "${random_uuid.bootstrap_token[0].result}" }}' \
+  -hcl='acl = { tokens = { master = "${local.bootstrap_token}", agent = "${local.bootstrap_token}" }}' \
+%{endif~}
+%{if var.acls && local.enable_mesh_gateway_wan_federation~}
+  -hcl='acl = { enable_token_replication = true }' \
+%{endif~}
+%{if var.acls && var.replication_token != ""~}
+  -hcl='acl = { tokens = { replication = "${var.replication_token}"}}' \
 %{endif~}
 %{if var.primary_datacenter != ""~}
   -hcl='primary_datacenter = "${var.primary_datacenter}"' \

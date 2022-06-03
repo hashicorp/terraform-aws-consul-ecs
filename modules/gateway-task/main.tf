@@ -21,6 +21,7 @@ locals {
   service_name = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // Optionally, users can provide a partition and namespace for the service.
+  // Note that for gateway tasks the namespace is validated and can only be "default" or empty.
   partition_tag = var.consul_partition != "" ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
   namespace_tag = var.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
