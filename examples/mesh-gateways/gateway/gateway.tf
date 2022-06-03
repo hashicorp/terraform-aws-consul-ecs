@@ -29,6 +29,11 @@ module "mesh_gateway" {
   consul_https_ca_cert_arn = var.ca_cert_arn
 
   consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+
+  consul_agent_configuration = <<EOT
+  acl = { enable_token_replication = true }
+  primary_datacenter = "${var.primary_datacenter}"
+EOT
 }
 
 resource "aws_ecs_service" "mesh_gateway" {

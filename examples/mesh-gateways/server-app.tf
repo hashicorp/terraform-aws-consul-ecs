@@ -38,6 +38,11 @@ module "example_server_app" {
       }
     ]
   }]
+
+  consul_agent_configuration = <<EOT
+  acl = { enable_token_replication = true }
+  primary_datacenter = "${local.primary_datacenter}"
+EOT
 }
 
 resource "aws_ecs_service" "example_server_app" {
