@@ -21,6 +21,8 @@ module "dc1_gateway" {
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  primary_datacenter = local.primary_datacenter
 }
 
 // DC2 gateway
@@ -42,6 +44,8 @@ module "dc2_gateway" {
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  primary_datacenter = local.primary_datacenter
 }
 
 // Policy that allows execution of remote commands in ECS tasks.
