@@ -10,13 +10,13 @@ variable "consul_service_name" {
 }
 
 variable "consul_service_tags" {
-  description = "A list of tags included in the Consul service registration."
+  description = "A list of tags included in the Consul gateway registration."
   type        = list(string)
   default     = []
 }
 
 variable "consul_service_meta" {
-  description = "A map of metadata that will be used for the Consul service registration"
+  description = "A map of metadata that will be used for the Consul gateway registration"
   type        = map(string)
   default     = {}
 }
@@ -55,30 +55,6 @@ variable "memory" {
   description = "Amount (in MiB) of memory used by the task."
   type        = number
   default     = 512
-}
-
-variable "task_role" {
-  description = "ECS task role to include in the task definition. If not provided, a role is created."
-  type = object({
-    id  = string
-    arn = string
-  })
-  default = {
-    id  = null
-    arn = null
-  }
-}
-
-variable "execution_role" {
-  description = "ECS execution role to include in the task definition. If not provided, a role is created."
-  type = object({
-    id  = string
-    arn = string
-  })
-  default = {
-    id  = null
-    arn = null
-  }
 }
 
 variable "iam_role_path" {
