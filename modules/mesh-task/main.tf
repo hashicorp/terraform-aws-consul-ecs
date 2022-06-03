@@ -24,7 +24,9 @@ locals {
     "/consul/consul-ecs", "app-entrypoint", "-shutdown-delay", "${var.application_shutdown_delay_seconds}s",
   ] : null
   app_mountpoints = local.enable_app_entrypoint ? [local.consul_data_mount] : []
-  service_name    = var.consul_service_name != "" ? var.consul_service_name : var.family
+
+  // Lower case service name is required. var.consul_service_name is validated to be lower case, while the task family is forced to lower case
+  service_name = var.consul_service_name != "" ? var.consul_service_name : lower(var.family)
 
   // Optionally, users can provide a partition and namespace for the service.
   partition_tag = var.consul_partition != "" ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}

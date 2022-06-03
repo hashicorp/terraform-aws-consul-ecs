@@ -12,6 +12,10 @@ BREAKING CHANGES
   [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
   [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
   [[GH-107](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/107)]
+* modules/mesh-task: A lower case service name is required. When the `consul_service_name` field is
+  specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
+  is not specified, the lower-cased task family is used for the Consul service name.
+  [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
 
 FEATURES
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather

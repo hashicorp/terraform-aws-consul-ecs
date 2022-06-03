@@ -264,6 +264,50 @@ func TestValidation_ChecksVariable(t *testing.T) {
 
 }
 
+func TestValidation_ConsulServiceName(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		serviceName string
+		error       bool
+	}{
+		"empty": {},
+		"lowercase": {
+			serviceName: "lower-case-name",
+		},
+		"uppercase": {
+			serviceName: "UPPER-CASE-NAME",
+			error:       true,
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/service-name-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"consul_service_name": c.serviceName,
+				},
+			})
+
+			if c.error {
+				require.Error(t, err)
+				require.Regexp(t, "The consul_service_name must be lower case.", out)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+
+}
+
 func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 	t.Parallel()
 
@@ -535,7 +579,7 @@ func TestBasic(t *testing.T) {
 					"--cluster",
 					suite.Config().ECSClusterARN,
 					"--family",
-					fmt.Sprintf("test_client_%s", randomSuffix),
+					fmt.Sprintf("Test_Client_%s", randomSuffix),
 				},
 			})
 
