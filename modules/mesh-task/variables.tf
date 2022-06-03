@@ -63,13 +63,13 @@ variable "volumes" {
 }
 
 variable "create_task_role" {
-  description = "Whether mesh-task will create the task IAM role. Defaults to true."
+  description = "Whether mesh-task will create the task IAM role. Defaults to true. This must be set to false when passing in an existing role using the `task_role` variable."
   type        = bool
   default     = true
 }
 
 variable "task_role" {
-  description = "ECS task role to include in the task definition. If not provided, a role is created."
+  description = "ECS task role to include in the task definition. You must also set `create_task_role=false` so that mesh-task knows not to create a role for you. When ACLs are enabled and the AWS IAM auth method is used, the task role must be correctly configured with an `iam:GetRole` permission to fetch itself, and must be tagged with a `consul.hashicorp.com.service-name` tag containing the Consul service name and a `consul.hashicorp.com.namespace` tag containing the Consul Enterprise namespace (if applicable)."
   type = object({
     id  = string
     arn = string
@@ -81,13 +81,13 @@ variable "task_role" {
 }
 
 variable "create_execution_role" {
-  description = "Whether mesh-task will create the execution IAM role. Defaults to true."
+  description = "Whether mesh-task will create the execution IAM role. Defaults to true. This must be set to false when passing in an existing role using the `execution_role` variable."
   type        = bool
   default     = true
 }
 
 variable "execution_role" {
-  description = "ECS execution role to include in the task definition. If not provided, a role is created."
+  description = "ECS execution role to include in the task definition. You must also set `create_execution_role=false` so that mesh-task knows not to create a role for you."
   type = object({
     id  = string
     arn = string

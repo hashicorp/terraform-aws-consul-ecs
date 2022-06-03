@@ -16,6 +16,11 @@ BREAKING CHANGES
   specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
   is not specified, the lower-cased task family is used for the Consul service name.
   [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
+* modules/mesh-task: Add `create_task_role` and `create_execution_role` flags to mesh-task. When
+  passing existing roles using the `task_role` and `execution_role` input variables, you must also
+  set `create_task_role=false` and `create_execution_role=false`, respectively, to ensure no roles
+  are created and that the passed roles are used by the task definition. The `mesh-task` module
+  will no longer add policies or attempt to configure roles which are passed in.
 
 FEATURES
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather

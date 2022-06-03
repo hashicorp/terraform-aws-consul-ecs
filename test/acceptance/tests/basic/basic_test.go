@@ -215,9 +215,8 @@ func TestValidation_AdditionalPolicies(t *testing.T) {
 				},
 			})
 			require.Error(t, err)
-			regex := fmt.Sprintf("no file exists at %q", c.errMsg)
 			// error messages are wrapped, so a space may turn into a newline.
-			regex = strings.ReplaceAll(regexp.QuoteMeta(regex), " ", "\\s+")
+			regex := strings.ReplaceAll(regexp.QuoteMeta(c.errMsg), " ", "\\s+")
 			require.Regexp(t, regex, err.Error())
 		})
 	}
