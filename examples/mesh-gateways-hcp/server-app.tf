@@ -17,14 +17,14 @@ module "example_server_app" {
   family                    = local.example_server_app_name
   port                      = "9090"
   consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+  consul_image              = var.consul_image
   consul_datacenter         = local.secondary_datacenter
   acls                      = true
-  consul_http_addr          = "http://${module.dc2.dev_consul_server.server_dns}:8500"
-  consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
+  consul_http_addr          = module.dc2.consul_private_endpoint_url
   tls                       = true
-  consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
-  retry_join                = [module.dc2.dev_consul_server.server_dns]
+  consul_server_ca_cert_arn = module.dc2.ca_cert_secret_arn
+  gossip_key_secret_arn     = module.dc2.gossip_key_secret_arn
+  retry_join                = module.dc2.retry_join
   log_configuration         = local.example_server_app_log_config
   container_definitions = [{
     name             = "example-server-app"
@@ -38,6 +38,11 @@ module "example_server_app" {
       }
     ]
   }]
+
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  consul_partition = "default"
+  consul_namespace = "default"
 
   consul_agent_configuration = <<EOT
   acl = { enable_token_replication = true }

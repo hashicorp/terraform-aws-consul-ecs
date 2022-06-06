@@ -19,18 +19,18 @@ module "example_client_app" {
   family                    = local.example_client_app_name
   port                      = "9090"
   consul_ecs_image          = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+  consul_image              = var.consul_image
   consul_datacenter         = local.primary_datacenter
   acls                      = true
-  consul_http_addr          = "http://${module.dc1.dev_consul_server.server_dns}:8500"
-  consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
+  consul_http_addr          = module.dc1.consul_private_endpoint_url
   tls                       = true
-  consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
-  retry_join                = [module.dc1.dev_consul_server.server_dns]
+  consul_server_ca_cert_arn = module.dc1.ca_cert_secret_arn
+  gossip_key_secret_arn     = module.dc1.gossip_key_secret_arn
+  retry_join                = module.dc1.retry_join
   upstreams = [
     {
       destinationName = "${var.name}-${local.secondary_datacenter}-example-server-app"
-      datacenter      = "dc2"
+      datacenter      = local.secondary_datacenter
       localBindPort   = 1234
       meshGateway = {
         mode = "local"
@@ -64,6 +64,9 @@ module "example_client_app" {
   }]
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  consul_partition = "default"
+  consul_namespace = "default"
 
   consul_agent_configuration = <<EOT
   acl = { enable_token_replication = true }
@@ -123,15 +126,6 @@ resource "aws_security_group_rule" "ingress_from_client_alb_to_ecs" {
   to_port                  = 65535
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.example_client_app_alb.id
-  security_group_id        = module.dc1_vpc.default_security_group_id
-}
-
-resource "aws_security_group_rule" "ingress_from_server_alb_to_ecs" {
-  type                     = "ingress"
-  from_port                = 8500
-  to_port                  = 8500
-  protocol                 = "tcp"
-  source_security_group_id = module.dc1.dev_consul_server.lb_security_group_id
   security_group_id        = module.dc1_vpc.default_security_group_id
 }
 

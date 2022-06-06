@@ -15,15 +15,14 @@ resource "random_string" "name_prefix" {
 module "acl_controller" {
   source = "../../../modules/acl-controller"
 
-  name_prefix               = random_string.name_prefix.result
-  ecs_cluster_arn           = aws_ecs_cluster.this.arn
-  region                    = var.region
-  subnets                   = var.private_subnets
-  consul_server_http_addr   = "http://${module.dev_consul_server.server_dns}:8500"
-  consul_server_ca_cert_arn = var.ca_cert_arn
-  launch_type               = "FARGATE"
+  name_prefix             = random_string.name_prefix.result
+  ecs_cluster_arn         = aws_ecs_cluster.this.arn
+  region                  = var.region
+  subnets                 = var.vpc.private_subnets
+  consul_server_http_addr = hcp_consul_cluster.this.consul_private_endpoint_url
+  launch_type             = "FARGATE"
 
-  consul_bootstrap_token_secret_arn = var.bootstrap_token_arn
+  consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
 
   log_configuration = {
     logDriver = "awslogs"
@@ -35,4 +34,7 @@ module "acl_controller" {
   }
 
   consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+
+  consul_partitions_enabled = true
+  consul_partition          = "default"
 }

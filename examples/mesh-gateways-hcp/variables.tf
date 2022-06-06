@@ -3,6 +3,12 @@ variable "name" {
   type        = string
 }
 
+variable "consul_image" {
+  description = "The Consul image to use. Should be enterprise for HCP servers."
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.0-ent"
+}
+
 variable "datacenter_names" {
   description = "Names of Consul datacenters to use."
   type        = list(string)

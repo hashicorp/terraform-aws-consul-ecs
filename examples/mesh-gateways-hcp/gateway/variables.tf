@@ -13,6 +13,10 @@ variable "region" {
   type        = string
 }
 
+variable "consul_image" {
+  type = string
+}
+
 variable "vpc" {
   description = "VPC object from terraform-aws-modules/vpc/aws module."
   type = object({
@@ -104,4 +108,3 @@ variable "additional_task_role_policies" {
   type        = list(string)
   default     = []
 }
-

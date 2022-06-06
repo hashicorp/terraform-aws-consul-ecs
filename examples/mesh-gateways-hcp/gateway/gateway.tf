@@ -24,11 +24,16 @@ module "mesh_gateway" {
   wan_port                           = 8443
   additional_task_role_policies      = var.additional_task_role_policies
 
-  acls                     = true
-  consul_http_addr         = var.consul_http_addr
-  consul_https_ca_cert_arn = var.ca_cert_arn
+  acls             = true
+  consul_http_addr = var.consul_http_addr
+  // not needed for hcp
+  // consul_https_ca_cert_arn = var.ca_cert_arn
 
   consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
+  consul_image     = var.consul_image
+
+  consul_partition = "default"
+  consul_namespace = "default"
 
   consul_agent_configuration = <<EOT
   acl = { enable_token_replication = true }
