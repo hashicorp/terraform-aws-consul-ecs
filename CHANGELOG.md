@@ -1,4 +1,4 @@
-## Unreleased
+## 0.5.0-beta1 (Jun 6, 2022)
 
 BREAKING CHANGES
 * modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
