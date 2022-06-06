@@ -18,6 +18,8 @@ BREAKING CHANGES
   [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
 
 FEATURES
+* modules/mesh-task: Update default Consul image to 1.12.0 and default Envoy image to 1.21.2.
+  [[GH-114](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/114)]
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather
  than leaving a 30 day recovery window.
  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
