@@ -37,7 +37,6 @@ EOT
 }
 
 resource "aws_ecs_service" "mesh_gateway" {
-  // Mesh-init '-mesh-gateway' but we need it here to distinguish the service.
   name            = var.name
   cluster         = var.cluster
   task_definition = module.mesh_gateway.task_definition_arn
