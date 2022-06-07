@@ -41,9 +41,14 @@ acl {
   tokens {
     agent = "$AGENT_TOKEN"
   }
+  enable_token_replication = ${enable_token_replication}
 }
 %{ endif ~}
 
 %{ if partition != null && partition != "" ~}
 partition = "${partition}"
+%{ endif ~}
+
+%{ if primary_datacenter != "" ~}
+primary_datacenter = "${primary_datacenter}"
 %{ endif ~}

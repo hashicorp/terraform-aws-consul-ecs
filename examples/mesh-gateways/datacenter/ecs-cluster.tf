@@ -34,5 +34,5 @@ module "acl_controller" {
     }
   }
 
-  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:f3c9238"
+  consul_ecs_image = var.consul_ecs_image
 }

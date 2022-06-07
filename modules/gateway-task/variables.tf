@@ -187,10 +187,22 @@ variable "acls" {
   default     = false
 }
 
+variable "enable_acl_token_replication" {
+  type        = bool
+  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the mesh-task is part of a WAN federated Consul service mesh."
+  default     = false
+}
+
 variable "consul_datacenter" {
   type        = string
   description = "The name of the Consul datacenter the client belongs to."
   default     = "dc1"
+}
+
+variable "consul_primary_datacenter" {
+  type        = string
+  description = "The name of the primary Consul datacenter. Required when the mesh-task is part of a WAN federated Consul service mesh."
+  default     = ""
 }
 
 variable "consul_agent_configuration" {

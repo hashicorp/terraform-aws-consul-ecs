@@ -16,6 +16,7 @@ module "mesh_gateway" {
   retry_join                         = var.retry_join
   kind                               = "mesh-gateway"
   consul_datacenter                  = var.datacenter
+  consul_primary_datacenter          = var.primary_datacenter
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
   tls                                = true
   consul_server_ca_cert_arn          = var.ca_cert_arn
@@ -24,16 +25,12 @@ module "mesh_gateway" {
   wan_port                           = 8443
   additional_task_role_policies      = var.additional_task_role_policies
 
-  acls                     = true
-  consul_http_addr         = var.consul_http_addr
-  consul_https_ca_cert_arn = var.ca_cert_arn
+  acls                         = true
+  enable_acl_token_replication = true
+  consul_http_addr             = var.consul_http_addr
+  consul_https_ca_cert_arn     = var.ca_cert_arn
 
-  consul_ecs_image = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
-
-  consul_agent_configuration = <<EOT
-  acl = { enable_token_replication = true }
-  primary_datacenter = "${var.primary_datacenter}"
-EOT
+  consul_ecs_image = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "mesh_gateway" {

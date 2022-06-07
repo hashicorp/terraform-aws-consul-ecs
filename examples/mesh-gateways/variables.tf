@@ -24,3 +24,9 @@ variable "lb_ingress_ip" {
   description = "Your IP. This is used in the load balancer security groups to ensure only you can access the Consul UI and example application."
   type        = string
 }
+
+variable "consul_ecs_image" {
+  description = "Consul ECS image to use in all tasks."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+}

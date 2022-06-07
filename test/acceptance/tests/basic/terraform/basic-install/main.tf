@@ -94,14 +94,15 @@ module "consul_server" {
       awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
-  launch_type                 = var.launch_type
-  service_discovery_namespace = "consul-${var.suffix}"
+  launch_type = var.launch_type
 
   tags = var.tags
 
-  tls                   = var.secure
-  gossip_key_secret_arn = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                  = var.secure
+  tls                            = var.secure
+  gossip_encryption_enabled      = var.secure
+  generate_gossip_encryption_key = false
+  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
+  acls                           = var.secure
 }
 
 data "aws_security_group" "vpc_default" {
