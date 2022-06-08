@@ -23,6 +23,8 @@ module "dc1_gateway" {
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
   primary_datacenter = local.primary_datacenter
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 // DC2 gateway
@@ -46,6 +48,8 @@ module "dc2_gateway" {
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
   primary_datacenter = local.primary_datacenter
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 // Policy that allows execution of remote commands in ECS tasks.

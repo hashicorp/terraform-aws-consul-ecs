@@ -16,7 +16,6 @@ module "example_server_app" {
   source                       = "../../modules/mesh-task"
   family                       = local.example_server_app_name
   port                         = "9090"
-  consul_ecs_image             = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
   consul_datacenter            = local.secondary_datacenter
   consul_primary_datacenter    = local.primary_datacenter
   acls                         = true
@@ -40,6 +39,8 @@ module "example_server_app" {
       }
     ]
   }]
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 resource "aws_ecs_service" "example_server_app" {

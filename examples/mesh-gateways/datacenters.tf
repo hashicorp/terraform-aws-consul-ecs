@@ -27,6 +27,8 @@ module "dc1" {
 
   bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
   bootstrap_token     = random_uuid.bootstrap_token.result
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 module "dc2" {
@@ -53,8 +55,12 @@ module "dc2" {
   // To enable ACL replication for secondary datacenters we need to provide a replication token.
   bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
   bootstrap_token     = random_uuid.bootstrap_token.result
+
   // TODO this should be a replication token with only the necessary ACL policies.
+  // See https://www.consul.io/docs/security/acl/acl-federated-datacenters#create-the-replication-token-for-acl-management
   replication_token = random_uuid.bootstrap_token.result
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 resource "random_uuid" "bootstrap_token" {}

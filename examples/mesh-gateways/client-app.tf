@@ -18,7 +18,6 @@ module "example_client_app" {
   source                       = "../../modules/mesh-task"
   family                       = local.example_client_app_name
   port                         = "9090"
-  consul_ecs_image             = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0d327c1"
   consul_datacenter            = local.primary_datacenter
   consul_primary_datacenter    = local.primary_datacenter
   acls                         = true
@@ -66,6 +65,7 @@ module "example_client_app" {
   }]
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
   consul_ecs_image = var.consul_ecs_image
 }
 

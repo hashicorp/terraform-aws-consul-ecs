@@ -105,3 +105,8 @@ variable "additional_task_role_policies" {
   default     = []
 }
 
+variable "consul_ecs_image" {
+  description = "Consul ECS image to use in all tasks."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+}
