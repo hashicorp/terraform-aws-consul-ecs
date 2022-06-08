@@ -10,21 +10,13 @@ variable "consul_service_name" {
 }
 
 variable "consul_service_tags" {
-<<<<<<< HEAD
-  description = "A list of tags included in the Consul service registration."
-=======
   description = "A list of tags included in the Consul gateway registration."
->>>>>>> main
   type        = list(string)
   default     = []
 }
 
 variable "consul_service_meta" {
-<<<<<<< HEAD
-  description = "A map of metadata that will be used for the Consul service registration"
-=======
   description = "A map of metadata that will be used for the Consul gateway registration"
->>>>>>> main
   type        = map(string)
   default     = {}
 }
@@ -65,33 +57,6 @@ variable "memory" {
   default     = 512
 }
 
-<<<<<<< HEAD
-variable "task_role" {
-  description = "ECS task role to include in the task definition. If not provided, a role is created."
-  type = object({
-    id  = string
-    arn = string
-  })
-  default = {
-    id  = null
-    arn = null
-  }
-}
-
-variable "execution_role" {
-  description = "ECS execution role to include in the task definition. If not provided, a role is created."
-  type = object({
-    id  = string
-    arn = string
-  })
-  default = {
-    id  = null
-    arn = null
-  }
-}
-
-=======
->>>>>>> main
 variable "iam_role_path" {
   description = "The path where IAM roles will be created."
   type        = string
