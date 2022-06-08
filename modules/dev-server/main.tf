@@ -444,6 +444,7 @@ consul tls cert create -server \
   -node="${local.node_name}" \
   -dc="${var.datacenter}" \
   -additional-ipaddress=$ECS_IPV4 \
+  -additional-dnsname="${var.name}.${local.service_discovery_namespace}" \
 %{if length(var.additional_dns_names) > 0~}
   %{for dnsname in var.additional_dns_names~}
     -additional-dnsname="${dnsname}" \
