@@ -81,9 +81,9 @@ variable "name" {
 }
 
 variable "service_discovery_namespace" {
-  description = "The namespace where the Consul server service will be registered with AWS CloudMap."
+  description = "The namespace where the Consul server service will be registered with AWS Cloud Map. Defaults to the Consul server domain name: server.<datacenter>.<domain>."
   type        = string
-  default     = "consul"
+  default     = ""
 }
 
 variable "tags" {
@@ -110,8 +110,38 @@ variable "tls" {
   default     = false
 }
 
+variable "generate_ca" {
+  description = "Controls whether or not a CA key and certificate will automatically be created and stored in Secrets Manager. Default is true. Set this to false and set ca_cert_arn and ca_key_arn to provide pre-existing secrets."
+  type        = bool
+  default     = true
+}
+
+variable "ca_cert_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate."
+  type        = string
+  default     = ""
+}
+
+variable "ca_key_arn" {
+  description = "The Secrets Manager ARN of the Consul CA certificate key."
+  type        = string
+  default     = ""
+}
+
+variable "gossip_encryption_enabled" {
+  description = "Whether or not to enable gossip encryption."
+  type        = bool
+  default     = false
+}
+
+variable "generate_gossip_encryption_key" {
+  description = "Controls whether or not a gossip encryption key will automatically be created and stored in Secrets Manager. Default is true. Set this to false and set gossip_key_secret_arn to provide a pre-existing secret."
+  type        = bool
+  default     = true
+}
+
 variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
+  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will automatically be created and stored in Secrets Manager if gossip encryption is enabled and this variable is not provided."
   type        = string
   default     = ""
 }
@@ -126,4 +156,50 @@ variable "wait_for_steady_state" {
   description = "Set wait_for_steady_state on the ECS service. This causes Terraform to wait for the Consul server task to be deployed."
   type        = bool
   default     = false
+}
+
+variable "datacenter" {
+  description = "Consul datacenter. Defaults to 'dc1'."
+  type        = string
+  default     = "dc1"
+}
+
+variable "node_name" {
+  description = "Node name of the Consul server. Defaults to the value of 'var.name'."
+  type        = string
+  default     = ""
+}
+
+variable "primary_datacenter" {
+  description = "Consul primary datacenter. Required when joining Consul datacenters via mesh gateways. All datacenters are required to use the same primary datacenter."
+  type        = string
+  default     = ""
+}
+
+variable "retry_join_wan" {
+  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway WAN federation."
+  type        = list(string)
+  default     = []
+}
+
+variable "primary_gateways" {
+  description = "List of WAN addresses of the primary mesh gateways for Consul servers in secondary datacenters to use to reach the Consul servers in the primary datcenter."
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_mesh_gateway_wan_federation" {
+  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
+  type        = bool
+  default     = false
+}
+
+variable "additional_dns_names" {
+  description = "List of additional DNS names to add to the Subject Alternative Name (SAN) field of the server's certificate."
+  type        = list(string)
+  default     = []
+}
+
+locals {
+  retry_join_wan_xor_primary_gateways = length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0 ? file("ERROR: Only one of retry_join_wan or primary_gateways may be provided.") : null
 }

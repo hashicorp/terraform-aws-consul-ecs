@@ -20,12 +20,12 @@ output "lb_security_group_id" {
 
 output "ca_cert_arn" {
   description = "The ARN of the CA certificate secret for the Consul server."
-  value       = var.tls ? aws_secretsmanager_secret.ca_cert[0].arn : null
+  value       = local.ca_cert_arn != "" ? local.ca_cert_arn : null
 }
 
 output "ca_key_arn" {
   description = "The ARN of the CA key secret for the Consul server."
-  value       = var.tls ? aws_secretsmanager_secret.ca_key[0].arn : null
+  value       = local.ca_key_arn != "" ? local.ca_key_arn : null
 }
 
 output "server_dns" {
@@ -41,4 +41,9 @@ output "bootstrap_token_secret_arn" {
 output "bootstrap_token_id" {
   description = "The Consul secret ID of the bootstrap ACL token."
   value       = var.acls ? random_uuid.bootstrap_token[0].result : null
+}
+
+output "gossip_key_arn" {
+  description = "The Secrets Manager ARN of the gossip encryption key."
+  value       = local.gossip_key_arn != "" ? local.gossip_key_arn : null
 }
