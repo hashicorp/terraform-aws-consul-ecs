@@ -10,13 +10,21 @@ variable "consul_service_name" {
 }
 
 variable "consul_service_tags" {
+<<<<<<< HEAD
   description = "A list of tags included in the Consul service registration."
+=======
+  description = "A list of tags included in the Consul gateway registration."
+>>>>>>> main
   type        = list(string)
   default     = []
 }
 
 variable "consul_service_meta" {
+<<<<<<< HEAD
   description = "A map of metadata that will be used for the Consul service registration"
+=======
+  description = "A map of metadata that will be used for the Consul gateway registration"
+>>>>>>> main
   type        = map(string)
   default     = {}
 }
@@ -57,6 +65,7 @@ variable "memory" {
   default     = 512
 }
 
+<<<<<<< HEAD
 variable "task_role" {
   description = "ECS task role to include in the task definition. If not provided, a role is created."
   type = object({
@@ -81,6 +90,8 @@ variable "execution_role" {
   }
 }
 
+=======
+>>>>>>> main
 variable "iam_role_path" {
   description = "The path where IAM roles will be created."
   type        = string
@@ -189,7 +200,7 @@ variable "acls" {
 
 variable "enable_acl_token_replication" {
   type        = bool
-  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the mesh-task is part of a WAN federated Consul service mesh."
+  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the gateway-task is part of a WAN federated Consul service mesh."
   default     = false
 }
 
@@ -201,7 +212,7 @@ variable "consul_datacenter" {
 
 variable "consul_primary_datacenter" {
   type        = string
-  description = "The name of the primary Consul datacenter. Required when the mesh-task is part of a WAN federated Consul service mesh."
+  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN federated Consul service mesh."
   default     = ""
 }
 

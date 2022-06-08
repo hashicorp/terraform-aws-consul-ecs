@@ -1,4 +1,4 @@
-## Unreleased
+## 0.5.0-beta1 (Jun 6, 2022)
 
 BREAKING CHANGES
 * modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
@@ -12,8 +12,14 @@ BREAKING CHANGES
   [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
   [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
   [[GH-107](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/107)]
+* modules/mesh-task: A lower case service name is required. When the `consul_service_name` field is
+  specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
+  is not specified, the lower-cased task family is used for the Consul service name.
+  [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
 
 FEATURES
+* modules/mesh-task: Update default Consul image to 1.12.0 and default Envoy image to 1.21.2.
+  [[GH-114](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/114)]
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather
  than leaving a 30 day recovery window.
  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]

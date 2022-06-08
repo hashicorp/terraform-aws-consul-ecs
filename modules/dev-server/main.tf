@@ -440,6 +440,26 @@ exec consul agent -server \
   %{endfor~}
   ]' \
 %{endif~}
+%{if var.primary_datacenter != ""~}
+  -hcl='primary_datacenter = "${var.primary_datacenter}"' \
+%{endif~}
+%{if length(var.retry_join_wan) > 0~}
+  -hcl='retry_join_wan = [
+  %{for addr in var.retry_join_wan~}
+    "${addr}",
+  %{endfor~}
+  ]' \
+%{endif~}
+%{if local.enable_mesh_gateway_wan_federation~}
+  -hcl='connect { enable_mesh_gateway_wan_federation = true }' \
+%{endif~}
+%{if length(var.primary_gateways) > 0~}
+  -hcl='primary_gateways = [
+  %{for addr in var.primary_gateways~}
+    "${addr}",
+  %{endfor~}
+  ]' \
+%{endif~}
 EOF
 
   // We use this command to generate the server certs dynamically before the servers start

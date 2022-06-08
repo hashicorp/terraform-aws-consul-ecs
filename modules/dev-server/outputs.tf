@@ -47,3 +47,8 @@ output "gossip_key_arn" {
   description = "The Secrets Manager ARN of the gossip encryption key."
   value       = local.gossip_key_arn != "" ? local.gossip_key_arn : null
 }
+
+output "gossip_key_arn" {
+  description = "The Secrets Manager ARN of the gossip encryption key."
+  value       = local.gossip_key_arn != "" ? local.gossip_key_arn : null
+}

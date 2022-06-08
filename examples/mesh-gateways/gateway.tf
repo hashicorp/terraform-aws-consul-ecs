@@ -12,19 +12,17 @@ module "dc1_gateway" {
   public_subnets  = module.dc1_vpc.public_subnets
   cluster         = module.dc1.ecs_cluster.arn
   log_group_name  = module.dc1.log_group.name
-  datacenter      = local.primary_datacenter
-  retry_join      = [module.dc1.dev_consul_server.server_dns]
-  ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
+  consul_ecs_image                   = var.consul_ecs_image
+  datacenter                         = local.primary_datacenter
+  primary_datacenter                 = local.primary_datacenter
+  retry_join                         = [module.dc1.dev_consul_server.server_dns]
+  ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   consul_http_addr                   = "http://${module.dc1.dev_consul_server.server_dns}:8500"
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
-
-  primary_datacenter = local.primary_datacenter
-
-  consul_ecs_image = var.consul_ecs_image
 }
 
 // DC2 gateway
@@ -37,19 +35,17 @@ module "dc2_gateway" {
   public_subnets  = module.dc2_vpc.public_subnets
   cluster         = module.dc2.ecs_cluster.arn
   log_group_name  = module.dc2.log_group.name
-  datacenter      = local.secondary_datacenter
-  retry_join      = [module.dc2.dev_consul_server.server_dns]
-  ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_arn  = aws_secretsmanager_secret.gossip_key.arn
 
+  consul_ecs_image                   = var.consul_ecs_image
+  datacenter                         = local.secondary_datacenter
+  primary_datacenter                 = local.primary_datacenter
+  retry_join                         = [module.dc2.dev_consul_server.server_dns]
+  ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   consul_http_addr                   = "http://${module.dc2.dev_consul_server.server_dns}:8500"
   enable_mesh_gateway_wan_federation = true
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
-
-  primary_datacenter = local.primary_datacenter
-
-  consul_ecs_image = var.consul_ecs_image
 }
 
 // Policy that allows execution of remote commands in ECS tasks.
