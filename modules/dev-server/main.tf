@@ -8,8 +8,7 @@ locals {
   ca_cert_arn         = local.generate_ca ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
   ca_key_arn          = local.generate_ca ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
   bootstrap_token_arn = local.generate_bootstrap_token ? aws_secretsmanager_secret.bootstrap_token[0].arn : var.bootstrap_token_arn
-
-  bootstrap_token = var.bootstrap_token != "" ? var.bootstrap_token : random_uuid.bootstrap_token[0].result
+  bootstrap_token     = var.bootstrap_token != "" ? var.bootstrap_token : random_uuid.bootstrap_token.result
 
   load_balancer = var.lb_enabled ? [{
     target_group_arn = aws_lb_target_group.this[0].arn
@@ -359,9 +358,7 @@ resource "aws_service_discovery_service" "server" {
   }
 }
 
-resource "random_uuid" "bootstrap_token" {
-  count = local.generate_bootstrap_token ? 1 : 0
-}
+resource "random_uuid" "bootstrap_token" {}
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
   count = local.generate_bootstrap_token ? 1 : 0

@@ -483,6 +483,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 		ns                      string
 		retryJoinWAN            []string
 		enableMeshGatewayWANFed bool
+		tls                     bool
 		expError                string
 	}{
 		"kind is required": {
@@ -510,9 +511,17 @@ func TestValidation_MeshGateway(t *testing.T) {
 			enableMeshGatewayWANFed: false,
 			retryJoinWAN:            []string{},
 		},
+		"mesh gateway WAN federation, no TLS": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			tls:                     false,
+			retryJoinWAN:            []string{},
+			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
+		},
 		"mesh gateway WAN federation": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: true,
+			tls:                     true,
 			retryJoinWAN:            []string{},
 		},
 		"retry join WAN federation": {
@@ -536,6 +545,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 				"consul_namespace":                   c.ns,
 				"retry_join_wan":                     c.retryJoinWAN,
 				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
+				"tls":                                c.tls,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
@@ -548,9 +558,6 @@ func TestValidation_MeshGateway(t *testing.T) {
 			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
 
 			_, err := terraform.PlanE(t, applyOpts)
-			if err != nil {
-				fmt.Printf("ERROR = >>> %v <<< \n", err)
-			}
 			if len(c.expError) > 0 {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expError)

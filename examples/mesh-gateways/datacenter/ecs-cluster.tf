@@ -7,15 +7,10 @@ resource "aws_cloudwatch_log_group" "log_group" {
   name = var.name
 }
 
-resource "random_string" "name_prefix" {
-  length  = 6
-  special = false
-}
-
 module "acl_controller" {
   source = "../../../modules/acl-controller"
 
-  name_prefix               = random_string.name_prefix.result
+  name_prefix               = var.name
   ecs_cluster_arn           = aws_ecs_cluster.this.arn
   region                    = var.region
   subnets                   = var.private_subnets
