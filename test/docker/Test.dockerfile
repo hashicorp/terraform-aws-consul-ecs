@@ -5,7 +5,7 @@ FROM cimg/go:1.17
 # change the user to root so we can install stuff
 USER root
 
-ENV TERRAFORM_VERSION "1.0.10"
+ENV TERRAFORM_VERSION "1.2.2"
 
 # base packages
 RUN apt-get install -y \
@@ -30,7 +30,8 @@ RUN curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "aws
 # session-manager-plugin for 'aws ecs execute-command'
 RUN curl -sSL https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb -o session-manager-plugin.deb \
     && sudo dpkg -i session-manager-plugin.deb  \
-    && rm session-manager-plugin.deb
+    && rm session-manager-plugin.deb \
+    && session-manager-plugin --version
 
 # ecs-cli
 RUN curl -sSLo /usr/local/bin/ecs-cli https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest \

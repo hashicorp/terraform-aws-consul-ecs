@@ -1,3 +1,12 @@
+## Unreleased
+
+BREAKING CHANGES
+* modules/mesh-task: Add `create_task_role` and `create_execution_role` flags to mesh-task. When
+  passing existing roles using the `task_role` and `execution_role` input variables, you must also
+  set `create_task_role=false` and `create_execution_role=false`, respectively, to ensure no roles
+  are created and that the passed roles are used by the task definition. The `mesh-task` module
+  will no longer add policies or attempt to configure roles which are passed in.
+
 ## 0.4.1 (April 8, 2022)
 
 BUG FIXES

@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -8,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -116,16 +119,137 @@ func TestVolumeVariable(t *testing.T) {
 	terraform.InitAndPlan(t, terraformOptions)
 }
 
+// TestPassingExistingRoles will create the task definitions to validate
+// creation and passing of IAM roles by mesh-task. It creates two task definitions
+// with mesh-task:
+//  - one which has mesh-task create the roles
+//  - one which passes in existing roles
+// This test does not start any services.
+//
+// Note: We don't have a validation for create_task_role=true XOR task_role=<non-null>.
+//       If the role is created as part of the terraform plan/apply and passed in to mesh-task,
+//       then the role is an unknown value during the plan, since it is not yet created, and you
+//       can't reliably test its value for validations.
 func TestPassingExistingRoles(t *testing.T) {
 	t.Parallel()
+
 	terraformOptions := &terraform.Options{
 		TerraformDir: "./terraform/pass-existing-iam-roles",
 		NoColor:      true,
 	}
+	terraform.Init(t, terraformOptions)
+
+	// Init AWS clients.
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+	require.NoError(t, err, "unable to initialize ECS client")
+	ecsClient := ecs.NewFromConfig(cfg)
+	iamClient := iam.NewFromConfig(cfg)
+
 	t.Cleanup(func() {
 		_, _ = terraform.DestroyE(t, terraformOptions)
 	})
-	terraform.InitAndPlan(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	outputs := terraform.OutputAll(t, terraformOptions)
+	suffix := outputs["suffix"].(string)
+
+	{
+		// Check that mesh-task creates roles by default.
+		taskDefArn := outputs["create_roles_task_definition_arn"].(string)
+		family := outputs["create_roles_family"].(string)
+
+		resp, err := ecsClient.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: &taskDefArn,
+		})
+		require.NoError(t, err)
+
+		// Expected role names, as created by mesh-task
+		expTaskRoleName := family + "-task"
+		expExecRoleName := family + "-execution"
+
+		// mesh-task should create roles and use them
+		taskDef := resp.TaskDefinition
+		require.NotNil(t, taskDef.TaskRoleArn)
+		require.NotNil(t, taskDef.ExecutionRoleArn)
+		require.Regexp(t, `arn:aws:iam::\d+:role/`+expTaskRoleName, *taskDef.TaskRoleArn)
+		require.Regexp(t, `arn:aws:iam::\d+:role/ecs/`+expExecRoleName, *taskDef.ExecutionRoleArn)
+
+		// Check that the roles were really created.
+		for _, roleName := range []string{expTaskRoleName, expExecRoleName} {
+			resp, err := iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: &roleName})
+			require.NoError(t, err)
+			require.Equal(t, *resp.Role.RoleName, roleName)
+		}
+	}
+
+	{
+		// Check that mesh-task uses the passed in roles and doesn't create roles when roles are passed in.
+		taskDefArn := outputs["pass_roles_task_definition_arn"].(string)
+		family := outputs["pass_roles_family"].(string)
+
+		resp, err := ecsClient.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: &taskDefArn,
+		})
+		require.NoError(t, err)
+
+		// mesh-task should use the passed in roles.
+		taskDef := resp.TaskDefinition
+		require.NotNil(t, taskDef.TaskRoleArn)
+		require.NotNil(t, taskDef.ExecutionRoleArn)
+		require.Regexp(t, `arn:aws:iam::\d+:role/consul-ecs-test-pass-task-role-`+suffix, *taskDef.TaskRoleArn)
+		require.Regexp(t, `arn:aws:iam::\d+:role/ecs/consul-ecs-test-pass-execution-role-`+suffix, *taskDef.ExecutionRoleArn)
+
+		// mesh-task should not create roles when they are passed in.
+		expTaskRoleName := family + "-task"
+		expExecRoleName := family + "-execution"
+		for _, roleName := range []string{expTaskRoleName, expExecRoleName} {
+			_, err := iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: &roleName})
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "StatusCode: 404")
+		}
+	}
+
+	t.Log("Test Successful!")
+}
+
+func TestValidation_AdditionalPolicies(t *testing.T) {
+	t.Parallel()
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/pass-role-additional-policies-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		execution bool
+		errMsg    string
+	}{
+		"task": {
+			execution: false,
+			errMsg:    "ERROR: cannot set additional_task_role_policies when create_task_role=false",
+		},
+		"execution": {
+			execution: true,
+			errMsg:    "ERROR: cannot set additional_execution_role_policies when create_execution_role=false",
+		},
+	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			_, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"test_execution_role": c.execution,
+				},
+			})
+			require.Error(t, err)
+			// error messages are wrapped, so a space may turn into a newline.
+			regex := strings.ReplaceAll(regexp.QuoteMeta(c.errMsg), " ", "\\s+")
+			require.Regexp(t, regex, err.Error())
+		})
+	}
 }
 
 func TestPassingAppEntrypoint(t *testing.T) {
