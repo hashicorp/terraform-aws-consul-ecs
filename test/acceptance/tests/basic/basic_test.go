@@ -584,7 +584,6 @@ func TestBasic(t *testing.T) {
 				serverServiceName = "custom_test_server"
 			}
 			tfVars["server_service_name"] = serverServiceName
-			tfVars["consul_ecs_image"] = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:f3c9238"
 
 			terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./terraform/basic-install",
