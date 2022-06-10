@@ -66,7 +66,8 @@ module "dc2" {
 resource "random_uuid" "bootstrap_token" {}
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
-  name = "${var.name}-bootstrap-token-shared"
+  name                    = "${var.name}-bootstrap-token-shared"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
