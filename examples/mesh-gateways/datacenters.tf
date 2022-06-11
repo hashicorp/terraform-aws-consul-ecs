@@ -63,6 +63,46 @@ module "dc2" {
   consul_ecs_image = var.consul_ecs_image
 }
 
+// Create a null_resource that will wait for the Consul server to be available via its ALB.
+// This allows us to wait until the Consul server is reachable before trying to create
+// Consul resources like config entries. If we don't wait, Terraform will fail to create
+// the necessary Consul resources.
+resource "null_resource" "wait_for_primary_consul_server" {
+  depends_on = [module.dc1]
+  triggers = {
+    // Trigger update when Consul server ALB DNS name changes.
+    consul_server_lb_dns_name = "${module.dc1.dev_consul_server.lb_dns_name}"
+  }
+  provisioner "local-exec" {
+    command = <<EOT
+stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
+while [ $(date +%s) -lt $stopTime ] ; do \
+  sleep 10 ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${module.dc1.dev_consul_server.lb_dns_name}:8500/v1/catalog/services)
+  [ $statusCode -eq 200 ] && break; \
+done
+EOT
+  }
+}
+
+// Create an intention to allow the example client to call the example server
+resource "consul_config_entry" "service_intention" {
+  kind = "service-intentions"
+  name = local.example_server_app_name
+
+  config_json = jsonencode({
+    Sources = [
+      {
+        Name       = local.example_client_app_name
+        Action     = "allow"
+        Precedence = 9
+        Type       = "consul"
+      }
+    ]
+  })
+  depends_on = [null_resource.wait_for_primary_consul_server]
+}
+
 resource "random_uuid" "bootstrap_token" {}
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
