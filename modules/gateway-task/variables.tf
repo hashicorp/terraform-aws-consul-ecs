@@ -21,18 +21,6 @@ variable "consul_service_meta" {
   default     = {}
 }
 
-variable "consul_namespace" {
-  description = "The Consul namespace to use to register this gateway [Consul Enterprise]."
-  type        = string
-  default     = ""
-
-  validation {
-    error_message = "Gateway namespace must be 'default' or the empty string."
-    condition     = var.consul_namespace == "" || var.consul_namespace == "default"
-  }
-
-}
-
 variable "consul_partition" {
   description = "The Consul admin partition to use to register this gateway [Consul Enterprise]."
   type        = string

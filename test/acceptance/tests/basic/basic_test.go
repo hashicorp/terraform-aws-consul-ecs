@@ -480,7 +480,6 @@ func TestValidation_MeshGateway(t *testing.T) {
 
 	cases := map[string]struct {
 		kind                    string
-		ns                      string
 		retryJoinWAN            []string
 		enableMeshGatewayWANFed bool
 		tls                     bool
@@ -498,16 +497,8 @@ func TestValidation_MeshGateway(t *testing.T) {
 			retryJoinWAN:            []string{},
 			expError:                `Gateway kind must be 'mesh-gateway'`,
 		},
-		"namespace must be empty or default": {
-			kind:                    "mesh-gateway",
-			ns:                      "invalid",
-			enableMeshGatewayWANFed: false,
-			retryJoinWAN:            []string{},
-			expError:                `Gateway namespace must be 'default' or the empty string`,
-		},
 		"no WAN federation": {
 			kind:                    "mesh-gateway",
-			ns:                      "default",
 			enableMeshGatewayWANFed: false,
 			retryJoinWAN:            []string{},
 		},
@@ -542,7 +533,6 @@ func TestValidation_MeshGateway(t *testing.T) {
 			t.Parallel()
 
 			tfVars := map[string]interface{}{
-				"consul_namespace":                   c.ns,
 				"retry_join_wan":                     c.retryJoinWAN,
 				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
 				"tls":                                c.tls,
