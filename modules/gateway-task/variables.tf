@@ -165,7 +165,7 @@ variable "acls" {
 
 variable "enable_acl_token_replication" {
   type        = bool
-  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the gateway-task is part of a WAN federated Consul service mesh."
+  description = "Whether or not to enable ACL token replication. ACL token replication is required when the gateway-task is part of a WAN-federated Consul service mesh."
   default     = false
 }
 
@@ -177,7 +177,7 @@ variable "consul_datacenter" {
 
 variable "consul_primary_datacenter" {
   type        = string
-  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN federated Consul service mesh."
+  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN-federated Consul service mesh."
   default     = ""
 }
 
