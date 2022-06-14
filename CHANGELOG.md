@@ -1,3 +1,20 @@
+## Unreleased
+
+FEATURES
+* modules/gateway-task, modules/mesh-task, modules/dev-server:
+  Update `gateway-task`, `mesh-task` and `dev-server` to enable ACL token replication
+  in Consul agents for WAN federation. Update `dev-server` to take a bootstrap token as
+  an input.
+  [[GH-116]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/116)
+* modules/gateway-task, modules/dev-server:
+  Add new `gateway-task` module to create mesh gateway ECS tasks that support Consul
+  WAN federation via mesh gateways. Update the `dev-server` module to accept TLS
+  and gossip encryption secrets so they can be passed in as variables. Modified the
+  `dev-server` agent command to support WAN federation and TLS. Updated the
+  `tls-init` container of the `dev-server` to create certs with SANs that
+  work with CloudMap.
+  [[GH-110]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/110)
+
 ## 0.5.0-beta1 (Jun 6, 2022)
 
 BREAKING CHANGES

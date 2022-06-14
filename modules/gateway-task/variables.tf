@@ -21,18 +21,6 @@ variable "consul_service_meta" {
   default     = {}
 }
 
-variable "consul_namespace" {
-  description = "The Consul namespace to use to register this gateway [Consul Enterprise]."
-  type        = string
-  default     = ""
-
-  validation {
-    error_message = "Gateway namespace must be 'default' or the empty string."
-    condition     = var.consul_namespace == "" || var.consul_namespace == "default"
-  }
-
-}
-
 variable "consul_partition" {
   description = "The Consul admin partition to use to register this gateway [Consul Enterprise]."
   type        = string
@@ -163,10 +151,22 @@ variable "acls" {
   default     = false
 }
 
+variable "enable_acl_token_replication" {
+  type        = bool
+  description = "Whether or not to enable ACL token replication. ACL token replication is required when the gateway-task is part of a WAN-federated Consul service mesh."
+  default     = false
+}
+
 variable "consul_datacenter" {
   type        = string
   description = "The name of the Consul datacenter the client belongs to."
   default     = "dc1"
+}
+
+variable "consul_primary_datacenter" {
+  type        = string
+  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN-federated Consul service mesh."
+  default     = ""
 }
 
 variable "consul_agent_configuration" {

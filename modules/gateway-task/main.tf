@@ -21,8 +21,9 @@ locals {
   service_name = var.consul_service_name != "" ? var.consul_service_name : var.family
 
   // Optionally, users can provide a partition and namespace for the service.
+  // Note that for gateway tasks the namespace is always "default" or empty.
   partition_tag = var.consul_partition != "" ? { "consul.hashicorp.com/partition" = var.consul_partition } : {}
-  namespace_tag = var.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
+  namespace_tag = local.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = local.consul_namespace } : {}
 
   consul_agent_defaults_hcl = templatefile(
     "${path.module}/templates/consul_agent_defaults.hcl.tpl",
@@ -32,6 +33,8 @@ locals {
       tls                       = var.tls
       acls                      = var.acls
       partition                 = var.consul_partition
+      primary_datacenter        = var.consul_primary_datacenter
+      enable_token_replication  = var.enable_acl_token_replication
     }
   )
 

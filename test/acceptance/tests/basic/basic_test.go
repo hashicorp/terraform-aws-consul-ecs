@@ -593,6 +593,95 @@ func TestValidation_RolePath(t *testing.T) {
 
 }
 
+func TestValidation_MeshGateway(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/mesh-gateway-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		kind                    string
+		retryJoinWAN            []string
+		enableMeshGatewayWANFed bool
+		tls                     bool
+		expError                string
+	}{
+		"kind is required": {
+			kind:                    "",
+			enableMeshGatewayWANFed: false,
+			retryJoinWAN:            []string{},
+			expError:                `variable "kind" is not set`,
+		},
+		"kind must be mesh-gateway": {
+			kind:                    "not-mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			retryJoinWAN:            []string{},
+			expError:                `Gateway kind must be 'mesh-gateway'`,
+		},
+		"no WAN federation": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			retryJoinWAN:            []string{},
+		},
+		"mesh gateway WAN federation, no TLS": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			tls:                     false,
+			retryJoinWAN:            []string{},
+			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
+		},
+		"mesh gateway WAN federation": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			tls:                     true,
+			retryJoinWAN:            []string{},
+		},
+		"retry join WAN federation": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			retryJoinWAN:            []string{"localhost:8500"},
+		},
+		"error on both": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			retryJoinWAN:            []string{"localhost:8500"},
+			expError:                "Only one of retry_join_wan or enable_mesh_gateway_wan_federation may be provided",
+		},
+	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tfVars := map[string]interface{}{
+				"retry_join_wan":                     c.retryJoinWAN,
+				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
+				"tls":                                c.tls,
+			}
+			if len(c.kind) > 0 {
+				tfVars["kind"] = c.kind
+			}
+			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      terraformOptions.NoColor,
+				Vars:         tfVars,
+			})
+			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
+
+			_, err := terraform.PlanE(t, applyOpts)
+			if len(c.expError) > 0 {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), c.expError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestBasic(t *testing.T) {
 	cases := []bool{true, false}
 	for _, secure := range cases {

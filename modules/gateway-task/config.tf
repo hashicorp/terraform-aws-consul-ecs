@@ -6,6 +6,9 @@ locals {
     extraLoginFlags = var.consul_partition != "" ? ["-partition", var.consul_partition] : []
   } : null
 
+  // The namespace for gateways is always "default" for enterprise or "" for OSS.
+  consul_namespace = var.consul_partition != "" ? "default" : ""
+
   // if mesh gateway WAN federation is enabled add the metadata to the gateway service registration that exposes the Consul servers.
   consul_service_meta = merge(
     var.consul_service_meta,
@@ -21,7 +24,7 @@ locals {
       name      = local.service_name
       tags      = var.consul_service_tags
       meta      = local.consul_service_meta
-      namespace = var.consul_namespace
+      namespace = local.consul_namespace
       partition = var.consul_partition
       lanAddress = {
         address = var.lan_address

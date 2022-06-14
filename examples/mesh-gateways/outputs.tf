@@ -13,3 +13,13 @@ output "client_lb_address" {
 output "private_subnets" {
   value = module.dc1_vpc.private_subnets
 }
+
+output "dc1_server_bootstrap_token" {
+  value     = module.dc1.dev_consul_server.bootstrap_token_id
+  sensitive = true
+}
+
+output "dc2_server_bootstrap_token" {
+  value     = module.dc2.dev_consul_server.bootstrap_token_id
+  sensitive = true
+}

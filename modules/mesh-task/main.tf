@@ -81,6 +81,8 @@ locals {
       tls                       = var.tls
       acls                      = var.acls
       partition                 = var.consul_partition
+      primary_datacenter        = var.consul_primary_datacenter
+      enable_token_replication  = var.enable_acl_token_replication
     }
   )
 }
