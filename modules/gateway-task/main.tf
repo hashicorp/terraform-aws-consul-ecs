@@ -79,136 +79,169 @@ resource "aws_ecs_task_definition" "this" {
   )
 
   container_definitions = jsonencode(
-    [
-      {
-        name             = "consul-ecs-mesh-init"
-        image            = var.consul_ecs_image
-        essential        = false
-        logConfiguration = var.log_configuration
-        command          = ["mesh-init"]
-        mountPoints = [
-          local.consul_data_mount_read_write,
+    flatten(
+      concat(
+        [
           {
-            sourceVolume  = local.consul_binary_volume_name
-            containerPath = "/bin/consul-inject"
-            readOnly      = true
-          }
-        ]
-        cpu         = 0
-        volumesFrom = []
-        environment = [
-          {
-            name  = "CONSUL_ECS_CONFIG_JSON",
-            value = local.encoded_config
-          }
-        ]
-        linuxParameters = {
-          initProcessEnabled = true
-        }
-      },
-      {
-        name             = "consul-client"
-        image            = var.consul_image
-        essential        = false
-        portMappings     = []
-        logConfiguration = var.log_configuration
-        entryPoint       = ["/bin/sh", "-ec"]
-        command = [replace(
-          templatefile(
-            "${path.module}/templates/consul_client_command.tpl",
-            {
-              consul_agent_defaults_hcl      = local.consul_agent_defaults_hcl
-              consul_agent_configuration_hcl = var.consul_agent_configuration
-              tls                            = var.tls
-              acls                           = var.acls
-              consul_http_addr               = var.consul_http_addr
-              https                          = var.consul_https_ca_cert_arn != ""
-              client_token_auth_method_name  = var.client_token_auth_method_name
-              consul_partition               = var.consul_partition
-              region                         = data.aws_region.current.name
+            name             = "consul-ecs-mesh-init"
+            image            = var.consul_ecs_image
+            essential        = false
+            logConfiguration = var.log_configuration
+            command          = ["mesh-init"]
+            mountPoints = [
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+                readOnly      = true
+              }
+            ]
+            cpu         = 0
+            volumesFrom = []
+            environment = [
+              {
+                name  = "CONSUL_ECS_CONFIG_JSON",
+                value = local.encoded_config
+              }
+            ]
+            linuxParameters = {
+              initProcessEnabled = true
             }
-          ), "\r", "")
-        ]
-        mountPoints = [
-          local.consul_data_mount_read_write,
-          {
-            sourceVolume  = local.consul_binary_volume_name
-            containerPath = "/bin/consul-inject"
-          }
-        ]
-        linuxParameters = {
-          initProcessEnabled = true
-        }
-        cpu         = 0
-        volumesFrom = []
-        environment = [
-          {
-            name  = "CONSUL_DATACENTER"
-            value = var.consul_datacenter
-          }
-        ]
-        secrets = concat(
-          var.tls ? [
-            {
-              name      = "CONSUL_CACERT_PEM",
-              valueFrom = var.consul_server_ca_cert_arn
-            }
-          ] : [],
-          var.consul_https_ca_cert_arn != "" ? [
-            {
-              name      = "CONSUL_HTTPS_CACERT_PEM",
-              valueFrom = var.consul_https_ca_cert_arn
-            }
-          ] : [],
-          local.gossip_encryption_enabled ? [
-            {
-              name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
-              valueFrom = var.gossip_key_secret_arn
-            }
-          ] : [],
-        )
-      },
-      {
-        name             = "sidecar-proxy"
-        image            = var.envoy_image
-        essential        = true
-        logConfiguration = var.log_configuration
-        command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
-        portMappings = [
-          {
-            containerPort = local.lan_port
-            hostPort      = local.lan_port
-            protocol      = "tcp"
-          }
-        ]
-        mountPoints = [
-          local.consul_data_mount
-        ]
-        dependsOn = [
-          {
-            containerName = "consul-ecs-mesh-init"
-            condition     = "SUCCESS"
           },
-        ]
-        healthCheck = {
-          command  = ["nc", "-z", "127.0.0.1", tostring(local.lan_port)]
-          interval = 30
-          retries  = 3
-          timeout  = 5
-        }
-        cpu         = 0
-        volumesFrom = []
-        environment = []
-        ulimits = [{
-          name = "nofile"
-          // Note: 2^20 (1048576) is the maximum.
-          // Going higher would need sysctl settings: https://github.com/aws/containers-roadmap/issues/460.
-          // AWS API will accept invalid values, and you will see a CannotStartContainerError at runtime.
-          softLimit = 1048576
-          hardLimit = 1048576
-        }]
-      },
-    ],
+          {
+            name             = "consul-client"
+            image            = var.consul_image
+            essential        = false
+            portMappings     = []
+            logConfiguration = var.log_configuration
+            entryPoint       = ["/bin/sh", "-ec"]
+            command = [replace(
+              templatefile(
+                "${path.module}/templates/consul_client_command.tpl",
+                {
+                  consul_agent_defaults_hcl      = local.consul_agent_defaults_hcl
+                  consul_agent_configuration_hcl = var.consul_agent_configuration
+                  tls                            = var.tls
+                  acls                           = var.acls
+                  consul_http_addr               = var.consul_http_addr
+                  https                          = var.consul_https_ca_cert_arn != ""
+                  client_token_auth_method_name  = var.client_token_auth_method_name
+                  consul_partition               = var.consul_partition
+                  region                         = data.aws_region.current.name
+                }
+              ), "\r", "")
+            ]
+            mountPoints = [
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+              }
+            ]
+            linuxParameters = {
+              initProcessEnabled = true
+            }
+            cpu         = 0
+            volumesFrom = []
+            environment = [
+              {
+                name  = "CONSUL_DATACENTER"
+                value = var.consul_datacenter
+              }
+            ]
+            secrets = concat(
+              var.tls ? [
+                {
+                  name      = "CONSUL_CACERT_PEM",
+                  valueFrom = var.consul_server_ca_cert_arn
+                }
+              ] : [],
+              var.consul_https_ca_cert_arn != "" ? [
+                {
+                  name      = "CONSUL_HTTPS_CACERT_PEM",
+                  valueFrom = var.consul_https_ca_cert_arn
+                }
+              ] : [],
+              local.gossip_encryption_enabled ? [
+                {
+                  name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
+                  valueFrom = var.gossip_key_secret_arn
+                }
+              ] : [],
+            )
+          },
+          {
+            name             = "sidecar-proxy"
+            image            = var.envoy_image
+            essential        = true
+            logConfiguration = var.log_configuration
+            command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
+            portMappings = [
+              {
+                containerPort = local.lan_port
+                hostPort      = local.lan_port
+                protocol      = "tcp"
+              }
+            ]
+            mountPoints = [
+              local.consul_data_mount
+            ]
+            dependsOn = [
+              {
+                containerName = "consul-ecs-mesh-init"
+                condition     = "SUCCESS"
+              },
+            ]
+            healthCheck = {
+              command  = ["nc", "-z", "127.0.0.1", tostring(local.lan_port)]
+              interval = 30
+              retries  = 3
+              timeout  = 5
+            }
+            cpu         = 0
+            volumesFrom = []
+            environment = []
+            ulimits = [{
+              name = "nofile"
+              // Note: 2^20 (1048576) is the maximum.
+              // Going higher would need sysctl settings: https://github.com/aws/containers-roadmap/issues/460.
+              // AWS API will accept invalid values, and you will see a CannotStartContainerError at runtime.
+              softLimit = 1048576
+              hardLimit = 1048576
+            }]
+          },
+        ],
+        // health-sync is enabled if acls are enabled, in order to run 'consul logout' to cleanup tokens when the task stops
+        var.acls ? [{
+          name             = "consul-ecs-health-sync"
+          image            = var.consul_ecs_image
+          essential        = false
+          logConfiguration = var.log_configuration
+          command          = ["health-sync"]
+          cpu              = 0
+          volumesFrom      = []
+          environment = [
+            {
+              name  = "CONSUL_ECS_CONFIG_JSON",
+              value = local.encoded_config
+            }
+          ]
+          portMappings = []
+          mountPoints = [
+            local.consul_data_mount
+          ]
+          dependsOn = [
+            {
+              containerName = "consul-ecs-mesh-init"
+              condition     = "SUCCESS"
+            },
+          ]
+          linuxParameters = {
+            initProcessEnabled = true
+          }
+        }] : [],
+      )
+    )
   )
 }
 
