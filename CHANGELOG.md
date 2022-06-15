@@ -1,6 +1,10 @@
 ## Unreleased
 
 FEATURES
+* modules/gateway-task: Add an optional configuration to have the `gateway-task` module
+  automatically create and configure a Network Load Balancer for public ingress. Update
+  the `gateway-task` module to create the ECS service definition.
+  [[GH-118]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/118)
 * modules/gateway-task, modules/mesh-task, modules/dev-server:
   Update `gateway-task`, `mesh-task` and `dev-server` to enable ACL token replication
   in Consul agents for WAN federation. Update `dev-server` to take a bootstrap token as
