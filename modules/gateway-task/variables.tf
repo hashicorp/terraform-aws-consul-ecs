@@ -3,6 +3,11 @@ variable "family" {
   type        = string
 }
 
+variable "ecs_cluster_arn" {
+  description = "The ARN of the ECS cluster where the gateway will be running."
+  type        = string
+}
+
 variable "consul_service_name" {
   description = "The name the gateway service will be registered as in Consul. Defaults to the Task family name. Always suffixed with the gateway kind."
   type        = string
@@ -31,6 +36,12 @@ variable "requires_compatibilities" {
   description = "Set of launch types required by the task."
   type        = list(string)
   default     = ["EC2", "FARGATE"]
+}
+
+variable "launch_type" {
+  description = "Launch type on which to run service. Valid values are EC2 and FARGATE."
+  type        = string
+  default     = "FARGATE"
 }
 
 variable "cpu" {
@@ -204,7 +215,7 @@ variable "wan_address" {
 }
 
 variable "wan_port" {
-  description = "WAN port for the gateway. Defaults to 8443 if not specified."
+  description = "WAN port for the gateway. Defaults to the lan_port if not specified."
   type        = number
   default     = 0
 }
@@ -215,8 +226,43 @@ variable "enable_mesh_gateway_wan_federation" {
   default     = false
 }
 
-variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul cluster federation. Must not be provided when using mesh-gateway for WAN federation."
+variable "security_groups" {
+  description = "Security group IDs that will be attached to the gateway. The default security group will be used if this is not specified. Required when lb_enabled is true so ingress rules can be added for the security groups."
   type        = list(string)
   default     = []
+}
+
+variable "subnets" {
+  description = "Subnets IDs where the gateway task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
+  type        = list(string)
+}
+
+variable "assign_public_ip" {
+  description = "Configure the ECS Service to assign a public IP to the task. This is required if running tasks on a public subnet."
+  type        = bool
+  default     = false
+}
+
+variable "lb_enabled" {
+  description = "Whether to create an Elastic Load Balancer for the task to allow public ingress to the gateway."
+  type        = bool
+  default     = false
+}
+
+variable "lb_vpc_id" {
+  description = "The VPC identifier for the load balancer. Required when lb_enabled is true."
+  type        = string
+  default     = ""
+}
+
+variable "lb_subnets" {
+  description = "Subnet IDs to attach to the load balancer. These must be public subnets if you wish to access the load balancer externally. Required when lb_enabled is true."
+  type        = list(string)
+  default     = []
+}
+
+variable "lb_ingress_rule_cidr_blocks" {
+  description = "CIDR blocks that are allowed access to the load balancer."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }

@@ -604,51 +604,70 @@ func TestValidation_MeshGateway(t *testing.T) {
 
 	cases := map[string]struct {
 		kind                    string
-		retryJoinWAN            []string
 		enableMeshGatewayWANFed bool
 		tls                     bool
+		securityGroups          []string
+		wanAddress              string
+		lbEnabled               bool
+		lbVpcID                 string
+		lbSubnets               []string
 		expError                string
 	}{
 		"kind is required": {
 			kind:                    "",
 			enableMeshGatewayWANFed: false,
-			retryJoinWAN:            []string{},
 			expError:                `variable "kind" is not set`,
 		},
 		"kind must be mesh-gateway": {
 			kind:                    "not-mesh-gateway",
 			enableMeshGatewayWANFed: false,
-			retryJoinWAN:            []string{},
 			expError:                `Gateway kind must be 'mesh-gateway'`,
 		},
 		"no WAN federation": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: false,
-			retryJoinWAN:            []string{},
 		},
 		"mesh gateway WAN federation, no TLS": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: true,
 			tls:                     false,
-			retryJoinWAN:            []string{},
 			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
 		},
 		"mesh gateway WAN federation": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: true,
 			tls:                     true,
-			retryJoinWAN:            []string{},
 		},
-		"retry join WAN federation": {
+		"WAN address and LB enabled": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: false,
-			retryJoinWAN:            []string{"localhost:8500"},
+			wanAddress:              "10.1.2.3",
+			lbEnabled:               true,
+			expError:                "Only one of wan_address or lb_enabled may be provided",
 		},
-		"error on both": {
+		"lb_enabled and no security groups": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			lbEnabled:               true,
+			lbVpcID:                 "vpc",
+			lbSubnets:               []string{"subnet"},
+			expError:                "security_groups is required when lb_enabled is true",
+		},
+		"lb_enabled and no lb subnets": {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: true,
-			retryJoinWAN:            []string{"localhost:8500"},
-			expError:                "Only one of retry_join_wan or enable_mesh_gateway_wan_federation may be provided",
+			securityGroups:          []string{"sg"},
+			lbEnabled:               true,
+			lbVpcID:                 "vpc",
+			expError:                "lb_subnets is required when lb_enabled is true",
+		},
+		"lb_enabled and no VPC": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			securityGroups:          []string{"sg"},
+			lbEnabled:               true,
+			lbSubnets:               []string{"subnet"},
+			expError:                "lb_vpc_id is required when lb_enabled is true",
 		},
 	}
 	for name, c := range cases {
@@ -657,9 +676,13 @@ func TestValidation_MeshGateway(t *testing.T) {
 			t.Parallel()
 
 			tfVars := map[string]interface{}{
-				"retry_join_wan":                     c.retryJoinWAN,
 				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
 				"tls":                                c.tls,
+				"security_groups":                    c.securityGroups,
+				"wan_address":                        c.wanAddress,
+				"lb_enabled":                         c.lbEnabled,
+				"lb_subnets":                         c.lbSubnets,
+				"lb_vpc_id":                          c.lbVpcID,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind

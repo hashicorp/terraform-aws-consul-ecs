@@ -6,10 +6,6 @@ variable "kind" {
   type = string
 }
 
-variable "retry_join_wan" {
-  type = list(string)
-}
-
 variable "enable_mesh_gateway_wan_federation" {
   type = bool
 }
@@ -18,12 +14,46 @@ variable "tls" {
   type = bool
 }
 
+variable "security_groups" {
+  type    = list(string)
+  default = []
+}
+
+variable "lb_enabled" {
+  description = "Whether to create an Elastic Load Balancer for the task to allow public ingress to the gateway."
+  type        = bool
+  default     = false
+}
+
+variable "lb_vpc_id" {
+  description = "The VPC identifier for the load balancer. Required when lb_enabled is true."
+  type        = string
+  default     = ""
+}
+
+variable "lb_subnets" {
+  description = "Subnet IDs to attach to the load balancer. These must be public subnets if you wish to access the load balancer externally. Required when lb_enabled is true."
+  type        = list(string)
+  default     = []
+}
+
+variable "wan_address" {
+  type    = string
+  default = ""
+}
+
 module "test_gateway" {
   source                             = "../../../../../../modules/gateway-task"
   family                             = "family"
+  ecs_cluster_arn                    = "cluster"
+  subnets                            = ["subnets"]
+  security_groups                    = var.security_groups
   kind                               = var.kind
   retry_join                         = ["localhost:8500"]
-  retry_join_wan                     = var.retry_join_wan
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
   tls                                = var.tls
+  wan_address                        = var.wan_address
+  lb_enabled                         = var.lb_enabled
+  lb_vpc_id                          = var.lb_vpc_id
+  lb_subnets                         = var.lb_subnets
 }
