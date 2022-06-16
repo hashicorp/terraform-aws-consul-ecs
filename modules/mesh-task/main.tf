@@ -70,8 +70,8 @@ locals {
 
   defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
   if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
-  // health-sync is enabled if acls are enabled, in order to run 'consul logout' to cleanup tokens when the task stops
-  health_sync_enabled = length(local.defaulted_check_containers) > 0 || var.acls
+  // health-sync is enabled always.
+  health_sync_enabled = true
 
   consul_agent_defaults_hcl = templatefile(
     "${path.module}/templates/consul_agent_defaults.hcl.tpl",
