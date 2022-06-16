@@ -58,10 +58,9 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  // This commit of Consul enables servers to configure arbitrary proxies using catalog data.
+  // This contains the change to enable servers to configure arbitrary proxies using catalog data.
   // https://github.com/hashicorp/consul/pull/13244
-  default = "docker.mirror.hashicorp.services/hashicorpdev/consul:2427e3883"
-  // default  = "public.ecr.aws/hashicorp/consul:1.12.0"
+  default = "docker.mirror.hashicorp.services/hashicorppreview/consul:1.13.0-dev-411edc876b4f14eb4abe2b01be882fde59c38e3c"
 }
 
 variable "consul_license" {
