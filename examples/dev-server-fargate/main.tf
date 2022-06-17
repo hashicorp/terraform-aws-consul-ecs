@@ -92,7 +92,15 @@ module "example_client_app" {
   }]
   retry_join = [module.dev_consul_server.server_dns]
 
-  consul_http_addr = "http://${module.dev_consul_server.server_dns}:8500"
+  consul_http_addr = "https://${module.dev_consul_server.server_dns}:8501"
+
+  tls                       = true
+  acls                      = true
+  gossip_key_secret_arn     = module.dev_consul_server.gossip_key_arn
+  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn // This cert for internal rpc shouldn't be needed in agentless?
+  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
+
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 # The server app is part of the service mesh. It's called
@@ -140,7 +148,15 @@ module "example_server_app" {
   ]
   retry_join = [module.dev_consul_server.server_dns]
 
-  consul_http_addr = "http://${module.dev_consul_server.server_dns}:8500"
+  consul_http_addr = "https://${module.dev_consul_server.server_dns}:8501"
+
+  tls                       = true
+  acls                      = true
+  gossip_key_secret_arn     = module.dev_consul_server.gossip_key_arn
+  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn // This cert for internal rpc shouldn't be needed in agentless?
+  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
+
+  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
 
 resource "aws_lb" "example_client_app" {
@@ -217,6 +233,32 @@ resource "aws_lb_listener" "example_client_app" {
 
 resource "aws_cloudwatch_log_group" "log_group" {
   name = var.name
+}
+
+
+// Policy to allow `aws execute-command`
+resource "aws_iam_policy" "execute-command" {
+  name   = "${var.name}-ecs-execute-command"
+  path   = "/consul-ecs/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
 }
 
 

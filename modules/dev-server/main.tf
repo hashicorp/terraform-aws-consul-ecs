@@ -260,7 +260,7 @@ resource "aws_iam_policy" "this_execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${var.gossip_key_secret_arn}"
+        "${local.gossip_key_arn}"
       ]
     },
 %{endif~}

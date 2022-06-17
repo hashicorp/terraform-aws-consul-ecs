@@ -1,7 +1,8 @@
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
+  // This contains my changes for the controller to do service deregistration.
+  default = "ghcr.io/pglass/consul-ecs-dev:latest"
 }
 
 variable "ecs_cluster_arn" {

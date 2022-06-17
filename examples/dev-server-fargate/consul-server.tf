@@ -17,6 +17,10 @@ module "dev_consul_server" {
     }
   }
   launch_type = "FARGATE"
+
+  tls                       = true
+  gossip_encryption_enabled = true
+  acls                      = true
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {
@@ -27,4 +31,24 @@ resource "aws_security_group_rule" "consul_server_ingress" {
   protocol                 = "-1"
   source_security_group_id = module.vpc.default_security_group_id
   security_group_id        = module.dev_consul_server.security_group_id
+}
+
+
+module "acl_controller" {
+  source = "../../modules/acl-controller"
+  log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = aws_cloudwatch_log_group.log_group.name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "consul-server"
+    }
+  }
+  consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn
+  consul_server_http_addr           = "https://${module.dev_consul_server.server_dns}:8501"
+  consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
+  ecs_cluster_arn                   = aws_ecs_cluster.this.arn
+  region                            = var.region
+  subnets                           = module.vpc.private_subnets
+  name_prefix                       = var.name
 }

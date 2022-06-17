@@ -290,7 +290,10 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["nc", "-z", "127.0.0.1", "20000"]
+              // Workaround for Envoy not binding to localhost for its public listener.
+              // https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/server_info.proto#enum-admin-v3-serverinfo-state
+              command = ["wget", "-o", "/dev/null", "-O", "-", "localhost:19000/ready"]
+              // command = ["nc", "-z", "127.0.0.1", "20000"]
               interval = 30
               retries  = 3
               timeout  = 5

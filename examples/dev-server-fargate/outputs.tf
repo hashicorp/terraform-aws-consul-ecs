@@ -5,3 +5,7 @@ output "consul_server_lb_address" {
 output "mesh_client_lb_address" {
   value = "http://${aws_lb.example_client_app.dns_name}:9090/ui"
 }
+
+output "token" {
+  value = module.dev_consul_server.bootstrap_token_id
+}
