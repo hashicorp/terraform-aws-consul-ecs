@@ -42,6 +42,22 @@ variable "wan_address" {
   default = ""
 }
 
+variable "lb_create_security_group" {
+  type    = bool
+  default = true
+}
+
+variable "lb_modify_security_group" {
+  type    = bool
+  default = false
+}
+
+variable "lb_modify_security_group_id" {
+  type    = string
+  default = ""
+}
+
+
 module "test_gateway" {
   source                             = "../../../../../../modules/gateway-task"
   family                             = "family"
@@ -56,4 +72,7 @@ module "test_gateway" {
   lb_enabled                         = var.lb_enabled
   lb_vpc_id                          = var.lb_vpc_id
   lb_subnets                         = var.lb_subnets
+  lb_create_security_group           = var.lb_create_security_group
+  lb_modify_security_group           = var.lb_modify_security_group
+  lb_modify_security_group_id        = var.lb_modify_security_group_id
 }

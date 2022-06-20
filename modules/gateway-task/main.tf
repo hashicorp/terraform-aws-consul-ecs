@@ -48,6 +48,11 @@ locals {
     container_name   = "sidecar-proxy"
     container_port   = local.lan_port
   }] : []
+
+  security_groups = var.lb_create_security_group ? concat(
+    var.security_groups,
+    [aws_security_group.this[0].id]
+  ) : var.security_groups
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -252,7 +257,7 @@ resource "aws_ecs_service" "this" {
   desired_count   = 1
   network_configuration {
     subnets          = var.subnets
-    security_groups  = var.security_groups
+    security_groups  = local.security_groups
     assign_public_ip = var.assign_public_ip
   }
   dynamic "load_balancer" {
@@ -301,13 +306,34 @@ resource "aws_lb_listener" "this" {
   }
 }
 
+resource "aws_security_group" "this" {
+  count       = var.lb_enabled && var.lb_create_security_group ? 1 : 0
+  name        = local.service_name
+  description = "Security group for ${local.service_name}"
+  vpc_id      = var.lb_vpc_id
+}
+
+// The Terraform module automatically removes the allow all egress rule when creating a security group.
+// When creating a security group we need to include the allow all egress rule.
+resource "aws_security_group_rule" "lb_egress_rule" {
+  count             = var.lb_enabled && var.lb_create_security_group ? 1 : 0
+  type              = "egress"
+  description       = "Egress rule for ${local.service_name}"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.this[0].id
+}
+
 resource "aws_security_group_rule" "lb_ingress_rule" {
-  count             = var.lb_enabled ? length(var.security_groups) : 0
+  count             = (var.lb_enabled && var.lb_create_security_group) || var.lb_modify_security_group ? 1 : 0
   type              = "ingress"
   description       = "Ingress rule for ${local.service_name}"
   from_port         = local.wan_port
   to_port           = local.wan_port
   protocol          = "tcp"
   cidr_blocks       = var.lb_ingress_rule_cidr_blocks
-  security_group_id = var.security_groups[count.index]
+  security_group_id = var.lb_create_security_group ? aws_security_group.this[0].id : var.lb_modify_security_group_id
 }

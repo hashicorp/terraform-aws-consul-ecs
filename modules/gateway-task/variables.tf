@@ -266,3 +266,21 @@ variable "lb_ingress_rule_cidr_blocks" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "lb_create_security_group" {
+  description = "Whether to create a security group and ingress rule for the gateway task."
+  type        = bool
+  default     = true
+}
+
+variable "lb_modify_security_group" {
+  description = "Whether to modify an existing security group with an ingress rule for the gateway task. The lb_create_security_group variable must be set to false when using this option."
+  type        = bool
+  default     = false
+}
+
+variable "lb_modify_security_group_id" {
+  description = "The ID of the security group to modify with an ingress rule for the gateway task. Required when lb_modify_security_group is true."
+  type        = string
+  default     = ""
+}

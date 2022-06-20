@@ -611,6 +611,9 @@ func TestValidation_MeshGateway(t *testing.T) {
 		lbEnabled               bool
 		lbVpcID                 string
 		lbSubnets               []string
+		lbCreateSecGroup        bool
+		lbModifySecGroup        bool
+		lbModifySecGroupID      string
 		expError                string
 	}{
 		"kind is required": {
@@ -645,29 +648,54 @@ func TestValidation_MeshGateway(t *testing.T) {
 			lbEnabled:               true,
 			expError:                "Only one of wan_address or lb_enabled may be provided",
 		},
-		"lb_enabled and no security groups": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: false,
-			lbEnabled:               true,
-			lbVpcID:                 "vpc",
-			lbSubnets:               []string{"subnet"},
-			expError:                "security_groups is required when lb_enabled is true",
+		"lb_enabled": {
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbSubnets: []string{"subnet"},
+			lbVpcID:   "vpc",
 		},
 		"lb_enabled and no lb subnets": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: true,
-			securityGroups:          []string{"sg"},
-			lbEnabled:               true,
-			lbVpcID:                 "vpc",
-			expError:                "lb_subnets is required when lb_enabled is true",
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbVpcID:   "vpc",
+			expError:  "lb_subnets is required when lb_enabled is true",
 		},
 		"lb_enabled and no VPC": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: true,
-			securityGroups:          []string{"sg"},
-			lbEnabled:               true,
-			lbSubnets:               []string{"subnet"},
-			expError:                "lb_vpc_id is required when lb_enabled is true",
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbSubnets: []string{"subnet"},
+			expError:  "lb_vpc_id is required when lb_enabled is true",
+		},
+		"lb create security group and modify security group": {
+			kind:             "mesh-gateway",
+			securityGroups:   []string{"sg"},
+			lbEnabled:        true,
+			lbSubnets:        []string{"subnet"},
+			lbVpcID:          "vpc",
+			lbCreateSecGroup: true,
+			lbModifySecGroup: true,
+			expError:         "Only one of lb_create_security_group or lb_modify_security_group may be true",
+		},
+		"lb modify security group and no security group ID": {
+			kind:               "mesh-gateway",
+			securityGroups:     []string{"sg"},
+			lbEnabled:          true,
+			lbSubnets:          []string{"subnet"},
+			lbVpcID:            "vpc",
+			lbCreateSecGroup:   false,
+			lbModifySecGroup:   true,
+			lbModifySecGroupID: "",
+			expError:           "lb_modify_security_group_id is required when lb_modify_security_group is true",
+		},
+		"lb modify security group with security group ID": {
+			kind:               "mesh-gateway",
+			securityGroups:     []string{"sg"},
+			lbEnabled:          true,
+			lbSubnets:          []string{"subnet"},
+			lbVpcID:            "vpc",
+			lbCreateSecGroup:   false,
+			lbModifySecGroup:   true,
+			lbModifySecGroupID: "mod-sg",
 		},
 	}
 	for name, c := range cases {
@@ -683,6 +711,9 @@ func TestValidation_MeshGateway(t *testing.T) {
 				"lb_enabled":                         c.lbEnabled,
 				"lb_subnets":                         c.lbSubnets,
 				"lb_vpc_id":                          c.lbVpcID,
+				"lb_create_security_group":           c.lbCreateSecGroup,
+				"lb_modify_security_group":           c.lbModifySecGroup,
+				"lb_modify_security_group_id":        c.lbModifySecGroupID,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
