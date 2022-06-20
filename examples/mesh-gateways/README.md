@@ -188,7 +188,7 @@ that looks like:
 The connection is red because the service mesh is no longer allowing `ecs-dc1-example-client-app` to 
 make requests to `ecs-dc2-example-server-app`.
 
-If you delete the intention through the Consul UI, the traffic should flow again.
+If you reset the intention back to **Allow** through the Consul UI, the traffic will flow again.
 
 ## Cleanup
 
