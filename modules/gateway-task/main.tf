@@ -328,7 +328,7 @@ resource "aws_security_group_rule" "lb_egress_rule" {
 }
 
 resource "aws_security_group_rule" "lb_ingress_rule" {
-  count             = (var.lb_enabled && var.lb_create_security_group) || var.lb_modify_security_group ? 1 : 0
+  count             = var.lb_enabled && (var.lb_create_security_group || var.lb_modify_security_group) ? 1 : 0
   type              = "ingress"
   description       = "Ingress rule for ${local.service_name}"
   from_port         = local.wan_port
