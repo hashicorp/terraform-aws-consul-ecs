@@ -29,3 +29,7 @@ output "wan_address" {
 output "wan_port" {
   value = local.wan_port
 }
+
+output "lb_security_group_id" {
+  value = var.lb_enabled && var.lb_create_security_group ? aws_security_group.this[0].id : null
+}
