@@ -1,6 +1,9 @@
 ## Unreleased
 
 FEATURES
+* modules/gateway-task: Add a `health-sync` container to `gateway-task` when ACLs are enabled
+  to perform a `consul logout` when the task stops.
+  [[GH-120]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/120)
 * modules/gateway-task: Add an optional configuration to have the `gateway-task` module
   automatically create and configure a Network Load Balancer for public ingress. Update
   the `gateway-task` module to create the ECS service definition.
