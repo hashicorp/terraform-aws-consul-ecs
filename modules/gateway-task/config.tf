@@ -28,11 +28,11 @@ locals {
       partition = var.consul_partition
       lanAddress = {
         address = var.lan_address
-        port    = var.lan_port
+        port    = local.lan_port
       }
       wanAddress = {
-        address = var.wan_address
-        port    = var.wan_port
+        address = local.wan_address
+        port    = local.wan_port
       }
     }
     healthSyncContainers = []

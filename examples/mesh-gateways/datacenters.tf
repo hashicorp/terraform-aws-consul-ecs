@@ -50,7 +50,7 @@ module "dc2" {
 
   // To enable WAN federation via mesh gateways all secondary datacenters must be
   // configured with the WAN address of the mesh gateway(s) in the primary datacenter.
-  primary_gateways = ["${module.dc1_gateway.lb_dns_name}:8443"]
+  primary_gateways = ["${module.dc1_gateway.wan_address}:${module.dc1_gateway.wan_port}"]
 
   // To enable ACL replication for secondary datacenters we need to provide a replication token.
   bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn

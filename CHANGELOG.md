@@ -1,6 +1,13 @@
 ## Unreleased
 
 FEATURES
+* modules/gateway-task: Add a `health-sync` container to `gateway-task` when ACLs are enabled
+  to perform a `consul logout` when the task stops.
+  [[GH-120]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/120)
+* modules/gateway-task: Add an optional configuration to have the `gateway-task` module
+  automatically create and configure a Network Load Balancer for public ingress. Update
+  the `gateway-task` module to create the ECS service definition.
+  [[GH-119]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/119)
 * modules/gateway-task, modules/mesh-task, modules/dev-server:
   Update `gateway-task`, `mesh-task` and `dev-server` to enable ACL token replication
   in Consul agents for WAN federation. Update `dev-server` to take a bootstrap token as
