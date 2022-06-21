@@ -2,7 +2,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.5.0"
+  version_string = "0.5.0-dev"
 
   gossip_encryption_enabled = var.gossip_key_secret_arn != ""
   consul_data_volume_name   = "consul_data"
