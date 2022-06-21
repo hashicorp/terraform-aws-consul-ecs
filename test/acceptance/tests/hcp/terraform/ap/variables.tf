@@ -57,7 +57,7 @@ variable "tags" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.0-ent"
+  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.2-ent"
 }
 
 variable "consul_ecs_image" {

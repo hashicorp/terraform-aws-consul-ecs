@@ -94,5 +94,5 @@ variable "replication_token" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use in all tasks."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0.5.0"
 }
