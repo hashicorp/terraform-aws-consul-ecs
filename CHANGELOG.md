@@ -7,6 +7,21 @@ BREAKING CHANGES
   are created and that the passed roles are used by the task definition. The `mesh-task` module
   will no longer add policies or attempt to configure roles which are passed in.
   [[GH-113]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/113)
+* modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
+  Consul 1.12.0+. Add `consul_http_addr`, `consul_https_ca_cert_arn`, `client_token_auth_method_name`,
+  `service_token_auth_method_name`, and `iam_role_path` variables to `mesh-task`. Add `iam_role_path`
+  variable to `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
+  `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
+  `health-sync` runs when ACLs are enabled, in order to do a `consul logout` when the task stops.
+  Remove `consul_client_token_secret_arn` and `acl_secret_name_prefix` variables from `mesh-task`.
+  No longer create Secrets Manager secrets for client or service tokens.
+  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
+  [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
+  [[GH-107](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/107)]
+* modules/mesh-task: A lower case service name is required. When the `consul_service_name` field is
+  specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
+  is not specified, the lower-cased task family is used for the Consul service name.
+  [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
 
 FEATURES
 * modules/gateway-task: Add a `health-sync` container to `gateway-task` when ACLs are enabled
@@ -29,27 +44,6 @@ FEATURES
   `tls-init` container of the `dev-server` to create certs with SANs that
   work with CloudMap.
   [[GH-110]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/110)
-
-## 0.5.0-beta1 (Jun 6, 2022)
-
-BREAKING CHANGES
-* modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
-  Consul 1.12.0+. Add `consul_http_addr`, `consul_https_ca_cert_arn`, `client_token_auth_method_name`,
-  `service_token_auth_method_name`, and `iam_role_path` variables to `mesh-task`. Add `iam_role_path`
-  variable to `acl-controller`. Add an `iam:GetRole` permission to the task role. Set the tags
-  `consul.hashicorp.com.service-name` and `consul.hashicorp.com.namespace` on the task role.
-  `health-sync` runs when ACLs are enabled, in order to do a `consul logout` when the task stops.
-  Remove `consul_client_token_secret_arn` and `acl_secret_name_prefix` variables from `mesh-task`.
-  No longer create Secrets Manager secrets for client or service tokens.
-  [[GH-100](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/100)]
-  [[GH-103](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/103)]
-  [[GH-107](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/107)]
-* modules/mesh-task: A lower case service name is required. When the `consul_service_name` field is
-  specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
-  is not specified, the lower-cased task family is used for the Consul service name.
-  [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
-
-FEATURES
 * modules/mesh-task: Update default Consul image to 1.12.0 and default Envoy image to 1.21.2.
   [[GH-114](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/114)]
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather
