@@ -94,7 +94,7 @@ jobs:
           command: |
             terraform init
 
-            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve -var launch_type=<<parameters.launch_type>>
+            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\", \"build_time\": \"$(date +%s)\"}" -auto-approve -var launch_type=<<parameters.launch_type>>
 
       # Restore go module cache if there is one
       - restore_cache:
