@@ -64,7 +64,7 @@ variable "create_task_role" {
 }
 
 variable "task_role" {
-  description = "ECS task role to include in the task definition. You must also set `create_task_role=false` so that mesh-task knows not to create a role for you. When ACLs are enabled and the AWS IAM auth method is used, the task role must be correctly configured with an `iam:GetRole` permission to fetch itself, and must be tagged with a `consul.hashicorp.com.service-name` tag containing the Consul service name and a `consul.hashicorp.com.namespace` tag containing the Consul Enterprise namespace (if applicable)."
+  description = "ECS task role to include in the task definition. You must also set `create_task_role=false` so that mesh-task knows not to create a role for you."
   type = object({
     id  = string
     arn = string

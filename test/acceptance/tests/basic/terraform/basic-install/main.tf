@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.1"
 }
 
 variable "server_service_name" {
@@ -309,36 +309,6 @@ resource "aws_iam_role" "task" {
       },
     ]
   })
-}
-
-// Policy to allow iam:GetRole (required for auth method)
-resource "aws_iam_policy" "get-task-role" {
-  count = var.secure ? 1 : 0
-  name  = "test_server_${var.suffix}_get_task_role_policy"
-  path  = "/consul-ecs/"
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "iam:GetRole"
-      ],
-      "Resource": [
-        "${aws_iam_role.task.arn}"
-      ]
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "get-task-role" {
-  count      = var.secure ? 1 : 0
-  role       = aws_iam_role.task.id
-  policy_arn = aws_iam_policy.get-task-role[count.index].arn
 }
 
 // Policy to allow `aws execute-command`
