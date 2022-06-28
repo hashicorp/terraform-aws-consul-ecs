@@ -375,6 +375,8 @@ resource "aws_iam_role" "execution" {
       ],
       "Resource": [
         "${module.consul_server.ca_cert_arn}",
+        "${module.acl_controller[0].client_token_secret_arn}",
+        "${module.test_server.service_token_secret_arn}",
         "${aws_secretsmanager_secret.gossip_key[0].arn}"
       ]
     },
