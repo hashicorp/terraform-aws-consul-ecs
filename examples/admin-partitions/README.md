@@ -33,6 +33,7 @@ Clone this repository:
 
 ```console
 $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
+$ git checkout tags/<latest-version>
 $ cd terraform-aws-consul-ecs/examples/admin-partitions
 ```
 
@@ -57,11 +58,11 @@ $ cd ..
 │ This may happen when some attributes have an unexpected value.
 │ Read the documentation at https://www.consul.io/docs/agent/config-entries/service-intentions.html
 │ to see what values are expected.
-│ 
+│
 │   with consul_config_entry.service_intentions,
 │   on hcp_consul.tf line 101, in resource "consul_config_entry" "service_intentions":
 │  101: resource "consul_config_entry" "service_intentions" {
-│ 
+│
 ╵
 ```
 

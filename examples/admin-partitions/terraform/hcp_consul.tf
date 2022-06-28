@@ -101,6 +101,7 @@ resource "consul_config_entry" "exported_services" {
 resource "consul_config_entry" "service_intentions" {
   kind      = "service-intentions"
   name      = "example_server_${local.server_suffix}"
+  partition = consul_admin_partition.part2.name
   namespace = consul_namespace.ns2.name
 
   config_json = jsonencode({

@@ -20,6 +20,7 @@ Clone this repository:
 
 ```console
 $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
+$ git checkout tags/<latest-version>
 $ cd terraform-aws-consul-ecs/examples/dev-server-fargate
 ```
 
@@ -163,7 +164,7 @@ that looks like:
 
 ![UI After Intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/ui-after-intention.png?raw=true)
 
-The connection is red because the service mesh is no longer allowing `consul-ecs-example-client-app` to 
+The connection is red because the service mesh is no longer allowing `consul-ecs-example-client-app` to
 make requests to `consul-ecs-example-server-app`.
 
 If you delete the intention through the Consul UI, the traffic should flow again.

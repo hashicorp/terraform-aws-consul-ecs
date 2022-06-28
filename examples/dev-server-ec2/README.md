@@ -15,6 +15,7 @@ Clone this repository:
 
 ```console
 $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
+$ git checkout tags/<latest-version>
 $ cd terraform-aws-consul-ecs/examples/dev-server-ec2
 ```
 
@@ -73,8 +74,8 @@ mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east
 
 ### (optional) SSH Access to Container Instances
 
-This module supports creating a bastion server (or jump host) which allows you 
-to login to container instances in EC2 over SSH. This uses the `lb_ingress_ip` to 
+This module supports creating a bastion server (or jump host) which allows you
+to login to container instances in EC2 over SSH. This uses the `lb_ingress_ip` to
 configure a security group so that only you have access to the bastion instance.
 You will need an SSH keypair on your local machine.
 
