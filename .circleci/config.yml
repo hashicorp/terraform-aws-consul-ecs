@@ -92,9 +92,18 @@ jobs:
           name: terraform init & apply
           working_directory: test/acceptance/setup-terraform
           command: |
+            set -x
+
             terraform init
 
-            terraform apply -var tags="{\"build_url\": \"$CIRCLE_BUILD_URL\"}" -auto-approve -var launch_type=<<parameters.launch_type>>
+            VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
+            VARS+=' -var launch_type=FARGATE'
+            case $CIRCLE_BRANCH in
+                main | release/*) VARS+=" -var enable_hcp=true";;
+                *) VARS+=" -var enable_hcp=false";;
+            esac
+
+            terraform apply -auto-approve $VARS
 
       # Restore go module cache if there is one
       - restore_cache:
@@ -119,7 +128,16 @@ jobs:
           name: terraform destroy
           working_directory: test/acceptance/setup-terraform
           command: |
-            terraform destroy -auto-approve -var launch_type=<<parameters.launch_type>>
+            set -x
+
+            VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
+            VARS+=' -var launch_type=FARGATE'
+            case $CIRCLE_BRANCH in
+                main | release/*) VARS+=" -var enable_hcp=true";;
+                *) VARS+=" -var enable_hcp=false";;
+            esac
+
+            terraform destroy -auto-approve $VARS
           when: always
 
 workflows:
