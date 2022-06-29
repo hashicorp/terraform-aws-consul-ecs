@@ -133,12 +133,6 @@ func TestVolumeVariable(t *testing.T) {
 func TestPassingExistingRoles(t *testing.T) {
 	t.Parallel()
 
-	terraformOptions := &terraform.Options{
-		TerraformDir: "./terraform/pass-existing-iam-roles",
-		NoColor:      true,
-	}
-	terraform.Init(t, terraformOptions)
-
 	// Init AWS clients.
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
@@ -146,6 +140,10 @@ func TestPassingExistingRoles(t *testing.T) {
 	ecsClient := ecs.NewFromConfig(cfg)
 	iamClient := iam.NewFromConfig(cfg)
 
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/pass-existing-iam-roles",
+		NoColor:      true,
+	}
 	t.Cleanup(func() {
 		_, _ = terraform.DestroyE(t, terraformOptions)
 	})

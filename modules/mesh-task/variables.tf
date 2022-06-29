@@ -64,7 +64,7 @@ variable "create_task_role" {
 }
 
 variable "task_role" {
-  description = "ECS task role to include in the task definition. You must also set `create_task_role=false` so that mesh-task knows not to create a role for you."
+  description = "ECS task role to include in the task definition. You must also set `create_task_role=false` so that mesh-task knows not to create a role for you. No policies are attached to this role by mesh-task."
   type = object({
     id  = string
     arn = string
@@ -82,7 +82,7 @@ variable "create_execution_role" {
 }
 
 variable "execution_role" {
-  description = "ECS execution role to include in the task definition. You must also set `create_execution_role=false` so that mesh-task knows not to create a role for you."
+  description = "ECS execution role to include in the task definition. You must also set `create_execution_role=false` so that mesh-task knows not to create a role for you. No policies are attached to this role by mesh-task. When secure features are enabled, you will need to create and attach a policy to the execution role to grant permission to retrieve each of secrets the task needs access to. The secrets needed are the `service_token_secret_arn` that is returned as an output variable, as well as the `consul_server_ca_cert_arn`, `consul_client_token_secret_arn`, and `gossip_key_secret_arn` that are passed as inputs."
   type = object({
     id  = string
     arn = string
