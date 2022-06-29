@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.1"
 }
 
 variable "server_service_name" {
@@ -198,6 +198,9 @@ module "test_client" {
         name  = "GOLANG_MAIN_B64"
         value = base64encode(file("${path.module}/shutdown-monitor.go"))
       }]
+      linuxParameters = {
+        initProcessEnabled = true
+      }
       # NOTE: `go run <file>` signal handling is different: https://github.com/golang/go/issues/40467
       entryPoint = ["/bin/sh", "-c", <<EOT
 echo "$GOLANG_MAIN_B64" | base64 -d > main.go
@@ -274,19 +277,26 @@ module "test_server" {
   port = 9090
 
   tls                            = var.secure
-  consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn
+  consul_server_ca_cert_arn      = var.secure ? module.consul_server.ca_cert_arn : ""
   gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                           = var.secure
   consul_client_token_secret_arn = var.secure ? module.acl_controller[0].client_token_secret_arn : ""
   acl_secret_name_prefix         = var.suffix
   consul_ecs_image               = var.consul_ecs_image
 
-  additional_task_role_policies = [aws_iam_policy.execute-command.arn]
+  // Test passing in roles. This requires users to correctly configure the roles outside mesh-task.
+  create_task_role      = false
+  create_execution_role = false
+  task_role             = aws_iam_role.task
+  execution_role        = aws_iam_role.execution
+
 }
 
-// Testing passing task/execution role into mesh-task
+// Configure a task role for passing in to mesh-task.
 resource "aws_iam_role" "task" {
   name = "test_server_${var.suffix}_task_role"
+  path = "/consul-ecs/"
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -300,7 +310,6 @@ resource "aws_iam_role" "task" {
     ]
   })
 }
-
 
 // Policy to allow `aws execute-command`
 resource "aws_iam_policy" "execute-command" {
@@ -330,6 +339,11 @@ EOF
   # tags = var.tags
 }
 
+resource "aws_iam_role_policy_attachment" "execute-command" {
+  role       = aws_iam_role.task.id
+  policy_arn = aws_iam_policy.execute-command.arn
+}
+
 resource "aws_iam_role" "execution" {
   name = "test_server_${var.suffix}_execution_role"
   path = "/ecs/"
@@ -346,6 +360,39 @@ resource "aws_iam_role" "execution" {
       }
     ]
   })
+
+  inline_policy {
+    name   = "test_server_${var.suffix}_execution_role_policy"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+%{if var.secure~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${module.consul_server.ca_cert_arn}",
+        "${module.acl_controller[0].client_token_secret_arn}",
+        "${module.test_server.service_token_secret_arn}",
+        "${aws_secretsmanager_secret.gossip_key[0].arn}"
+      ]
+    },
+%{endif~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+  }
 }
 
 locals {

@@ -14,3 +14,6 @@ output "task_tags" {
   value = aws_ecs_task_definition.this.tags_all
 }
 
+output "service_token_secret_arn" {
+  value = var.acls ? aws_secretsmanager_secret.service_token[0].arn : ""
+}

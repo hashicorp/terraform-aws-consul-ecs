@@ -1,5 +1,5 @@
 locals {
-  client_suffix = random_string.client_suffix.result
+  client_suffix = lower(random_string.client_suffix.result)
 }
 
 resource "random_string" "client_suffix" {

@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 locals {
-  rand_suffix = random_string.rand_suffix.result
-  ecs_name    = "consul-ecs-${random_string.rand_suffix.result}"
+  rand_suffix = lower(random_string.rand_suffix.result)
+  ecs_name    = "consul-ecs-${local.rand_suffix}"
   launch_type = "FARGATE"
 }
 

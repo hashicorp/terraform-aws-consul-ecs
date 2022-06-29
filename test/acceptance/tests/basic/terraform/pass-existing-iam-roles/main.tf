@@ -1,22 +1,70 @@
-// We test this with a Terraform plan only.
+// We test this with a 'terraform apply'.
+// It creates roles and the task definition.
 
 provider "aws" {
   region = "us-west-2"
 }
 
-module "test_client" {
-  source = "../../../../../../modules/mesh-task"
-  family = "family"
-  container_definitions = [{
-    name = "basic"
-  }]
-  retry_join    = ["test"]
-  outbound_only = true
+output "suffix" {
+  value = local.suffix
+}
 
-  // Validate we can pass existing roles.
-  // Users will use a data source to retrieve the role, and pass it in.
-  task_role      = data.aws_iam_role.task
-  execution_role = data.aws_iam_role.execution
+output "create_roles_family" {
+  value = local.create_roles_family
+}
+
+output "pass_roles_family" {
+  value = local.pass_roles_family
+}
+
+output "create_roles_task_definition_arn" {
+  value = module.test_client_create_new_roles.task_definition_arn
+}
+
+output "pass_roles_task_definition_arn" {
+  value = module.test_client_pass_existing_roles.task_definition_arn
+}
+
+
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+}
+
+locals {
+  suffix              = lower(random_string.suffix.result)
+  create_roles_family = "consul-ecs-test-create-roles-${local.suffix}"
+  pass_roles_family   = "consul-ecs-test-pass-existing-roles-${local.suffix}"
+  container_definitions = [{
+    name  = "basic"
+    image = "fake"
+  }]
+}
+
+module "test_client_create_new_roles" {
+  source                = "../../../../../../modules/mesh-task"
+  family                = local.create_roles_family
+  log_configuration     = null
+  container_definitions = local.container_definitions
+  retry_join            = ["test"]
+  outbound_only         = true
+
+  // Roles are not passed. This tests the default values for create_task_role,
+  // create_execution_role, task_role, and execution_role.
+}
+
+module "test_client_pass_existing_roles" {
+  source                = "../../../../../../modules/mesh-task"
+  family                = local.pass_roles_family
+  log_configuration     = null
+  container_definitions = local.container_definitions
+  retry_join            = ["test"]
+  outbound_only         = true
+
+  create_task_role      = false
+  create_execution_role = false
+  task_role             = data.aws_iam_role.task
+  execution_role        = data.aws_iam_role.execution
 }
 
 data "aws_iam_role" "task" {
@@ -27,9 +75,8 @@ data "aws_iam_role" "execution" {
   name = aws_iam_role.execution.name
 }
 
-// Testing passing task/execution role into mesh-task
 resource "aws_iam_role" "task" {
-  name = "test-consul-ecs-iam-role-passing_task-role"
+  name = "consul-ecs-test-pass-task-role-${local.suffix}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -46,7 +93,7 @@ resource "aws_iam_role" "task" {
 
 
 resource "aws_iam_role" "execution" {
-  name = "test-consul-ecs-iam-role-passing_execution-role"
+  name = "consul-ecs-test-pass-execution-role-${local.suffix}"
   path = "/ecs/"
 
   assume_role_policy = jsonencode({
