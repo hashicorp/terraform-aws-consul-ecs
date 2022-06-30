@@ -92,12 +92,10 @@ jobs:
           name: terraform init & apply
           working_directory: test/acceptance/setup-terraform
           command: |
-            set -x
-
             terraform init
 
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
-            VARS+=' -var launch_type=FARGATE'
+            VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
                 main | release/*) VARS+=" -var enable_hcp=true";;
                 *) VARS+=" -var enable_hcp=false";;
@@ -131,7 +129,7 @@ jobs:
             set -x
 
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
-            VARS+=' -var launch_type=FARGATE'
+            VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
                 main | release/*) VARS+=" -var enable_hcp=true";;
                 *) VARS+=" -var enable_hcp=false";;
