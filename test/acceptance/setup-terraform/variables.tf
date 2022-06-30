@@ -19,6 +19,11 @@ variable "launch_type" {
   description = "The ECS launch type for the cluster. Either EC2 or FARGATE."
 }
 
+variable "enable_hcp" {
+  description = "Whether to spin up an HCP Consul cluster."
+  type        = bool
+}
+
 variable "instance_count" {
   description = "Number of EC2 instances to create for the EC2 launch type (if enabled)."
   type        = number

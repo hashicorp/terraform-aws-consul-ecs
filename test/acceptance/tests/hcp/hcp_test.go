@@ -53,6 +53,7 @@ type HCPTestConfig struct {
 	config.TestConfig
 	ECSCluster1ARN          string      `json:"ecs_cluster_1_arn"`
 	ECSCluster2ARN          string      `json:"ecs_cluster_2_arn"`
+	EnableHCP               bool        `json:"enable_hcp"`
 	ConsulAddr              string      `json:"consul_public_endpoint_url"`
 	ConsulToken             string      `json:"token"`
 	ConsulPrivateAddr       string      `json:"consul_private_endpoint_url"`
@@ -62,13 +63,26 @@ type HCPTestConfig struct {
 	ConsulCASecretARN       string      `json:"consul_ca_cert_secret_arn"`
 }
 
-func TestHCP(t *testing.T) {
+// parseHCPTestConfig parses terraform outputs from setup-terraform into an HCPTestConfig struct.
+// If HCP was not enabled in setup-terraform, it calls t.Skip to skip the test case.
+func parseHCPTestConfig(t *testing.T) HCPTestConfig {
+	t.Helper()
 	// read the configuration from the setup-terraform dir.
 	var cfg HCPTestConfig
 	require.NoError(t, UnmarshalTF(setupDir, &cfg))
 
+	if !cfg.EnableHCP {
+		t.Skip("HCP not enabled. Re-run setup-terraform with enable_hcp=true.")
+	}
+
+	return cfg
+}
+
+func TestHCP(t *testing.T) {
+	cfg := parseHCPTestConfig(t)
+
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
+	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -152,12 +166,10 @@ func TestHCP(t *testing.T) {
 // TestNamespaces ensures that services in different namespaces can be
 // can be configured to communicate.
 func TestNamespaces(t *testing.T) {
-	// read the configuration from the setup-terraform dir.
-	var cfg HCPTestConfig
-	require.NoError(t, UnmarshalTF(setupDir, &cfg))
+	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
+	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -213,12 +225,10 @@ func TestNamespaces(t *testing.T) {
 // TestAdminPartitions ensures that services in different admin partitions and namespaces can be
 // can be configured to communicate.
 func TestAdminPartitions(t *testing.T) {
-	// read the configuration from the setup-terraform dir.
-	var cfg HCPTestConfig
-	require.NoError(t, UnmarshalTF(setupDir, &cfg))
+	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_arn", "token"}
+	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
