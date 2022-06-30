@@ -58,7 +58,7 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.0"
+  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
 }
 
 variable "consul_license" {
@@ -152,6 +152,24 @@ variable "acls" {
   default     = false
 }
 
+variable "generate_bootstrap_token" {
+  description = "Whether to automatically generate a bootstrap token."
+  type        = bool
+  default     = true
+}
+
+variable "bootstrap_token" {
+  description = "The Consul bootstrap token. By default a bootstrap token will be generated automatically. This field can be used to explicity set the value of the bootstrap token."
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_token_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul bootstrap token. By default a secret will be created automatically."
+  type        = string
+  default     = ""
+}
+
 variable "wait_for_steady_state" {
   description = "Set wait_for_steady_state on the ECS service. This causes Terraform to wait for the Consul server task to be deployed."
   type        = bool
@@ -198,6 +216,12 @@ variable "additional_dns_names" {
   description = "List of additional DNS names to add to the Subject Alternative Name (SAN) field of the server's certificate."
   type        = list(string)
   default     = []
+}
+
+variable "replication_token" {
+  description = "Replication token required for ACL replication in secondary datacenters. See https://www.consul.io/docs/security/acl/acl-federated-datacenters."
+  type        = string
+  default     = ""
 }
 
 locals {

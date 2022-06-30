@@ -1,5 +1,5 @@
 locals {
-  server_suffix = random_string.server_suffix.result
+  server_suffix = lower(random_string.server_suffix.result)
 }
 
 resource "random_string" "server_suffix" {

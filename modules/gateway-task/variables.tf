@@ -3,6 +3,11 @@ variable "family" {
   type        = string
 }
 
+variable "ecs_cluster_arn" {
+  description = "The ARN of the ECS cluster where the gateway will be running."
+  type        = string
+}
+
 variable "consul_service_name" {
   description = "The name the gateway service will be registered as in Consul. Defaults to the Task family name. Always suffixed with the gateway kind."
   type        = string
@@ -21,18 +26,6 @@ variable "consul_service_meta" {
   default     = {}
 }
 
-variable "consul_namespace" {
-  description = "The Consul namespace to use to register this gateway [Consul Enterprise]."
-  type        = string
-  default     = ""
-
-  validation {
-    error_message = "Gateway namespace must be 'default' or the empty string."
-    condition     = var.consul_namespace == "" || var.consul_namespace == "default"
-  }
-
-}
-
 variable "consul_partition" {
   description = "The Consul admin partition to use to register this gateway [Consul Enterprise]."
   type        = string
@@ -43,6 +36,12 @@ variable "requires_compatibilities" {
   description = "Set of launch types required by the task."
   type        = list(string)
   default     = ["EC2", "FARGATE"]
+}
+
+variable "launch_type" {
+  description = "Launch type on which to run service. Valid values are EC2 and FARGATE."
+  type        = string
+  default     = "FARGATE"
 }
 
 variable "cpu" {
@@ -83,19 +82,19 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.0"
+  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.1-dev"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
 }
 
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.20.2"
+  default     = "envoyproxy/envoy-alpine:v1.21.4"
 }
 
 variable "log_configuration" {
@@ -163,10 +162,22 @@ variable "acls" {
   default     = false
 }
 
+variable "enable_acl_token_replication" {
+  type        = bool
+  description = "Whether or not to enable ACL token replication. ACL token replication is required when the gateway-task is part of a WAN-federated Consul service mesh."
+  default     = false
+}
+
 variable "consul_datacenter" {
   type        = string
   description = "The name of the Consul datacenter the client belongs to."
   default     = "dc1"
+}
+
+variable "consul_primary_datacenter" {
+  type        = string
+  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN-federated Consul service mesh."
+  default     = ""
 }
 
 variable "consul_agent_configuration" {
@@ -204,7 +215,7 @@ variable "wan_address" {
 }
 
 variable "wan_port" {
-  description = "WAN port for the gateway. Defaults to 8443 if not specified."
+  description = "WAN port for the gateway. Defaults to the lan_port if not specified."
   type        = number
   default     = 0
 }
@@ -215,14 +226,68 @@ variable "enable_mesh_gateway_wan_federation" {
   default     = false
 }
 
-variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul cluster federation. Must not be provided when using mesh-gateway for WAN federation."
+variable "security_groups" {
+  description = "Security group IDs that will be attached to the gateway. The default security group will be used if this is not specified. Required when lb_enabled is true so ingress rules can be added for the security groups."
   type        = list(string)
   default     = []
 }
 
 variable "audit_logging" {
   description = "Boolean controlling whether audit logging is enabled"
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
+
+variable "subnets" {
+  description = "Subnets IDs where the gateway task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
+  type        = list(string)
+}
+
+variable "assign_public_ip" {
+  description = "Configure the ECS Service to assign a public IP to the task. This is required if running tasks on a public subnet."
+  type        = bool
+  default     = false
+}
+
+variable "lb_enabled" {
+  description = "Whether to create an Elastic Load Balancer for the task to allow public ingress to the gateway."
+  type        = bool
+  default     = false
+}
+
+variable "lb_vpc_id" {
+  description = "The VPC identifier for the load balancer. Required when lb_enabled is true."
+  type        = string
+  default     = ""
+}
+
+variable "lb_subnets" {
+  description = "Subnet IDs to attach to the load balancer. These must be public subnets if you wish to access the load balancer externally. Required when lb_enabled is true."
+  type        = list(string)
+  default     = []
+}
+
+variable "lb_ingress_rule_cidr_blocks" {
+  description = "CIDR blocks that are allowed access to the load balancer."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "lb_create_security_group" {
+  description = "Whether to create a security group and ingress rule for the gateway task."
+  type        = bool
+  default     = true
+}
+
+variable "lb_modify_security_group" {
+  description = "Whether to modify an existing security group with an ingress rule for the gateway task. The lb_create_security_group variable must be set to false when using this option."
+  type        = bool
+  default     = false
+}
+
+variable "lb_modify_security_group_id" {
+  description = "The ID of the security group to modify with an ingress rule for the gateway task. Required when lb_modify_security_group is true."
+  type        = string
+  default     = ""
+}
+

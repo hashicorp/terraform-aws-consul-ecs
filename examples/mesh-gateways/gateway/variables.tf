@@ -43,17 +43,24 @@ variable "cluster" {
 }
 
 variable "retry_join" {
-  type = list(string)
+  description = "List of addresses for the gateway to join."
+  type        = list(string)
 }
 
 variable "log_group_name" {
-  type = string
+  description = "Name of the AWS Cloud Watch log group."
+  type        = string
 }
 
 variable "enable_mesh_gateway_wan_federation" {
   description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
   type        = bool
   default     = false
+}
+
+variable "consul_http_addr" {
+  description = "Consul server HTTP address."
+  type        = string
 }
 
 variable "ca_cert_arn" {
@@ -98,3 +105,8 @@ variable "additional_task_role_policies" {
   default     = []
 }
 
+variable "consul_ecs_image" {
+  description = "Consul ECS image to use in all tasks."
+  type        = string
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
+}

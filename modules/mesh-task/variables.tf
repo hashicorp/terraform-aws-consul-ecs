@@ -136,19 +136,19 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.0"
+  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0-beta1"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
 }
 
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.21.2"
+  default     = "envoyproxy/envoy-alpine:v1.21.4"
 }
 
 variable "log_configuration" {
@@ -255,8 +255,8 @@ variable "checks" {
 
 variable "retry_join" {
   description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
-   type        = list(string)
-#    type = string
+  type        = list(string)
+  #    type = string
 }
 
 variable "consul_http_addr" {
@@ -313,10 +313,22 @@ variable "acls" {
   default     = false
 }
 
+variable "enable_acl_token_replication" {
+  type        = bool
+  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the mesh-task is part of a WAN federated Consul service mesh."
+  default     = false
+}
+
 variable "consul_datacenter" {
   type        = string
   description = "The name of the Consul datacenter the client belongs to."
   default     = "dc1"
+}
+
+variable "consul_primary_datacenter" {
+  type        = string
+  description = "The name of the primary Consul datacenter. Required when the mesh-task is part of a WAN federated Consul service mesh."
+  default     = ""
 }
 
 variable "consul_agent_configuration" {
@@ -421,6 +433,6 @@ variable "consul_ecs_config" {
 
 variable "audit_logging" {
   description = "Boolean controlling whether audit logging is enabled"
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }

@@ -593,6 +593,149 @@ func TestValidation_RolePath(t *testing.T) {
 
 }
 
+func TestValidation_MeshGateway(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/mesh-gateway-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		kind                    string
+		enableMeshGatewayWANFed bool
+		tls                     bool
+		securityGroups          []string
+		wanAddress              string
+		lbEnabled               bool
+		lbVpcID                 string
+		lbSubnets               []string
+		lbCreateSecGroup        bool
+		lbModifySecGroup        bool
+		lbModifySecGroupID      string
+		expError                string
+	}{
+		"kind is required": {
+			kind:                    "",
+			enableMeshGatewayWANFed: false,
+			expError:                `variable "kind" is not set`,
+		},
+		"kind must be mesh-gateway": {
+			kind:                    "not-mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			expError:                `Gateway kind must be 'mesh-gateway'`,
+		},
+		"no WAN federation": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: false,
+		},
+		"mesh gateway WAN federation, no TLS": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			tls:                     false,
+			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
+		},
+		"mesh gateway WAN federation": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: true,
+			tls:                     true,
+		},
+		"WAN address and LB enabled": {
+			kind:                    "mesh-gateway",
+			enableMeshGatewayWANFed: false,
+			wanAddress:              "10.1.2.3",
+			lbEnabled:               true,
+			expError:                "Only one of wan_address or lb_enabled may be provided",
+		},
+		"lb_enabled": {
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbSubnets: []string{"subnet"},
+			lbVpcID:   "vpc",
+		},
+		"lb_enabled and no lb subnets": {
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbVpcID:   "vpc",
+			expError:  "lb_subnets is required when lb_enabled is true",
+		},
+		"lb_enabled and no VPC": {
+			kind:      "mesh-gateway",
+			lbEnabled: true,
+			lbSubnets: []string{"subnet"},
+			expError:  "lb_vpc_id is required when lb_enabled is true",
+		},
+		"lb create security group and modify security group": {
+			kind:             "mesh-gateway",
+			securityGroups:   []string{"sg"},
+			lbEnabled:        true,
+			lbSubnets:        []string{"subnet"},
+			lbVpcID:          "vpc",
+			lbCreateSecGroup: true,
+			lbModifySecGroup: true,
+			expError:         "Only one of lb_create_security_group or lb_modify_security_group may be true",
+		},
+		"lb modify security group and no security group ID": {
+			kind:               "mesh-gateway",
+			securityGroups:     []string{"sg"},
+			lbEnabled:          true,
+			lbSubnets:          []string{"subnet"},
+			lbVpcID:            "vpc",
+			lbCreateSecGroup:   false,
+			lbModifySecGroup:   true,
+			lbModifySecGroupID: "",
+			expError:           "lb_modify_security_group_id is required when lb_modify_security_group is true",
+		},
+		"lb modify security group with security group ID": {
+			kind:               "mesh-gateway",
+			securityGroups:     []string{"sg"},
+			lbEnabled:          true,
+			lbSubnets:          []string{"subnet"},
+			lbVpcID:            "vpc",
+			lbCreateSecGroup:   false,
+			lbModifySecGroup:   true,
+			lbModifySecGroupID: "mod-sg",
+		},
+	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tfVars := map[string]interface{}{
+				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
+				"tls":                                c.tls,
+				"security_groups":                    c.securityGroups,
+				"wan_address":                        c.wanAddress,
+				"lb_enabled":                         c.lbEnabled,
+				"lb_subnets":                         c.lbSubnets,
+				"lb_vpc_id":                          c.lbVpcID,
+				"lb_create_security_group":           c.lbCreateSecGroup,
+				"lb_modify_security_group":           c.lbModifySecGroup,
+				"lb_modify_security_group_id":        c.lbModifySecGroupID,
+			}
+			if len(c.kind) > 0 {
+				tfVars["kind"] = c.kind
+			}
+			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      terraformOptions.NoColor,
+				Vars:         tfVars,
+			})
+			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
+
+			_, err := terraform.PlanE(t, applyOpts)
+			if len(c.expError) > 0 {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), c.expError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestBasic(t *testing.T) {
 	cases := []bool{true, false}
 	for _, secure := range cases {

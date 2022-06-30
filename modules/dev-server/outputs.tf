@@ -35,12 +35,12 @@ output "server_dns" {
 
 output "bootstrap_token_secret_arn" {
   description = "The Secrets Manager ARN of the ACL bootstrap token secret."
-  value       = var.acls ? aws_secretsmanager_secret.bootstrap_token[0].arn : null
+  value       = var.acls ? local.bootstrap_token_arn : null
 }
 
 output "bootstrap_token_id" {
   description = "The Consul secret ID of the bootstrap ACL token."
-  value       = var.acls ? random_uuid.bootstrap_token[0].result : null
+  value       = var.acls ? local.bootstrap_token : null
 }
 
 output "gossip_key_arn" {

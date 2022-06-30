@@ -24,6 +24,11 @@ module "dc1" {
   ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
   gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_federation = true
+
+  bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  bootstrap_token     = random_uuid.bootstrap_token.result
+
+  consul_ecs_image = var.consul_ecs_image
 }
 
 module "dc2" {
@@ -45,7 +50,69 @@ module "dc2" {
 
   // To enable WAN federation via mesh gateways all secondary datacenters must be
   // configured with the WAN address of the mesh gateway(s) in the primary datacenter.
-  primary_gateways = ["${module.dc1_gateway.lb_dns_name}:8443"]
+  primary_gateways = ["${module.dc1_gateway.wan_address}:${module.dc1_gateway.wan_port}"]
+
+  // To enable ACL replication for secondary datacenters we need to provide a replication token.
+  bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
+  bootstrap_token     = random_uuid.bootstrap_token.result
+
+  // TODO this should be a replication token with only the necessary ACL policies.
+  // See https://www.consul.io/docs/security/acl/acl-federated-datacenters#create-the-replication-token-for-acl-management
+  replication_token = random_uuid.bootstrap_token.result
+
+  consul_ecs_image = var.consul_ecs_image
+}
+
+// Create a null_resource that will wait for the Consul server to be available via its ALB.
+// This allows us to wait until the Consul server is reachable before trying to create
+// Consul resources like config entries. If we don't wait, Terraform will fail to create
+// the necessary Consul resources.
+resource "null_resource" "wait_for_primary_consul_server" {
+  depends_on = [module.dc1]
+  triggers = {
+    // Trigger update when Consul server ALB DNS name changes.
+    consul_server_lb_dns_name = "${module.dc1.dev_consul_server.lb_dns_name}"
+  }
+  provisioner "local-exec" {
+    command = <<EOT
+stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
+while [ $(date +%s) -lt $stopTime ] ; do \
+  sleep 10 ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${module.dc1.dev_consul_server.lb_dns_name}:8500/v1/catalog/services)
+  [ $statusCode -eq 200 ] && break; \
+done
+EOT
+  }
+}
+
+// Create an intention to allow the example client to call the example server
+resource "consul_config_entry" "service_intention" {
+  kind = "service-intentions"
+  name = local.example_server_app_name
+
+  config_json = jsonencode({
+    Sources = [
+      {
+        Name       = local.example_client_app_name
+        Action     = "allow"
+        Precedence = 9
+        Type       = "consul"
+      }
+    ]
+  })
+  depends_on = [null_resource.wait_for_primary_consul_server]
+}
+
+resource "random_uuid" "bootstrap_token" {}
+
+resource "aws_secretsmanager_secret" "bootstrap_token" {
+  name                    = "${var.name}-bootstrap-token-shared"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "bootstrap_token" {
+  secret_id     = aws_secretsmanager_secret.bootstrap_token.id
+  secret_string = random_uuid.bootstrap_token.result
 }
 
 resource "tls_private_key" "ca" {

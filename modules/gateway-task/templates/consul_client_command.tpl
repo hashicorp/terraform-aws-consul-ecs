@@ -26,7 +26,8 @@ consul_login() {
     %{ if consul_partition != "" ~}
       -partition ${ consul_partition } \
     %{ endif ~}
-      -type aws -method ${ client_token_auth_method_name } \
+      -type aws-iam \
+      -method ${ client_token_auth_method_name } \
       -meta "consul.hashicorp.com/task-id=$TASK_ID" \
       -meta "consul.hashicorp.com/cluster=$CLUSTER_ARN" \
       -aws-region "$TASK_REGION" \

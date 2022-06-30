@@ -74,3 +74,25 @@ variable "gossip_key_arn" {
   description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
   type        = string
 }
+
+variable "bootstrap_token" {
+  description = "The Consul bootstrap token."
+  type        = string
+}
+
+variable "bootstrap_token_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul bootstrap token."
+  type        = string
+}
+
+variable "replication_token" {
+  description = "The Consul ACL replication token."
+  type        = string
+  default     = ""
+}
+
+variable "consul_ecs_image" {
+  description = "Consul ECS image to use in all tasks."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:0.5.0"
+}

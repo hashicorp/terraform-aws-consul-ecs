@@ -1,6 +1,12 @@
-## 0.5.0-beta1 (Jun 6, 2022)
+## 0.5.0 (June 21, 2022)
 
 BREAKING CHANGES
+* modules/mesh-task: Add `create_task_role` and `create_execution_role` flags to mesh-task. When
+  passing existing roles using the `task_role` and `execution_role` input variables, you must also
+  set `create_task_role=false` and `create_execution_role=false`, respectively, to ensure no roles
+  are created and that the passed roles are used by the task definition. The `mesh-task` module
+  will no longer add policies or attempt to configure roles which are passed in.
+  [[GH-113]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/113)
 * modules/mesh-task, modules/acl-controller: Support the Consul AWS IAM auth method. This requires
   Consul 1.12.0+. Add `consul_http_addr`, `consul_https_ca_cert_arn`, `client_token_auth_method_name`,
   `service_token_auth_method_name`, and `iam_role_path` variables to `mesh-task`. Add `iam_role_path`
@@ -16,13 +22,28 @@ BREAKING CHANGES
   specified, it must be a valid name for a Consul service identity. Otherwise, if `consul_service_name`
   is not specified, the lower-cased task family is used for the Consul service name.
   [[GH-109](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/109)]
-* modules/mesh-task: Add `create_task_role` and `create_execution_role` flags to mesh-task. When
-  passing existing roles using the `task_role` and `execution_role` input variables, you must also
-  set `create_task_role=false` and `create_execution_role=false`, respectively, to ensure no roles
-  are created and that the passed roles are used by the task definition. The `mesh-task` module
-  will no longer add policies or attempt to configure roles which are passed in.
 
 FEATURES
+* modules/gateway-task: Add a `health-sync` container to `gateway-task` when ACLs are enabled
+  to perform a `consul logout` when the task stops.
+  [[GH-120]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/120)
+* modules/gateway-task: Add an optional configuration to have the `gateway-task` module
+  automatically create and configure a Network Load Balancer for public ingress. Update
+  the `gateway-task` module to create the ECS service definition.
+  [[GH-119]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/119)
+* modules/gateway-task, modules/mesh-task, modules/dev-server:
+  Update `gateway-task`, `mesh-task` and `dev-server` to enable ACL token replication
+  in Consul agents for WAN federation. Update `dev-server` to take a bootstrap token as
+  an input.
+  [[GH-116]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/116)
+* modules/gateway-task, modules/dev-server:
+  Add new `gateway-task` module to create mesh gateway ECS tasks that support Consul
+  WAN federation via mesh gateways. Update the `dev-server` module to accept TLS
+  and gossip encryption secrets so they can be passed in as variables. Modified the
+  `dev-server` agent command to support WAN federation and TLS. Updated the
+  `tls-init` container of the `dev-server` to create certs with SANs that
+  work with CloudMap.
+  [[GH-110]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/110)
 * modules/mesh-task: Update default Consul image to 1.12.0 and default Envoy image to 1.21.2.
   [[GH-114](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/114)]
 * modules/dev-server: Immediately delete all Secrets Manager secrets rather
@@ -34,6 +55,16 @@ FEATURES
 
 BUG FIXES
 * modules/mesh-task: Remove deprecated `key_algorithm` field. [[GH-104](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/104)]
+
+## 0.4.2 (Jun 29, 2022)
+
+BREAKING CHANGES
+* modules/mesh-task: Add `create_task_role` and `create_execution_role` variables to mesh-task. Add
+  the `service_token_secret_arn` output variable. When passing existing roles using the `task_role`
+  and `execution_role` input variables, you must also set `create_task_role=false` and
+  `create_execution_role=false`, respectively, to ensure no roles are created and that the passed
+  roles are used by the task definition. The `mesh-task` module will no longer add policies or
+  attempt to configure roles which are passed in.
 
 ## 0.4.1 (April 8, 2022)
 
