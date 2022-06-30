@@ -1,13 +1,13 @@
 output "ecs_cluster_arn" {
-  value = aws_ecs_cluster.cluster_1.arn
+  value = aws_ecs_cluster.clusters[0].arn
 }
 
 output "ecs_cluster_1_arn" {
-  value = aws_ecs_cluster.cluster_1.arn
+  value = aws_ecs_cluster.clusters[0].arn
 }
 
 output "ecs_cluster_2_arn" {
-  value = aws_ecs_cluster.cluster_2.arn
+  value = aws_ecs_cluster.clusters[1].arn
 }
 
 output "vpc_id" {
