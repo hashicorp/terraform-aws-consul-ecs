@@ -5,6 +5,8 @@ provider "aws" {
 locals {
   name   = "consul-ecs-${random_string.suffix.result}"
   suffix = random_string.suffix.result
+
+  cluster_count = 2
 }
 
 data "aws_availability_zones" "available" {
@@ -47,39 +49,38 @@ module "vpc" {
 
 // Create ECS clusters
 // The clusters are created in the same VPC to ensure there is network connectivity between them.
-resource "aws_ecs_cluster" "cluster_1" {
-  name               = "${local.name}-1"
-  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
-  tags               = var.tags
+resource "aws_ecs_cluster" "clusters" {
+  count = local.cluster_count
+
+  name = "${local.name}-${count.index}"
+  tags = var.tags
 }
 
-/* TODO
-resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_1" {
-  cluster_name       = aws_ecs_cluster.cluster_1.name
-  capacity_providers = [var.launch_type]
+// We use a capacity provider for FARGATE only. We don't use a capacity provider for EC2. Instead, we spin up EC2 instances directly in Terraform.
+resource "aws_ecs_cluster_capacity_providers" "clusters" {
+  // If FARGATE enabled, create one for each cluster.
+  count = var.launch_type == "FARGATE" ? local.cluster_count : 0
+
+  cluster_name       = aws_ecs_cluster.clusters[count.index].name
+  capacity_providers = ["FARGATE"]
 
   default_capacity_provider_strategy {
     capacity_provider = var.launch_type
   }
 }
-*/
 
-resource "aws_ecs_cluster" "cluster_2" {
-  name               = "${local.name}-2"
-  capacity_providers = var.launch_type == "FARGATE" ? ["FARGATE"] : null
-  tags               = var.tags
+// Create ec2 instances for each cluster for the EC2 launch type.
+module "ec2" {
+  count  = var.launch_type == "EC2" ? local.cluster_count : 0
+  source = "./ec2"
+
+  ecs_cluster_name = aws_ecs_cluster.clusters[count.index].name
+  instance_count   = var.instance_count
+  instance_type    = var.instance_type
+  name             = "${local.name}-${count.index}"
+  tags             = var.tags
+  vpc              = module.vpc
 }
-
-/* TODO
-resource "aws_ecs_cluster_capacity_providers" "ecs_ccp_2" {
-  cluster_name       = aws_ecs_cluster.cluster_2.name
-  capacity_providers = [var.launch_type]
-
-  default_capacity_provider_strategy {
-    capacity_provider = var.launch_type
-  }
-}
-*/
 
 resource "aws_cloudwatch_log_group" "log_group" {
   name = local.name
