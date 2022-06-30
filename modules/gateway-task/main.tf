@@ -32,6 +32,7 @@ locals {
       tls                       = var.tls
       acls                      = var.acls
       partition                 = var.consul_partition
+      audit_logging             = var.audit_logging
     }
   )
 

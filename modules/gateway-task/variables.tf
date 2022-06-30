@@ -220,3 +220,9 @@ variable "retry_join_wan" {
   type        = list(string)
   default     = []
 }
+
+variable "audit_logging" {
+  description = "Boolean controlling whether audit logging is enabled"
+  type = bool
+  default = false
+}

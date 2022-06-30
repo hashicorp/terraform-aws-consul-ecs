@@ -84,6 +84,7 @@ module "test_client" {
   consul_image              = var.consul_image
   consul_namespace          = "default"
   consul_partition          = "default"
+  audit_logging             = var.audit_logging
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }

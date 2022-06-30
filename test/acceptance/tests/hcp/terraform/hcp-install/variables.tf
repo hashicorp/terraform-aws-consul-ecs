@@ -86,3 +86,9 @@ variable "consul_ca_cert_secret_arn" {
   description = "ARN of the secret holding the Consul CA certificate."
   type        = string
 }
+
+variable "audit_logging" {
+  description = "Boolean controlling whether audit logging is enabled"
+  type = bool
+  default = false
+}

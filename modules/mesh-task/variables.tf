@@ -255,7 +255,8 @@ variable "checks" {
 
 variable "retry_join" {
   description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
-  type        = list(string)
+   type        = list(string)
+#    type = string
 }
 
 variable "consul_http_addr" {
@@ -416,4 +417,10 @@ variable "consul_ecs_config" {
       ]
     ]))
   }
+}
+
+variable "audit_logging" {
+  description = "Boolean controlling whether audit logging is enabled"
+  type = bool
+  default = false
 }

@@ -47,3 +47,17 @@ acl {
 %{ if partition != null && partition != "" ~}
 partition = "${partition}"
 %{ endif ~}
+
+
+%{~ if audit_logging ~}
+audit {
+  enabled = true
+  sink "stdout" {
+    type   = "file"
+    format = "json"
+    path   = "/dev/stdout"
+    delivery_guarantee = "best-effort"
+  }
+}
+%{ endif ~}
+
