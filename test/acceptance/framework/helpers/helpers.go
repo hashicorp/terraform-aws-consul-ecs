@@ -12,7 +12,7 @@ import (
 
 // ExecuteRemoteCommand executes a command inside a container in the task specified
 // by taskARN.
-func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, container, command string) (string, error) {
+func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, clusterARN, taskARN, container, command string) (string, error) {
 	return shell.RunCommandAndGetOutputE(t, shell.Command{
 		Command: "aws",
 		Args: []string{
@@ -21,7 +21,7 @@ func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, taskARN, 
 			"--region",
 			testConfig.Region,
 			"--cluster",
-			testConfig.ECSClusterARN,
+			clusterARN,
 			"--task",
 			taskARN,
 			fmt.Sprintf("--container=%s", container),

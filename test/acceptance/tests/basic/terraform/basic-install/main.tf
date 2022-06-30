@@ -57,6 +57,11 @@ variable "server_service_name" {
   type        = string
 }
 
+variable "consul_datacenter" {
+  description = "The consul datacenter name. Should be unique among parallel test cases to ensure a unique Cloud Map namespace."
+  type        = string
+}
+
 provider "aws" {
   region = var.region
 }
@@ -103,6 +108,9 @@ module "consul_server" {
   generate_gossip_encryption_key = false
   gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                           = var.secure
+
+  service_discovery_namespace = var.consul_datacenter
+  datacenter                  = var.consul_datacenter
 }
 
 data "aws_security_group" "vpc_default" {
@@ -240,6 +248,8 @@ EOT
   consul_agent_configuration = <<-EOT
   log_level = "debug"
   EOT
+
+  consul_datacenter = var.consul_datacenter
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -296,6 +306,7 @@ module "test_server" {
   task_role             = aws_iam_role.task
   execution_role        = aws_iam_role.execution
 
+  consul_datacenter = var.consul_datacenter
 }
 
 // Configure a task role for passing in to mesh-task.

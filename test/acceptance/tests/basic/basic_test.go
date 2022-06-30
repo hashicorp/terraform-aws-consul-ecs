@@ -737,37 +737,64 @@ func TestValidation_MeshGateway(t *testing.T) {
 }
 
 func TestBasic(t *testing.T) {
-	cases := []bool{true, false}
-	for _, secure := range cases {
-		t.Run(fmt.Sprintf("secure: %t", secure), func(t *testing.T) {
+	cfg := suite.Config()
+
+	cases := []struct {
+		secure        bool
+		stateFile     string
+		ecsClusterARN string
+		datacenter    string
+	}{
+		// Works for 2 clusters in parallel. Each test case should have a unique cluster
+		// and requires a unique Terrform state file. The datacenter must be unique within
+		// the VPC to avoid conflicts in CloudMap namespaces.
+		{false, "terraform.tfstate", cfg.ECSClusterARN, "dc1"},
+		{true, "terraform-secure.tfstate", cfg.ECSCluster2ARN, "dc2"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(fmt.Sprintf("secure: %t", c.secure), func(t *testing.T) {
+			t.Parallel()
+
 			randomSuffix := strings.ToLower(random.UniqueId())
-			tfVars := suite.Config().TFVars("route_table_ids")
-			tfVars["secure"] = secure
+			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arn")
+			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
+			tfVars["secure"] = c.secure
 			tfVars["suffix"] = randomSuffix
+			tfVars["consul_datacenter"] = c.datacenter
 			clientServiceName := "test_client"
 
 			serverServiceName := "test_server"
-			if secure {
+			if c.secure {
 				// This uses the explicitly passed service name rather than the task's family name.
 				serverServiceName = "custom_test_server"
 			}
 			tfVars["server_service_name"] = serverServiceName
 
-			terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+			initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: "./terraform/basic-install",
-				Vars:         tfVars,
 				NoColor:      true,
 			})
 
+			applyOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: initOptions.TerraformDir,
+				Vars:         tfVars,
+				NoColor:      true,
+				EnvVars: map[string]string{
+					"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
+				},
+			})
+
 			t.Cleanup(func() {
-				if suite.Config().NoCleanupOnFailure && t.Failed() {
+				if cfg.NoCleanupOnFailure && t.Failed() {
 					logger.Log(t, "skipping resource cleanup because -no-cleanup-on-failure=true")
 				} else {
-					terraform.Destroy(t, terraformOptions)
+					terraform.Destroy(t, applyOptions)
 				}
 			})
 
-			terraform.InitAndApply(t, terraformOptions)
+			terraform.Init(t, initOptions)
+			terraform.Apply(t, applyOptions)
 
 			// Wait for consul server to be up.
 			var consulServerTaskARN string
@@ -778,9 +805,9 @@ func TestBasic(t *testing.T) {
 						"ecs",
 						"list-tasks",
 						"--region",
-						suite.Config().Region,
+						cfg.Region,
 						"--cluster",
-						suite.Config().ECSClusterARN,
+						c.ecsClusterARN,
 						"--family",
 						fmt.Sprintf("consul_server_%s", randomSuffix),
 					},
@@ -799,7 +826,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for both tasks to be registered in Consul.
 			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				out, err := helpers.ExecuteRemoteCommand(t, suite.Config(), consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
+				out, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
 				r.Check(err)
 				if !strings.Contains(out, fmt.Sprintf("%s_%s", serverServiceName, randomSuffix)) ||
 					!strings.Contains(out, fmt.Sprintf("%s_%s", clientServiceName, randomSuffix)) {
@@ -809,7 +836,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for passing health check for test_server and test_client
 			tokenHeader := ""
-			if secure {
+			if c.secure {
 				tokenHeader = `-H "X-Consul-Token: $CONSUL_HTTP_TOKEN"`
 			}
 
@@ -820,10 +847,7 @@ func TestBasic(t *testing.T) {
 			for _, serviceName := range services {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 					out, err := helpers.ExecuteRemoteCommand(
-						t,
-						suite.Config(),
-						consulServerTaskARN,
-						"consul-server",
+						t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server",
 						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/%s_%s'`, tokenHeader, serviceName, randomSuffix),
 					)
 					r.Check(err)
@@ -842,9 +866,9 @@ func TestBasic(t *testing.T) {
 					"ecs",
 					"list-tasks",
 					"--region",
-					suite.Config().Region,
+					cfg.Region,
 					"--cluster",
-					suite.Config().ECSClusterARN,
+					c.ecsClusterARN,
 					"--family",
 					fmt.Sprintf("Test_Client_%s", randomSuffix),
 				},
@@ -858,10 +882,10 @@ func TestBasic(t *testing.T) {
 			testClientTaskID := arnParts[len(arnParts)-1]
 
 			// Create an intention.
-			if secure {
+			if c.secure {
 				// First check that connection between apps is unsuccessful.
 				retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-					curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
+					curlOut, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 					r.Check(err)
 					if !strings.Contains(curlOut, `curl: (52) Empty reply from server`) {
 						r.Errorf("response was unexpected: %q", curlOut)
@@ -869,13 +893,13 @@ func TestBasic(t *testing.T) {
 				})
 				retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 					consulCmd := fmt.Sprintf(`/bin/sh -c "consul intention create %s_%s %s_%s"`, clientServiceName, randomSuffix, serverServiceName, randomSuffix)
-					_, err := helpers.ExecuteRemoteCommand(t, suite.Config(), consulServerTaskARN, "consul-server", consulCmd)
+					_, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server", consulCmd)
 					r.Check(err)
 				})
 			}
 
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-				curlOut, err := helpers.ExecuteRemoteCommand(t, suite.Config(), testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
+				curlOut, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, testClientTaskARN, "basic", `/bin/sh -c "curl localhost:1234"`)
 				r.Check(err)
 				if !strings.Contains(curlOut, `"code": 200`) {
 					r.Errorf("response was unexpected: %q", curlOut)
@@ -892,8 +916,8 @@ func TestBasic(t *testing.T) {
 				Args: []string{
 					"ecs",
 					"stop-task",
-					"--region", suite.Config().Region,
-					"--cluster", suite.Config().ECSClusterARN,
+					"--region", cfg.Region,
+					"--cluster", c.ecsClusterARN,
 					"--task", testClientTaskARN,
 					"--reason", "Stopped to validate graceful shutdown in acceptance tests",
 				},
@@ -906,8 +930,8 @@ func TestBasic(t *testing.T) {
 					Args: []string{
 						"ecs",
 						"describe-tasks",
-						"--region", suite.Config().Region,
-						"--cluster", suite.Config().ECSClusterARN,
+						"--region", cfg.Region,
+						"--cluster", c.ecsClusterARN,
 						"--task", testClientTaskARN,
 					},
 				})
@@ -921,7 +945,7 @@ func TestBasic(t *testing.T) {
 
 			// Check logs to see that the application ignored the TERM signal and exited about 10s later.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "basic")
+				appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "basic")
 				require.NoError(r, err)
 
 				logMsg := "consul-ecs: received sigterm. waiting 10s before terminating application."
@@ -932,7 +956,7 @@ func TestBasic(t *testing.T) {
 
 			// Check that the Envoy entrypoint received the sigterm.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "sidecar-proxy")
+				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "sidecar-proxy")
 				require.NoError(r, err)
 
 				logMsg := "consul-ecs: waiting for application container(s) to stop"
@@ -943,7 +967,7 @@ func TestBasic(t *testing.T) {
 
 			// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				monitorLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "shutdown-monitor")
+				monitorLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "shutdown-monitor")
 				require.NoError(r, err)
 
 				// Check how long after shutdown the upstream was reachable.
@@ -968,7 +992,7 @@ func TestBasic(t *testing.T) {
 			// Validate that passing additional Consul agent configuration works.
 			// We enable DEBUG logs on one of the Consul agents.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				agentLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "consul-client")
+				agentLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-client")
 
 				require.NoError(r, err)
 				logMsg := "[DEBUG] agent:"
@@ -977,10 +1001,10 @@ func TestBasic(t *testing.T) {
 				require.Contains(r, agentLogs[0].Message, logMsg)
 			})
 
-			if secure {
+			if c.secure {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					// Validate that health-sync attempts the 'consul logout' for each of the tokens
-					syncLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), testClientTaskID, "consul-ecs-health-sync")
+					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-ecs-health-sync")
 					require.NoError(r, err)
 					syncLogs = syncLogs.Filter("[INFO]  log out token:")
 					require.Contains(r, syncLogs[0].Message, "/consul/service-token")
