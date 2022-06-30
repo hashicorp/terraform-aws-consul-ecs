@@ -207,6 +207,8 @@ func TestValidation_AdditionalPolicies(t *testing.T) {
 	for name, c := range cases {
 		c := c
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
@@ -412,7 +414,11 @@ func TestValidation_ConsulServiceName(t *testing.T) {
 	terraform.Init(t, terraformOptions)
 
 	for name, c := range cases {
+		c := c
+
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			out, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
@@ -468,7 +474,11 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 	terraform.Init(t, terraformOptions)
 
 	for name, c := range cases {
+		c := c
+
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			out, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
@@ -492,6 +502,8 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 
 // Test the validation that both partition and namespace must be provided or neither.
 func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]struct {
 		partition string
 		namespace string
@@ -737,6 +749,8 @@ func TestValidation_MeshGateway(t *testing.T) {
 }
 
 func TestBasic(t *testing.T) {
+	t.Parallel()
+
 	cfg := suite.Config()
 
 	cases := []struct {
