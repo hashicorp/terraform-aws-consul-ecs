@@ -126,8 +126,6 @@ jobs:
           name: terraform destroy
           working_directory: test/acceptance/setup-terraform
           command: |
-            set -x
-
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
             VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
