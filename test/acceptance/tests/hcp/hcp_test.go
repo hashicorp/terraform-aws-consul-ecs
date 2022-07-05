@@ -597,12 +597,10 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 }
 
 func TestAuditLogging(t *testing.T) {
-	// read the configuration from the setup-terraform dir.
-	var cfg HCPTestConfig
-	require.NoError(t, UnmarshalTF(setupDir, &cfg))
+	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token"}
+	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
