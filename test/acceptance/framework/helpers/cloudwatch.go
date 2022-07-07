@@ -11,11 +11,11 @@ import (
 )
 
 // GetCloudWatchLogEvents fetches all log events for the given container.
-func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.TestConfig, taskId, containerName string) (LogMessages, error) {
+func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.TestConfig, clusterARN, taskId, containerName string) (LogMessages, error) {
 	args := []string{
 		"ecs-cli", "logs",
 		"--region", testConfig.Region,
-		"--cluster", testConfig.ECSClusterARN,
+		"--cluster", clusterARN,
 		"--task-id", taskId,
 		"--container-name", containerName,
 		"--timestamps",
