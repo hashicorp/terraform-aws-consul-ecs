@@ -80,9 +80,6 @@ provider "aws" {
 
 locals {
   enterprise_enabled = var.consul_license != ""
-
-  // Require consul_image to be passed when consul_license is set.
-  validate_consul_ent_image = local.enterprise_enabled && var.consul_image == "" ? file("ERROR: consul_image not passed to basic-install for enterprise test") : null
 }
 
 // Generate a gossip encryption key if a secure installation.
@@ -130,7 +127,7 @@ module "consul_server" {
 
   service_discovery_namespace = var.consul_datacenter
   datacenter                  = var.consul_datacenter
-  consul_image                = local.enterprise_enabled ? var.consul_image : null
+  consul_image                = var.consul_image
   consul_license              = var.consul_license
 }
 
@@ -259,7 +256,7 @@ EOT
   gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
-  consul_image              = local.enterprise_enabled ? var.consul_image : null
+  consul_image              = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
@@ -319,7 +316,7 @@ module "test_server" {
   gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
-  consul_image              = local.enterprise_enabled ? var.consul_image : null
+  consul_image              = var.consul_image
 
   consul_http_addr         = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""

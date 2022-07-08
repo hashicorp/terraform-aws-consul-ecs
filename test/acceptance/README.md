@@ -4,7 +4,7 @@ These tests run the Terraform code.
 
 ### Prerequisites
 
-The following prerequisites are needed to run the acceptance tests: 
+The following prerequisites are needed to run the acceptance tests:
 
 - [Go](https://go.dev/dl/) (`go test`)
 - [Terraform](https://www.terraform.io/downloads) (`terraform`)
@@ -31,7 +31,11 @@ The following prerequisites are needed to run the acceptance tests:
 
 1. To run the tests, use `go test` from the `test/acceptance` directory:
 
+   For tests that use Consul Enterprise outside of HCP, you must set the
+   `CONSUL_LICENSE` environment variable to a Consul Enterprise license key.
+
    ```sh
+   export CONSUL_LICENSE=$(cat path/to/license-file)
    go test ./... -p 1 -timeout 30m -v -failfast
    ```
 
@@ -39,7 +43,59 @@ The following prerequisites are needed to run the acceptance tests:
    a failing test. Without this flag, the tests will delete all resources
    regardless of passing or failing.
 
+   You can filter tests by adding the `-run <regex>` option. For example, this
+   would only run non enterprise cases of TestBasic:
+
+   ```sh
+   go test ./... -p 1 -timeout 30m -v -failfast -run 'TestBasic/.*,enterprise:_false'
+   ```
+
 ### Cleanup
 
-If the tests haven't cleaned up after themselves you must run `terraform destroy`
-in each directory, e.g. `test/acceptance/tests/basic/terraform/basic-install`.
+If the tests haven't cleaned up after themselves, it's easiest to
+re-run the test cases that failed to clean up. The test will run again
+and hopefully complete successfully and destroy their resources.
+
+If re-running the test case is not possible, then you can run `terraform destroy`
+in the test directory containing the terraform state file (`*.tfstate`), although
+this takes some extra effort.
+
+TestBasic uses multiple state files to isolate resources for parallel test
+runs. You must pass the the `-state` argument with the correct state file. To
+cleanup resources for all cases of TestBasic, you must run `terraform destroy
+-state terraform-<index>.tfstate` for each state file.
+
+```sh
+cd test/acceptance/tests/basic/terraform/basic-install`.
+terraform destroy -var-file <SEE-BELOW> -state terraform-0.tfstate
+terraform destroy -var-file <SEE-BELOW> -state terraform-1.tfstate
+terraform destroy -var-file <SEE-BELOW> -state terraform-2.tfstate
+```
+
+Additionally, you must pass in the correct variables when running `terraform destroy`:
+
+* Grab outputs from setup-terraform
+
+    ```
+    cd test/acceptance/setup-terraform
+    terraform output > ../tests/basic/terraform/basic-install/setup-outputs.hcl
+    cd ../tests/basic/terraform/basic-install/
+    ```
+
+* Edit `setup-outputs.hcl` as-needed for this particular module, until `terraform destory` works.
+  All the resources are in the state file, so in most cases the values of the variables won't matter
+  since Terraform still knows what to destroy. For example, the follow changes might work for TestBasic,
+  but this will be different to the HCP tests.
+
+    ```
+    terraform destroy -var-file setup-outputs.hcl -state terraform-2.tfstate
+    # didn't work? Edit setup-outputs.hcl to modify variables and then retry. See below for tips for TestBasic.
+    ```
+
+  * Use matching indexes for the state file, ECS cluster, and Consul datacenter.
+    If you are using `terraform-2.tfstate`, then use the `consul-ecs-<suffix>-2` cluster and the `dc2` datacenter.
+  * Remove `ecs_cluster_arns` (list) and set `ecs_cluster_arn` (string).
+  * Set `consul_datacenter`
+  * Remove `tolist()` and `tomap()` wrappers.
+  * Replace `token = <sensitive>` (or remove it if not needed, such as in this example)
+  * Set `suffix = "nosuffix"`. We just need a lowercase value.

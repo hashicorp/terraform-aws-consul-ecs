@@ -811,14 +811,13 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
+			image := discoverConsulImage(t, c.enterprise)
+			t.Logf("using consul image = %s", image)
+			tfVars["consul_image"] = image
 			if c.enterprise {
 				license := os.Getenv("CONSUL_LICENSE")
 				require.True(t, license != "", "CONSUL_LICENSE not found but is required for enterprise tests")
 
-				image := discoverConsulEnterpriseImage(t)
-				t.Logf("using consul enterprise image = %s", image)
-
-				tfVars["consul_image"] = image
 				// Pass the license via environment variable to help ensure it is not logged.
 				tfEnvVars["TF_VAR_consul_license"] = license
 			}
@@ -1063,7 +1062,7 @@ func TestBasic(t *testing.T) {
 
 // discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
 // and uses that that same version of the enterprise image.
-func discoverConsulEnterpriseImage(t *testing.T) string {
+func discoverConsulImage(t *testing.T, enterprise bool) string {
 	filepath := "../../../../modules/mesh-task/variables.tf"
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
@@ -1072,8 +1071,12 @@ func discoverConsulEnterpriseImage(t *testing.T) string {
 	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
 	matches := re.FindSubmatch(data)
 	require.Len(t, matches, 2) // entire match + one submatch
-	version := string(matches[1]) + "-ent"
-	return "public.ecr.aws/hashicorp/consul-enterprise:" + version
+	version := string(matches[1])
+
+	if enterprise {
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
+	}
+	return "public.ecr.aws/hashicorp/consul:" + version
 }
 
 type listTasksResponse struct {
