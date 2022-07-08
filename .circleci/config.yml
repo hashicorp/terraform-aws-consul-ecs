@@ -97,7 +97,7 @@ jobs:
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
             VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
-                main | release/*) VARS+=" -var enable_hcp=true";;
+                main | release/* | pglass/*) VARS+=" -var enable_hcp=true";;
                 *) VARS+=" -var enable_hcp=false";;
             esac
 
@@ -129,7 +129,7 @@ jobs:
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
             VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
-                main | release/*) VARS+=" -var enable_hcp=true";;
+                main | release/* | pglass/*) VARS+=" -var enable_hcp=true";;
                 *) VARS+=" -var enable_hcp=false";;
             esac
 
