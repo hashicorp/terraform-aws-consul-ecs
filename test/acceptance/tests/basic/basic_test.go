@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -751,27 +752,29 @@ func TestValidation_MeshGateway(t *testing.T) {
 func TestBasic(t *testing.T) {
 	t.Parallel()
 
-	cfg := suite.Config()
-
-	initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/basic-install",
-		NoColor:      true,
-	})
-
-	terraform.Init(t, initOptions)
-
 	cases := []struct {
 		secure        bool
+		enterprise    bool
 		stateFile     string
 		ecsClusterARN string
 		datacenter    string
 	}{
 		{secure: false},
 		{secure: true},
+		{secure: true, enterprise: true},
 	}
 
+	cfg := suite.Config()
 	require.GreaterOrEqual(t, len(cfg.ECSClusterARNs), len(cases),
-		"TestBasic requires %d ECS clusters. Update setup-terraform and re-run.", len(cases))
+		"TestBasic requires %d ECS clusters. Update setup-terraform and re-run.", len(cases),
+	)
+
+	initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/basic-install",
+		NoColor:      true,
+	})
+	terraform.Init(t, initOptions)
+
 	for i, c := range cases {
 		c := c
 
@@ -784,14 +787,19 @@ func TestBasic(t *testing.T) {
 		c.datacenter = fmt.Sprintf("dc%d", i)
 		c.stateFile = fmt.Sprintf("terraform-%d.tfstate", i)
 
-		t.Run(fmt.Sprintf("secure: %t", c.secure), func(t *testing.T) {
+		t.Run(fmt.Sprintf("secure: %t,enterprise: %t", c.secure, c.enterprise), func(t *testing.T) {
 			t.Parallel()
 
 			randomSuffix := strings.ToLower(random.UniqueId())
+
+			tfEnvVars := map[string]string{
+				// Use a unique state file for each parallel invocation of Terraform.
+				"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
+			}
+
 			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arns")
 			tfVars["secure"] = c.secure
 			tfVars["suffix"] = randomSuffix
-			// Selects the cluster to use. Important to ensure each test case uses a separate ECS cluster.
 			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
 			tfVars["consul_datacenter"] = c.datacenter
 			clientServiceName := "test_client"
@@ -803,13 +811,23 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
+			if c.enterprise {
+				license := os.Getenv("CONSUL_LICENSE")
+				require.True(t, license != "", "CONSUL_LICENSE not found but is required for enterprise tests")
+
+				image := discoverConsulEnterpriseImage(t)
+				t.Logf("using consul enterprise image = %s", image)
+
+				tfVars["consul_image"] = image
+				// Pass the license via environment variable to help ensure it is not logged.
+				tfEnvVars["TF_VAR_consul_license"] = license
+			}
+
 			applyOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: initOptions.TerraformDir,
 				Vars:         tfVars,
 				NoColor:      true,
-				EnvVars: map[string]string{
-					"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
-				},
+				EnvVars:      tfEnvVars,
 			})
 
 			t.Cleanup(func() {
@@ -1041,6 +1059,21 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
+}
+
+// discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
+// and uses that that same version of the enterprise image.
+func discoverConsulEnterpriseImage(t *testing.T) string {
+	filepath := "../../../../modules/mesh-task/variables.tf"
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Find the default consul image in the mesh-task module and use that same version.
+	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
+	matches := re.FindSubmatch(data)
+	require.Len(t, matches, 2) // entire match + one submatch
+	version := string(matches[1]) + "-ent"
+	return "public.ecr.aws/hashicorp/consul-enterprise:" + version
 }
 
 type listTasksResponse struct {

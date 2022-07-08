@@ -6,7 +6,7 @@ locals {
   name   = "consul-ecs-${random_string.suffix.result}"
   suffix = random_string.suffix.result
 
-  cluster_count = 2
+  cluster_count = 3
 }
 
 data "aws_availability_zones" "available" {
