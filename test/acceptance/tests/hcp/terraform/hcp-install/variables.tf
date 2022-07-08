@@ -88,7 +88,7 @@ variable "consul_ca_cert_secret_arn" {
 }
 
 variable "audit_logging" {
-  description = "Boolean controlling whether audit logging is enabled"
+  description = "Whether audit logging is enabled."
   type        = bool
   default     = false
 }
