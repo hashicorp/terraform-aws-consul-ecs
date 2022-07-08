@@ -432,7 +432,7 @@ variable "consul_ecs_config" {
 }
 
 variable "audit_logging" {
-  description = "Boolean controlling whether audit logging is enabled"
+  description = "Whether to enable audit logging for the Consul agent [Consul Enterprise]. ACLs must be enabled to enable audit logging."
   type        = bool
   default     = false
 }
