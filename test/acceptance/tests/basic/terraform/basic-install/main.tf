@@ -1,6 +1,6 @@
 variable "ecs_cluster_arn" {
   type        = string
-  description = "Cluster ARN of ECS cluster."
+  description = "ARN of ECS cluster."
 }
 
 variable "vpc_id" {
@@ -15,7 +15,6 @@ variable "subnets" {
 
 variable "suffix" {
   type        = string
-  default     = "nosuffix"
   description = "Suffix to add to all resource names."
 }
 

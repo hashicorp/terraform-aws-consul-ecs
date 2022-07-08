@@ -753,28 +753,46 @@ func TestBasic(t *testing.T) {
 
 	cfg := suite.Config()
 
+	initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/basic-install",
+		NoColor:      true,
+	})
+
+	terraform.Init(t, initOptions)
+
 	cases := []struct {
 		secure        bool
 		stateFile     string
 		ecsClusterARN string
 		datacenter    string
 	}{
-		// Works for 2 clusters in parallel. Each test case should have a unique cluster
-		// and requires a unique Terrform state file. The datacenter must be unique within
-		// the VPC to avoid conflicts in CloudMap namespaces.
-		{false, "terraform.tfstate", cfg.ECSClusterARN, "dc1"},
-		{true, "terraform-secure.tfstate", cfg.ECSCluster2ARN, "dc2"},
+		{secure: false},
+		{secure: true},
 	}
-	for _, c := range cases {
+
+	require.GreaterOrEqual(t, len(cfg.ECSClusterARNs), len(cases),
+		"TestBasic requires %d ECS clusters. Update setup-terraform and re-run.", len(cases))
+	for i, c := range cases {
 		c := c
+
+		// To support running in parallel, each test case should have:
+		// - a unique cluster
+		// - a unique Terrform state file to isolate resources
+		// - a unique datacenter within the VPC to avoid conflicts in CloudMap namespaces
+		// If more clusters are needed, update the cluster count in setup-terraform
+		c.ecsClusterARN = cfg.ECSClusterARNs[i]
+		c.datacenter = fmt.Sprintf("dc%d", i)
+		c.stateFile = fmt.Sprintf("terraform-%d.tfstate", i)
+
 		t.Run(fmt.Sprintf("secure: %t", c.secure), func(t *testing.T) {
 			t.Parallel()
 
 			randomSuffix := strings.ToLower(random.UniqueId())
-			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arn")
-			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
+			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arns")
 			tfVars["secure"] = c.secure
 			tfVars["suffix"] = randomSuffix
+			// Selects the cluster to use. Important to ensure each test case uses a separate ECS cluster.
+			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
 			tfVars["consul_datacenter"] = c.datacenter
 			clientServiceName := "test_client"
 
@@ -784,11 +802,6 @@ func TestBasic(t *testing.T) {
 				serverServiceName = "custom_test_server"
 			}
 			tfVars["server_service_name"] = serverServiceName
-
-			initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./terraform/basic-install",
-				NoColor:      true,
-			})
 
 			applyOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: initOptions.TerraformDir,
@@ -807,7 +820,6 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			terraform.Init(t, initOptions)
 			terraform.Apply(t, applyOptions)
 
 			// Wait for consul server to be up.

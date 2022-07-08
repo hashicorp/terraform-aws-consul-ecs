@@ -2,6 +2,11 @@ provider "aws" {
   region = var.region
 }
 
+locals {
+  ecs_cluster_1_arn = var.ecs_cluster_arns[0]
+  ecs_cluster_2_arn = var.ecs_cluster_arns[1]
+}
+
 // Create ACL controller for cluster 1
 module "acl_controller_1" {
   source = "../../../../../../modules/acl-controller"
@@ -16,7 +21,7 @@ module "acl_controller_1" {
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
   consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = var.ecs_cluster_1_arn
+  ecs_cluster_arn                   = local.ecs_cluster_1_arn
   region                            = var.region
   subnets                           = var.subnets
   name_prefix                       = var.suffix_1
@@ -28,7 +33,7 @@ module "acl_controller_1" {
 // Create services.
 resource "aws_ecs_service" "test_client" {
   name            = "test_client_${var.suffix_1}"
-  cluster         = var.ecs_cluster_1_arn
+  cluster         = local.ecs_cluster_1_arn
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
@@ -104,7 +109,7 @@ module "acl_controller_2" {
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
   consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = var.ecs_cluster_2_arn
+  ecs_cluster_arn                   = local.ecs_cluster_2_arn
   region                            = var.region
   subnets                           = var.subnets
   name_prefix                       = var.suffix_2
@@ -116,7 +121,7 @@ module "acl_controller_2" {
 // Create services.
 resource "aws_ecs_service" "test_server" {
   name            = "test_server_${var.suffix_2}"
-  cluster         = var.ecs_cluster_2_arn
+  cluster         = local.ecs_cluster_2_arn
   task_definition = module.test_server.task_definition_arn
   desired_count   = 1
   network_configuration {

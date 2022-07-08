@@ -3,8 +3,7 @@ package config
 // TestConfig holds configuration for the test suite.
 type TestConfig struct {
 	NoCleanupOnFailure bool
-	ECSClusterARN      string      `json:"ecs_cluster_1_arn"`
-	ECSCluster2ARN     string      `json:"ecs_cluster_2_arn"`
+	ECSClusterARNs     []string    `json:"ecs_cluster_arns"`
 	LaunchType         string      `json:"launch_type"`
 	Subnets            interface{} `json:"subnets"`
 	Suffix             string
@@ -19,13 +18,13 @@ type TestConfig struct {
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 	vars := map[string]interface{}{
-		"ecs_cluster_arn": t.ECSClusterARN,
-		"launch_type":     t.LaunchType,
-		"subnets":         t.Subnets,
-		"region":          t.Region,
-		"log_group_name":  t.LogGroupName,
-		"vpc_id":          t.VpcID,
-		"route_table_ids": t.RouteTableIDs,
+		"ecs_cluster_arns": t.ECSClusterARNs,
+		"launch_type":      t.LaunchType,
+		"subnets":          t.Subnets,
+		"region":           t.Region,
+		"log_group_name":   t.LogGroupName,
+		"vpc_id":           t.VpcID,
+		"route_table_ids":  t.RouteTableIDs,
 	}
 
 	// If the flag is an empty string or object then terratest

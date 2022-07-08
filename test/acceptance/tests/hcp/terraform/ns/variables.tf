@@ -1,6 +1,11 @@
-variable "ecs_cluster_arn" {
-  type        = string
-  description = "Cluster ARN of ECS cluster."
+variable "ecs_cluster_arns" {
+  type        = list(string)
+  description = "ARNs of ECS clusters. One is required."
+
+  validation {
+    error_message = "At least one ECS cluster is required."
+    condition     = length(var.ecs_cluster_arns) >= 1
+  }
 }
 
 variable "vpc_id" {

@@ -49,7 +49,8 @@ resource "hcp_consul_cluster" "this" {
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
-  name = "${var.suffix}-bootstrap-token"
+  name                    = "${var.suffix}-bootstrap-token"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
@@ -58,7 +59,8 @@ resource "aws_secretsmanager_secret_version" "bootstrap_token" {
 }
 
 resource "aws_secretsmanager_secret" "gossip_key" {
-  name = "${var.suffix}-gossip-key"
+  name                    = "${var.suffix}-gossip-key"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "gossip_key" {
@@ -67,7 +69,8 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 }
 
 resource "aws_secretsmanager_secret" "consul_ca_cert" {
-  name = "${var.suffix}-consul-ca-cert"
+  name                    = "${var.suffix}-consul-ca-cert"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "consul_ca_cert" {

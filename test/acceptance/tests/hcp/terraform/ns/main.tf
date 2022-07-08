@@ -2,6 +2,10 @@ provider "aws" {
   region = var.region
 }
 
+locals {
+  ecs_cluster_arn = var.ecs_cluster_arns[0]
+}
+
 // Create ACL controller
 module "acl_controller" {
   source = "../../../../../../modules/acl-controller"
@@ -16,7 +20,7 @@ module "acl_controller" {
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
   consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = var.ecs_cluster_arn
+  ecs_cluster_arn                   = local.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
   name_prefix                       = var.suffix
@@ -28,7 +32,7 @@ module "acl_controller" {
 // Create client.
 resource "aws_ecs_service" "test_client" {
   name            = "test_client_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
+  cluster         = local.ecs_cluster_arn
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
@@ -92,7 +96,7 @@ module "test_client" {
 // Create server.
 resource "aws_ecs_service" "test_server" {
   name            = "test_server_${var.suffix}"
-  cluster         = var.ecs_cluster_arn
+  cluster         = local.ecs_cluster_arn
   task_definition = module.test_server.task_definition_arn
   desired_count   = 1
   network_configuration {

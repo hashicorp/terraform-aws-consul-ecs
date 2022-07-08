@@ -12,7 +12,7 @@ import (
 
 const (
 	flagNoCleanupOnFailure = "no-cleanup-on-failure"
-	flagECSClusterARN      = "ecs-cluster-arn"
+	flagECSClusterARNs     = "ecs-cluster-arns"
 	flagLaunchType         = "launch-type"
 	flagSubnets            = "subnets"
 	flagRegion             = "region"
@@ -27,7 +27,7 @@ const (
 
 type TestFlags struct {
 	flagNoCleanupOnFailure bool
-	flagECSClusterARN      string
+	flagECSClusterARNs     string
 	flagLaunchType         string
 	flagSubnets            string
 	flagRegion             string
@@ -49,7 +49,7 @@ func (t *TestFlags) init() {
 	flag.BoolVar(&t.flagNoCleanupOnFailure, flagNoCleanupOnFailure, false,
 		"If true, the tests will not clean up resources they create when they finish running."+
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
-	flag.StringVar(&t.flagECSClusterARN, flagECSClusterARN, "", "ECS Cluster ARN.")
+	flag.StringVar(&t.flagECSClusterARNs, flagECSClusterARNs, "", "ECS Cluster ARNs. In TF Var form, e.g. '[<arn>, <arn>]'")
 	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: 'FARGATE' or 'EC2'.")
 	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "Region.")
@@ -108,9 +108,15 @@ func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 			return nil, err
 		}
 	} else {
+		var arns []string
+		err := json.Unmarshal([]byte(t.flagECSClusterARNs), &arns)
+		if err != nil {
+			return nil, err
+		}
+
 		cfg = config.TestConfig{
 			NoCleanupOnFailure: t.flagNoCleanupOnFailure,
-			ECSClusterARN:      t.flagECSClusterARN,
+			ECSClusterARNs:     arns,
 			LaunchType:         t.flagLaunchType,
 			Subnets:            t.flagSubnets,
 			Region:             t.flagRegion,
