@@ -996,3 +996,50 @@ func TestBasic(t *testing.T) {
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
 }
+
+func TestValidation_AuditLogging(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/audit-logging-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		auditLogging bool
+		acls         bool
+		errMsg       string
+	}{
+		"with audit_logging and acls": {
+			auditLogging: true,
+			acls:         true,
+			errMsg:       "",
+		},
+		"with audit_logging, without acls": {
+			auditLogging: true,
+			acls:         false,
+			errMsg:       "ERROR: ACLs must be enabled if audit logging is enabled",
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			terraformOptions.Vars = map[string]interface{}{
+				"audit_logging": c.auditLogging,
+				"acls":          c.acls,
+			}
+			t.Cleanup(func() {
+				_, _ = terraform.DestroyE(t, terraformOptions)
+			})
+			_, err := terraform.PlanE(t, terraformOptions)
+			if c.errMsg == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), c.errMsg)
+			}
+		})
+	}
+}
