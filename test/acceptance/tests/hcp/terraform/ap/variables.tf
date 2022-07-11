@@ -13,14 +13,14 @@ variable "suffix_2" {
   type        = string
 }
 
-variable "ecs_cluster_1_arn" {
-  description = "Cluster ARN of ECS cluster 1."
-  type        = string
-}
+variable "ecs_cluster_arns" {
+  type        = list(string)
+  description = "ECS cluster ARNs. Two are required, and only the first two are used."
 
-variable "ecs_cluster_2_arn" {
-  description = "Cluster ARN of ECS cluster 2."
-  type        = string
+  validation {
+    error_message = "Two ECS clusters are required."
+    condition     = length(var.ecs_cluster_arns) >= 2
+  }
 }
 
 variable "vpc_id" {

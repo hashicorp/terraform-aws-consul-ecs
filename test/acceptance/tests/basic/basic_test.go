@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -751,30 +752,55 @@ func TestValidation_MeshGateway(t *testing.T) {
 func TestBasic(t *testing.T) {
 	t.Parallel()
 
-	cfg := suite.Config()
-
 	cases := []struct {
 		secure        bool
+		enterprise    bool
 		stateFile     string
 		ecsClusterARN string
 		datacenter    string
 	}{
-		// Works for 2 clusters in parallel. Each test case should have a unique cluster
-		// and requires a unique Terrform state file. The datacenter must be unique within
-		// the VPC to avoid conflicts in CloudMap namespaces.
-		{false, "terraform.tfstate", cfg.ECSClusterARN, "dc1"},
-		{true, "terraform-secure.tfstate", cfg.ECSCluster2ARN, "dc2"},
+		{secure: false},
+		{secure: true},
+		{secure: true, enterprise: true},
 	}
-	for _, c := range cases {
+
+	cfg := suite.Config()
+	require.GreaterOrEqual(t, len(cfg.ECSClusterARNs), len(cases),
+		"TestBasic requires %d ECS clusters. Update setup-terraform and re-run.", len(cases),
+	)
+
+	initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/basic-install",
+		NoColor:      true,
+	})
+	terraform.Init(t, initOptions)
+
+	for i, c := range cases {
 		c := c
-		t.Run(fmt.Sprintf("secure: %t", c.secure), func(t *testing.T) {
+
+		// To support running in parallel, each test case should have:
+		// - a unique cluster
+		// - a unique Terrform state file to isolate resources
+		// - a unique datacenter within the VPC to avoid conflicts in CloudMap namespaces
+		// If more clusters are needed, update the cluster count in setup-terraform
+		c.ecsClusterARN = cfg.ECSClusterARNs[i]
+		c.datacenter = fmt.Sprintf("dc%d", i)
+		c.stateFile = fmt.Sprintf("terraform-%d.tfstate", i)
+
+		t.Run(fmt.Sprintf("secure: %t,enterprise: %t", c.secure, c.enterprise), func(t *testing.T) {
 			t.Parallel()
 
 			randomSuffix := strings.ToLower(random.UniqueId())
-			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arn")
-			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
+
+			tfEnvVars := map[string]string{
+				// Use a unique state file for each parallel invocation of Terraform.
+				"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
+			}
+
+			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arns")
 			tfVars["secure"] = c.secure
 			tfVars["suffix"] = randomSuffix
+			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
 			tfVars["consul_datacenter"] = c.datacenter
 			clientServiceName := "test_client"
 
@@ -785,18 +811,22 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
-			initOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: "./terraform/basic-install",
-				NoColor:      true,
-			})
+			image := discoverConsulImage(t, c.enterprise)
+			t.Logf("using consul image = %s", image)
+			tfVars["consul_image"] = image
+			if c.enterprise {
+				license := os.Getenv("CONSUL_LICENSE")
+				require.True(t, license != "", "CONSUL_LICENSE not found but is required for enterprise tests")
+
+				// Pass the license via environment variable to help ensure it is not logged.
+				tfEnvVars["TF_VAR_consul_license"] = license
+			}
 
 			applyOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: initOptions.TerraformDir,
 				Vars:         tfVars,
 				NoColor:      true,
-				EnvVars: map[string]string{
-					"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
-				},
+				EnvVars:      tfEnvVars,
 			})
 
 			t.Cleanup(func() {
@@ -807,7 +837,6 @@ func TestBasic(t *testing.T) {
 				}
 			})
 
-			terraform.Init(t, initOptions)
 			terraform.Apply(t, applyOptions)
 
 			// Wait for consul server to be up.
@@ -1029,6 +1058,25 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
+}
+
+// discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
+// and uses that same version of the enterprise image.
+func discoverConsulImage(t *testing.T, enterprise bool) string {
+	filepath := "../../../../modules/mesh-task/variables.tf"
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Parse the default consul image from the mesh-task module.
+	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
+	matches := re.FindSubmatch(data)
+	require.Len(t, matches, 2) // entire match + one submatch
+	version := string(matches[1])
+
+	if enterprise {
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
+	}
+	return "public.ecr.aws/hashicorp/consul:" + version
 }
 
 type listTasksResponse struct {

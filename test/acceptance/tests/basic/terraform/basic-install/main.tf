@@ -1,6 +1,6 @@
 variable "ecs_cluster_arn" {
   type        = string
-  description = "Cluster ARN of ECS cluster."
+  description = "ARN of ECS cluster."
 }
 
 variable "vpc_id" {
@@ -15,7 +15,6 @@ variable "subnets" {
 
 variable "suffix" {
   type        = string
-  default     = "nosuffix"
   description = "Suffix to add to all resource names."
 }
 
@@ -41,6 +40,19 @@ variable "secure" {
   default     = false
 }
 
+
+variable "consul_license" {
+  description = "A Consul Enterprise license key. Requires consul_image to be set to a Consul Enterprise image."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "consul_image" {
+  type    = string
+  default = ""
+}
+
 variable "launch_type" {
   description = "Whether to launch tasks on Fargate or EC2"
   type        = string
@@ -64,6 +76,10 @@ variable "consul_datacenter" {
 
 provider "aws" {
   region = var.region
+}
+
+locals {
+  enterprise_enabled = var.consul_license != ""
 }
 
 // Generate a gossip encryption key if a secure installation.
@@ -111,6 +127,8 @@ module "consul_server" {
 
   service_discovery_namespace = var.consul_datacenter
   datacenter                  = var.consul_datacenter
+  consul_image                = var.consul_image
+  consul_license              = var.consul_license
 }
 
 data "aws_security_group" "vpc_default" {
@@ -152,6 +170,7 @@ module "acl_controller" {
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
+  consul_partitions_enabled         = local.enterprise_enabled
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -237,6 +256,7 @@ EOT
   gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
+  consul_image              = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
@@ -296,6 +316,7 @@ module "test_server" {
   gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
+  consul_image              = var.consul_image
 
   consul_http_addr         = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""

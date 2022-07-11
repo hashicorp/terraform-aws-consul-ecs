@@ -51,8 +51,6 @@ func retryFunc(rt *retry.Timer, t *testing.T, f func() error) error {
 // HCPTestConfig holds the extended configuration for the admin partition/namespace tests.
 type HCPTestConfig struct {
 	config.TestConfig
-	ECSCluster1ARN          string      `json:"ecs_cluster_1_arn"`
-	ECSCluster2ARN          string      `json:"ecs_cluster_2_arn"`
 	EnableHCP               bool        `json:"enable_hcp"`
 	ConsulAddr              string      `json:"consul_public_endpoint_url"`
 	ConsulToken             string      `json:"token"`
@@ -82,7 +80,7 @@ func TestHCP(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -100,7 +98,7 @@ func TestHCP(t *testing.T) {
 		Namespace:    "default",
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
+		ClusterARN:   cfg.ECSClusterARNs[0],
 	}
 
 	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
@@ -169,7 +167,7 @@ func TestNamespaces(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -185,7 +183,7 @@ func TestNamespaces(t *testing.T) {
 	taskConfig := helpers.MeshTaskConfig{
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
+		ClusterARN:   cfg.ECSClusterARNs[0],
 		Partition:    "default",
 	}
 
@@ -250,13 +248,13 @@ func TestAdminPartitions(t *testing.T) {
 	taskConfig.Name = fmt.Sprintf("test_client_%s", clientSuffix)
 	taskConfig.Partition = "part1"
 	taskConfig.Namespace = "ns1"
-	taskConfig.ClusterARN = cfg.ECSCluster1ARN
+	taskConfig.ClusterARN = cfg.ECSClusterARNs[0]
 	clientTask := helpers.NewMeshTask(t, taskConfig)
 
 	taskConfig.Name = fmt.Sprintf("test_server_%s", serverSuffix)
 	taskConfig.Partition = "part2"
 	taskConfig.Namespace = "ns2"
-	taskConfig.ClusterARN = cfg.ECSCluster2ARN
+	taskConfig.ClusterARN = cfg.ECSClusterARNs[1]
 	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix_1"] = clientSuffix
