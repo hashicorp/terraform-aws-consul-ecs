@@ -7,10 +7,15 @@ executors:
       - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.2
     environment:
       TEST_RESULTS: &TEST_RESULTS /tmp/test-results # path to where test results are saved
+    # medium (2cpu / 4gb) with parallel invocations of Terraform sometimes ran out of memory.
+    # Bumped to medium+ (3cpu / 6gb) to help with this.
+    # https://circleci.com/docs/configuration-reference#resourceclass
+    resource_class: medium+
 
 jobs:
   go-fmt-and-lint-acceptance:
     executor: consul-ecs-test
+    resource_class: medium
     steps:
       - checkout
 
@@ -63,6 +68,7 @@ jobs:
 
   terraform-fmt:
     executor: consul-ecs-test
+    resource_class: medium
     steps:
       - checkout
       - run: terraform fmt -check -recursive .
