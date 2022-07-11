@@ -61,7 +61,7 @@ in the test directory containing the terraform state file (`*.tfstate`), althoug
 this takes some extra effort.
 
 TestBasic uses multiple state files to isolate resources for parallel test
-runs. You must pass the the `-state` argument with the correct state file. To
+runs. You must pass the `-state` argument with the correct state file. To
 cleanup resources for all cases of TestBasic, you must run `terraform destroy
 -state terraform-<index>.tfstate` for each state file.
 
@@ -84,8 +84,8 @@ Additionally, you must pass in the correct variables when running `terraform des
 
 * Edit `setup-outputs.hcl` as-needed for this particular module, until `terraform destory` works.
   All the resources are in the state file, so in most cases the values of the variables won't matter
-  since Terraform still knows what to destroy. For example, the follow changes might work for TestBasic,
-  but this will be different to the HCP tests.
+  since Terraform still knows what to destroy. For example, the following changes might work for TestBasic,
+  but this will be different for the HCP tests.
 
     ```
     terraform destroy -var-file setup-outputs.hcl -state terraform-2.tfstate

@@ -1061,13 +1061,13 @@ func TestBasic(t *testing.T) {
 }
 
 // discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
-// and uses that that same version of the enterprise image.
+// and uses that same version of the enterprise image.
 func discoverConsulImage(t *testing.T, enterprise bool) string {
 	filepath := "../../../../modules/mesh-task/variables.tf"
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
-	// Find the default consul image in the mesh-task module and use that same version.
+	// Parse the default consul image from the mesh-task module.
 	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
 	matches := re.FindSubmatch(data)
 	require.Len(t, matches, 2) // entire match + one submatch
