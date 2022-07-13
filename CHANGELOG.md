@@ -1,3 +1,8 @@
+## Unreleased
+FEATURES
+* modules/mesh-task and modules/gateway-task: Add `audit_logging` flag to support audit logging for Consul Enterprise.
+  [[GH-128]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/128)
+
 ## 0.5.0 (June 21, 2022)
 
 BREAKING CHANGES

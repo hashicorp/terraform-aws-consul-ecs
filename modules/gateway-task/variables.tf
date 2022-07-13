@@ -232,6 +232,12 @@ variable "security_groups" {
   default     = []
 }
 
+variable "audit_logging" {
+  description = "Whether to enable audit logging for the Consul agent [Consul Enterprise]. ACLs must be enabled to enable audit logging."
+  type        = bool
+  default     = false
+}
+
 variable "subnets" {
   description = "Subnets IDs where the gateway task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
   type        = list(string)
@@ -284,3 +290,4 @@ variable "lb_modify_security_group_id" {
   type        = string
   default     = ""
 }
+
