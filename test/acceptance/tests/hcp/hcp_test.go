@@ -615,7 +615,7 @@ func TestAuditLogging(t *testing.T) {
 		Namespace:    "default",
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
+		ClusterARN:   cfg.ECSClusterARNs[0],
 	}
 
 	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
@@ -643,7 +643,7 @@ func TestAuditLogging(t *testing.T) {
 		clientTaskID := arnParts[len(arnParts)-1]
 
 		// Get CloudWatch logs and filter to only capture audit logs
-		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), clientTaskID, "consul-client")
+		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), taskConfig.ClusterARN, clientTaskID, "consul-client")
 		require.NoError(r, err)
 		auditLogs := appLogs.Filter(`"event_type":"audit"`)
 
