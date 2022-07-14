@@ -90,15 +90,12 @@ module "example_client_app" {
       timeout  = 5
     }
   }]
-  retry_join = [module.dev_consul_server.server_dns]
+  consul_server_hosts     = module.dev_consul_server.server_dns
+  consul_server_https     = true
+  consul_server_http_port = 8501
 
-  consul_http_addr = "https://${module.dev_consul_server.server_dns}:8501"
-
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = module.dev_consul_server.gossip_key_arn
-  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn // This cert for internal rpc shouldn't be needed in agentless?
-  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
+  acls                     = true
+  consul_https_ca_cert_arn = module.dev_consul_server.ca_cert_arn
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }
@@ -134,27 +131,19 @@ module "example_server_app" {
         value = "${var.name}-example-server-app"
       }
     ]
-  }]
-  # A Consul-native check, included in service registration.
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "5s"
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl localhost:9090/health"]
+      interval = 10
+      retries  = 3
+      timeout  = 5
     }
-  ]
-  retry_join = [module.dev_consul_server.server_dns]
+  }]
+  consul_server_hosts     = module.dev_consul_server.server_dns
+  consul_server_https     = true
+  consul_server_http_port = 8501
 
-  consul_http_addr = "https://${module.dev_consul_server.server_dns}:8501"
-
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = module.dev_consul_server.gossip_key_arn
-  consul_server_ca_cert_arn = module.dev_consul_server.ca_cert_arn // This cert for internal rpc shouldn't be needed in agentless?
-  consul_https_ca_cert_arn  = module.dev_consul_server.ca_cert_arn
+  acls                     = true
+  consul_https_ca_cert_arn = module.dev_consul_server.ca_cert_arn
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 }

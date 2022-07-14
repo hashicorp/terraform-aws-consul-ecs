@@ -11,16 +11,20 @@ locals {
   } : null
 
   config = {
-    consulHTTPAddr   = var.consul_http_addr
-    consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
-    consulLogin      = local.consulLogin
+    consulServers = {
+      hosts      = var.consul_server_hosts
+      https      = var.consul_server_https
+      httpPort   = var.consul_server_http_port
+      grpcPort   = var.consul_server_grpc_port
+      caCertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
+    }
+    consulLogin = local.consulLogin
     service = merge(
       {
         name      = local.service_name
         tags      = var.consul_service_tags
         port      = var.port
         meta      = var.consul_service_meta
-        checks    = var.checks
         namespace = var.consul_namespace
         partition = var.consul_partition
       },

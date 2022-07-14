@@ -133,6 +133,7 @@ variable "outbound_only" {
   default     = false
 }
 
+// TODO: Remove consul-client once we're off of the Consul CLI.
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
@@ -209,75 +210,15 @@ variable "upstreams" {
   }
 }
 
-variable "checks" {
-  description = <<-EOT
-  A list of maps defining Consul checks for this service. This follows the schema of the `service.checks` field
-  of the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
-  the Consul checks documentation (https://www.consul.io/docs/discovery/checks) for more.
-  EOT
-
-  type    = any
-  default = []
-
-  validation {
-    error_message = "Check fields must be one of 'checkId', 'name', 'args', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'h2ping', 'h2pingUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
-    condition = alltrue(flatten([
-      for check in var.checks : [
-        for key in keys(check) : contains(
-          [
-            "checkId",
-            "name",
-            "args",
-            "items",
-            "interval",
-            "timeout",
-            "ttl",
-            "http",
-            "header",
-            "method",
-            "body",
-            "tcp",
-            "status",
-            "notes",
-            "tlsServerName",
-            "tlsSkipVerify",
-            "grpc",
-            "grpcUseTls",
-            "h2ping",
-            "h2pingUseTls",
-            "aliasNode",
-            "aliasService",
-            "successBeforePassing",
-            "failuresBeforeCritical",
-          ],
-          key
-        )
-      ]
-    ]))
-  }
-}
-
-variable "retry_join" {
-  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
-  type        = list(string)
-}
-
-variable "consul_http_addr" {
-  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
+variable "consul_server_hosts" {
+  description = "The Consul server locations. This can be an IP address or hostname, or an exec command."
   type        = string
-  default     = ""
 }
 
 variable "consul_https_ca_cert_arn" {
   description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul's HTTPS interface."
   type        = string
   default     = ""
-}
-
-variable "client_token_auth_method_name" {
-  description = "The name of the Consul Auth Method to login to for client tokens."
-  type        = string
-  default     = "iam-ecs-client-token"
 }
 
 variable "service_token_auth_method_name" {
@@ -292,33 +233,27 @@ variable "tags" {
   default     = {}
 }
 
-variable "tls" {
-  description = "Whether to enable TLS for the mesh-task for the control plane traffic."
+variable "consul_server_https" {
+  description = "Whether to use HTTPS connections to the consul_server_hosts. Defaults to true."
   type        = bool
-  default     = false
+  default     = true
 }
 
-variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC."
-  type        = string
-  default     = ""
+variable "consul_server_http_port" {
+  description = "The Consul server HTTP(S) port. Defaults to 8501."
+  type        = number
+  default     = 8501
 }
 
-variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
-  type        = string
-  default     = ""
+variable "consul_server_grpc_port" {
+  description = "The Consul server gRPC port. Defaults to 8502."
+  type        = number
+  default     = 8502
 }
 
 variable "acls" {
   description = "Whether to enable ACLs for the mesh task."
   type        = bool
-  default     = false
-}
-
-variable "enable_acl_token_replication" {
-  type        = bool
-  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the mesh-task is part of a WAN federated Consul service mesh."
   default     = false
 }
 
@@ -328,17 +263,25 @@ variable "consul_datacenter" {
   default     = "dc1"
 }
 
+// TODO: I don't think I need this for agentless.
 variable "consul_primary_datacenter" {
   type        = string
   description = "The name of the primary Consul datacenter. Required when the mesh-task is part of a WAN federated Consul service mesh."
   default     = ""
 }
 
-variable "consul_agent_configuration" {
-  type        = string
-  description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = ""
-}
+// TODO: Enable these when adding in consul-dataplane.
+//variable "consul_dataplane_image" {
+//  type        = string
+//  description = "The consul-dataplane image."
+//  default     = "public.ecr.aws/hashicorp/consul-dataplane:FIXME_VERSION"
+//}
+//
+//variable "consul_dataplane_environment" {
+//  type        = any
+//  description = "Environment variables to set in the consul-dataplane container."
+//  default     = {}
+//}
 
 variable "application_shutdown_delay_seconds" {
   type        = number
