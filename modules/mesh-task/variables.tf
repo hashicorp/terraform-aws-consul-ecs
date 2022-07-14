@@ -362,10 +362,10 @@ variable "consul_ecs_config" {
   EOT
 
   validation {
-    error_message = "Only the 'service' and 'proxy' fields are allowed in consul_ecs_config."
+    error_message = "Only the 'service', 'proxy', and 'consulLogin' fields are allowed in consul_ecs_config."
     condition = alltrue([
       for key in keys(var.consul_ecs_config) :
-      contains(["service", "proxy"], key)
+      contains(["service", "proxy", "consulLogin"], key)
     ])
   }
 
@@ -428,6 +428,25 @@ variable "consul_ecs_config" {
       ]
     ]))
   }
+
+  validation {
+    error_message = "Only the 'enabled', 'method', 'includeEntity', 'meta', 'region', 'stsEndpoint', and 'serverIdHeaderValue' fields are allowed in consul_ecs_config.consulLogin."
+    condition = alltrue(flatten([
+      for login in [lookup(var.consul_ecs_config, "consulLogin", {})] : [
+        for key in keys(login) :
+        contains([
+          "enabled",
+          "method",
+          "includeEntity",
+          "meta",
+          "region",
+          "stsEndpoint",
+          "serverIdHeaderValue",
+        ], key)
+      ]
+    ]))
+  }
+
 }
 
 variable "audit_logging" {

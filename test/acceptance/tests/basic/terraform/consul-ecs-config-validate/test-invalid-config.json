@@ -16,5 +16,8 @@
         }
       ]
     }
+  },
+  "consulLogin": {
+    "invalid-key": ""
   }
 }
