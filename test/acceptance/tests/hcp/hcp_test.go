@@ -597,7 +597,7 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 func TestAuditLogging(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_1_arn", "ecs_cluster_2_arn", "token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -615,7 +615,7 @@ func TestAuditLogging(t *testing.T) {
 		Namespace:    "default",
 		ConsulClient: consulClient,
 		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARN,
+		ClusterARN:   cfg.ECSClusterARNs[0],
 	}
 
 	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
@@ -643,7 +643,7 @@ func TestAuditLogging(t *testing.T) {
 		clientTaskID := arnParts[len(arnParts)-1]
 
 		// Get CloudWatch logs and filter to only capture audit logs
-		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), clientTaskID, "consul-client")
+		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), taskConfig.ClusterARN, clientTaskID, "consul-client")
 		require.NoError(r, err)
 		auditLogs := appLogs.Filter(`"event_type":"audit"`)
 
