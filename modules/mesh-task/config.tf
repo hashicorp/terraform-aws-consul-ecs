@@ -12,10 +12,7 @@ locals {
   config = {
     consulHTTPAddr   = var.consul_http_addr
     consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
-    consulLogin = merge(
-      local.consulLogin,
-      local.loginExtra,
-    )
+    consulLogin      = merge(local.consulLogin, local.loginExtra)
     service = merge(
       {
         name      = local.service_name
