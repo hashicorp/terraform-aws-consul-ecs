@@ -9,5 +9,9 @@
     "meshGateway": {
       "mode": "remote"
     }
+  },
+  "consulLogin": {
+    "method": "my-method",
+    "region": "bogus-east-1"
   }
 }

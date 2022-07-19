@@ -24,5 +24,16 @@
         }
       ]
     }
+  },
+  "consulLogin": {
+    "enabled": true,
+    "method": "my-method",
+    "includeEntity": false,
+    "meta": {
+      "tag-1": "val-1"
+    },
+    "region": "bogus-east-1",
+    "stsEndpoint": "https://sts.bogus-east-1.example.com",
+    "serverIdHeaderValue": "my.consul.example.com"
   }
 }

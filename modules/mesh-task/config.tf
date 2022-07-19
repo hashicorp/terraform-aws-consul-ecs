@@ -2,18 +2,17 @@ locals {
   // Define the Consul ECS config file contents.
   serviceExtra = lookup(var.consul_ecs_config, "service", {})
   proxyExtra   = lookup(var.consul_ecs_config, "proxy", {})
+  loginExtra   = lookup(var.consul_ecs_config, "consulLogin", {})
 
   consulLogin = var.acls ? {
     enabled = var.acls
     method  = var.service_token_auth_method_name
-    // TODO: Move this to a top-level partition field in the CONSUL_ECS_CONFIG_JSON
-    extraLoginFlags = var.consul_partition != "" ? ["-partition", var.consul_partition] : []
   } : null
 
   config = {
     consulHTTPAddr   = var.consul_http_addr
     consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
-    consulLogin      = local.consulLogin
+    consulLogin      = merge(local.consulLogin, local.loginExtra)
     service = merge(
       {
         name      = local.service_name

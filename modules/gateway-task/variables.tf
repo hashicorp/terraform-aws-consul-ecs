@@ -291,3 +291,40 @@ variable "lb_modify_security_group_id" {
   default     = ""
 }
 
+variable "consul_ecs_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  Additional configuration to pass to the consul-ecs binary for the Consul gateway registration request.
+  This only accepts the 'consulLogin' field the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
+  EOT
+
+  validation {
+    error_message = "Only 'consulLogin' field is allowed in consul_ecs_config."
+    condition = alltrue([
+      for key in keys(var.consul_ecs_config) :
+      contains(["consulLogin"], key)
+    ])
+  }
+
+  validation {
+    error_message = "Only the 'enabled', 'method', 'includeEntity', 'meta', 'region', 'stsEndpoint', and 'serverIdHeaderValue' fields are allowed in consul_ecs_config.consulLogin."
+    condition = alltrue(flatten([
+      for login in [lookup(var.consul_ecs_config, "consulLogin", {})] : [
+        for key in keys(login) :
+        contains([
+          "enabled",
+          "method",
+          "includeEntity",
+          "meta",
+          "region",
+          "stsEndpoint",
+          "serverIdHeaderValue",
+        ], key)
+      ]
+    ]))
+  }
+
+}
+
+

@@ -2,6 +2,9 @@
 FEATURES
 * modules/mesh-task and modules/gateway-task: Add `audit_logging` flag to support audit logging for Consul Enterprise.
   [[GH-128]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/128)
+* modules/mesh-task and modules/gateway-task: Support `consulLogin` field in the `consul_ecs_config`
+  variable for configuring login to the AWS IAM auth method.
+  [[GH-132](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/132)]
 
 ## 0.5.0 (June 21, 2022)
 
