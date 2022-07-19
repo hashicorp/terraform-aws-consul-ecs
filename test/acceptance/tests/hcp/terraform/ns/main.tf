@@ -6,15 +6,15 @@ locals {
   ecs_cluster_arn = var.ecs_cluster_arns[0]
 }
 
-// Create ACL controller
-module "acl_controller" {
-  source = "../../../../../../modules/acl-controller"
+// Create the controller
+module "ecs_controller" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix}"
     }
   }
   launch_type                       = var.launch_type

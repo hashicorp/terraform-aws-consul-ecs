@@ -34,14 +34,14 @@ resource "aws_security_group_rule" "consul_server_ingress" {
 }
 
 
-module "acl_controller" {
-  source = "../../modules/acl-controller"
+module "ecs_controller" {
+  source = "../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = aws_cloudwatch_log_group.log_group.name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-server"
+      awslogs-stream-prefix = "consul-ecs-controller"
     }
   }
   consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn

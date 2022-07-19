@@ -150,15 +150,15 @@ resource "aws_security_group_rule" "consul_server_ingress" {
   security_group_id        = module.consul_server.security_group_id
 }
 
-module "acl_controller" {
+module "ecs_controller" {
   count  = var.secure ? 1 : 0
-  source = "../../../../../../modules/acl-controller"
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller"
+      awslogs-stream-prefix = "consul-ecs-controller"
     }
   }
   launch_type                       = var.launch_type

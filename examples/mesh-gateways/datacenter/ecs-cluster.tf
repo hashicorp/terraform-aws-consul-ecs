@@ -7,8 +7,8 @@ resource "aws_cloudwatch_log_group" "log_group" {
   name = var.name
 }
 
-module "acl_controller" {
-  source = "../../../modules/acl-controller"
+module "ecs_controller" {
+  source = "../../../modules/controller"
 
   name_prefix               = var.name
   ecs_cluster_arn           = aws_ecs_cluster.this.arn
@@ -25,7 +25,7 @@ module "acl_controller" {
     options = {
       awslogs-group         = aws_cloudwatch_log_group.log_group.name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "acl-controller"
+      awslogs-stream-prefix = "consul-ecs-controller"
     }
   }
 

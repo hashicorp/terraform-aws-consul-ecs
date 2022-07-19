@@ -7,15 +7,15 @@ resource "random_string" "server_suffix" {
   special = false
 }
 
-// Create ACL controller
-module "acl_controller_server" {
-  source = "../../../modules/acl-controller"
+// Create controller
+module "ecs_controller_server" {
+  source = "../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = aws_cloudwatch_log_group.log_group.name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${local.server_suffix}"
+      awslogs-stream-prefix = "consul-ecs-controller-${local.server_suffix}"
     }
   }
   launch_type                       = local.launch_type

@@ -7,15 +7,15 @@ locals {
   ecs_cluster_2_arn = var.ecs_cluster_arns[1]
 }
 
-// Create ACL controller for cluster 1
-module "acl_controller_1" {
-  source = "../../../../../../modules/acl-controller"
+// Create controller for cluster 1
+module "ecs_controller_1" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_1}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix_1}"
     }
   }
   launch_type                       = var.launch_type
@@ -95,15 +95,15 @@ module "test_client" {
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
-// Create ACL controller for cluster 2
-module "acl_controller_2" {
-  source = "../../../../../../modules/acl-controller"
+// Create controller for cluster 2
+module "ecs_controller_2" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_2}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix_2}"
     }
   }
   launch_type                       = var.launch_type

@@ -120,7 +120,7 @@ resource "consul_config_entry" "service_intentions" {
   })
 }
 
-// Create AWS Secrets Manager secrets required by the mesh-tasks and ACL controllers
+// Create AWS Secrets Manager secrets required by the mesh-tasks and controllers
 resource "aws_secretsmanager_secret" "bootstrap_token" {
   name = "${local.rand_suffix}-bootstrap-token"
 }
