@@ -12,8 +12,10 @@ resource "aws_ecs_service" "this" {
   enable_execute_command = true
 }
 
-local {
+locals {
   encoded_config = jsonencode({
+    // TODO: this is required by the consul-ecs schema. probably we should have a separate schema for the controller.
+    bootstrapDir = "<none>"
     consulServers = {
       hosts    = var.consul_server_hosts
       https    = var.consul_server_https
@@ -55,10 +57,6 @@ resource "aws_ecs_task_definition" "this" {
             name      = "CONSUL_HTTP_TOKEN"
             valueFrom = var.consul_bootstrap_token_secret_arn
           },
-          {
-            name      = "CONSUL_ECS_CONFIG_JSON"
-            valueFrom = local.encoded_config
-          }
         ],
         var.consul_server_https_ca_cert_arn != "" ? [
           {
@@ -67,6 +65,12 @@ resource "aws_ecs_task_definition" "this" {
           }
         ] : []
       )
+      environment = [
+        {
+          name  = "CONSUL_ECS_CONFIG_JSON"
+          value = local.encoded_config
+        }
+      ]
     },
   ])
 }

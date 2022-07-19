@@ -45,8 +45,9 @@ module "ecs_controller" {
     }
   }
   consul_bootstrap_token_secret_arn = module.dev_consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.dev_consul_server.server_dns}:8501"
-  consul_server_ca_cert_arn         = module.dev_consul_server.ca_cert_arn
+  consul_server_hosts               = module.dev_consul_server.server_dns
+  consul_server_https               = true
+  consul_server_https_ca_cert_arn   = module.dev_consul_server.ca_cert_arn
   ecs_cluster_arn                   = aws_ecs_cluster.this.arn
   region                            = var.region
   subnets                           = module.vpc.private_subnets

@@ -20,14 +20,16 @@ module "ecs_controller_1" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = local.ecs_cluster_1_arn
-  region                            = var.region
-  subnets                           = var.subnets
-  name_prefix                       = var.suffix_1
-  consul_ecs_image                  = var.consul_ecs_image
-  consul_partitions_enabled         = true
-  consul_partition                  = var.client_partition
+  // TODO: Workaround for now. We know this is https for hcp.
+  consul_server_hosts       = split("/", var.consul_private_endpoint_url)[1]
+  consul_server_https       = true
+  ecs_cluster_arn           = local.ecs_cluster_1_arn
+  region                    = var.region
+  subnets                   = var.subnets
+  name_prefix               = var.suffix_1
+  consul_ecs_image          = var.consul_ecs_image
+  consul_partitions_enabled = true
+  consul_partition          = var.client_partition
 }
 
 // Create services.
@@ -108,14 +110,16 @@ module "ecs_controller_2" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = local.ecs_cluster_2_arn
-  region                            = var.region
-  subnets                           = var.subnets
-  name_prefix                       = var.suffix_2
-  consul_ecs_image                  = var.consul_ecs_image
-  consul_partitions_enabled         = true
-  consul_partition                  = var.server_partition
+  // TODO: Workaround for now. We know this is https for hcp.
+  consul_server_hosts       = split("/", var.consul_private_endpoint_url)[1]
+  consul_server_https       = true
+  ecs_cluster_arn           = local.ecs_cluster_2_arn
+  region                    = var.region
+  subnets                   = var.subnets
+  name_prefix               = var.suffix_2
+  consul_ecs_image          = var.consul_ecs_image
+  consul_partitions_enabled = true
+  consul_partition          = var.server_partition
 }
 
 // Create services.

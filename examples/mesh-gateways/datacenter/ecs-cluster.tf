@@ -10,13 +10,17 @@ resource "aws_cloudwatch_log_group" "log_group" {
 module "ecs_controller" {
   source = "../../../modules/controller"
 
-  name_prefix               = var.name
-  ecs_cluster_arn           = aws_ecs_cluster.this.arn
-  region                    = var.region
-  subnets                   = var.private_subnets
-  consul_server_http_addr   = "http://${module.dev_consul_server.server_dns}:8500"
-  consul_server_ca_cert_arn = var.ca_cert_arn
-  launch_type               = "FARGATE"
+  name_prefix                     = var.name
+  ecs_cluster_arn                 = aws_ecs_cluster.this.arn
+  region                          = var.region
+  subnets                         = var.private_subnets
+  consul_server_http_addr         = "http://${module.dev_consul_server.server_dns}:8500"
+  consul_server_hosts             = module.dev_consul_server.server_dns
+  consul_server_https             = false
+  consul_server_http_port         = 8500
+  consul_server_https_ca_cert_arn = var.ca_cert_arn
+
+  launch_type = "FARGATE"
 
   consul_bootstrap_token_secret_arn = var.bootstrap_token_arn
 

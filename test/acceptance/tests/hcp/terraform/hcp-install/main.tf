@@ -19,14 +19,16 @@ module "ecs_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
-  ecs_cluster_arn                   = local.ecs_cluster_arn
-  region                            = var.region
-  subnets                           = var.subnets
-  name_prefix                       = var.suffix
-  consul_ecs_image                  = var.consul_ecs_image
-  consul_partitions_enabled         = true
-  consul_partition                  = "default"
+  // TODO: Workaround for now. We know this is https for hcp.
+  consul_server_hosts       = split("/", var.consul_private_endpoint_url)[1]
+  consul_server_https       = true
+  ecs_cluster_arn           = local.ecs_cluster_arn
+  region                    = var.region
+  subnets                   = var.subnets
+  name_prefix               = var.suffix
+  consul_ecs_image          = var.consul_ecs_image
+  consul_partitions_enabled = true
+  consul_partition          = "default"
 }
 
 // Create client.
@@ -79,10 +81,12 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = var.gossip_key_secret_arn
-  consul_http_addr          = var.consul_private_endpoint_url
+  tls                   = true
+  acls                  = true
+  gossip_key_secret_arn = var.gossip_key_secret_arn
+  // TODO: Workaround for now.
+  consul_server_hosts       = split("/", var.hcp_url)[1]
+  consul_server_https       = true
   consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
   consul_ecs_image          = var.consul_ecs_image
   consul_image              = var.consul_image

@@ -163,8 +163,9 @@ module "ecs_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
-  consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
+  consul_server_hosts               = module.consul_server.server_dns
+  consul_server_https               = true
+  consul_server_https_ca_cert_arn   = module.consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
