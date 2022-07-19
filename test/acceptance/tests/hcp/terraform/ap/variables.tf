@@ -63,7 +63,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:8cc39a6"
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
 }
 
 variable "consul_public_endpoint_url" {
