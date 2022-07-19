@@ -12,6 +12,25 @@ resource "aws_ecs_service" "this" {
   enable_execute_command = true
 }
 
+local {
+  encoded_config = jsonencode({
+    consulServers = {
+      hosts    = var.consul_server_hosts
+      https    = var.consul_server_https
+      httpPort = var.consul_server_http_port
+      grpcPort = var.consul_server_grpc_port
+      // NOTE: caCertFile is not set. There cert file is not needed because we do not share the cert
+      // across containers for the controller task. If consul_server_https_ca_cert_arn is specified,
+      // then we set CONSUL_CACERT_PEM, which the controller reads directly.
+    }
+    controller = {
+      iamRolePath       = var.iam_role_path
+      partitionsEnabled = var.consul_partitions_enabled
+      partition         = var.consul_partitions_enabled ? var.consul_partition : ""
+    }
+  })
+}
+
 resource "aws_ecs_task_definition" "this" {
   family                   = "${var.name_prefix}-consul-acl-controller"
   requires_compatibilities = var.requires_compatibilities
@@ -26,35 +45,28 @@ resource "aws_ecs_task_definition" "this" {
       image            = var.consul_ecs_image
       essential        = true
       logConfiguration = var.log_configuration,
-      command = concat(
-        [
-          "acl-controller", "-iam-role-path", var.iam_role_path,
-        ],
-        var.consul_partitions_enabled ? [
-          "-partitions-enabled",
-          "-partition", var.consul_partition
-        ] : [],
-      )
+      command          = ["acl-controller"]
       linuxParameters = {
         initProcessEnabled = true
       }
-      secrets = concat([
-        {
-          name      = "CONSUL_HTTP_TOKEN",
-          valueFrom = var.consul_bootstrap_token_secret_arn
-        }],
-        var.consul_server_ca_cert_arn != "" ? [
+      secrets = concat(
+        [
+          {
+            name      = "CONSUL_HTTP_TOKEN"
+            valueFrom = var.consul_bootstrap_token_secret_arn
+          },
+          {
+            name      = "CONSUL_ECS_CONFIG_JSON"
+            valueFrom = local.encoded_config
+          }
+        ],
+        var.consul_server_https_ca_cert_arn != "" ? [
           {
             name      = "CONSUL_CACERT_PEM",
-            valueFrom = var.consul_server_ca_cert_arn
+            valueFrom = var.consul_server_https_ca_cert_arn
           }
-      ] : [])
-      environment = [
-        {
-          name  = "CONSUL_HTTP_ADDR"
-          value = var.consul_server_http_addr
-        }
-      ]
+        ] : []
+      )
     },
   ])
 }
@@ -116,14 +128,14 @@ resource "aws_iam_policy" "this_execution" {
         "${var.consul_bootstrap_token_secret_arn}"
       ]
     },
-%{if var.consul_server_ca_cert_arn != ""~}
+%{if var.consul_server_https_ca_cert_arn != ""~}
     {
       "Effect": "Allow",
       "Action": [
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${var.consul_server_ca_cert_arn}"
+        "${var.consul_server_https_ca_cert_arn}"
       ]
     },
 %{endif~}

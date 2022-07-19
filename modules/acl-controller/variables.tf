@@ -49,9 +49,27 @@ variable "subnets" {
   type        = list(string)
 }
 
-variable "consul_server_http_addr" {
-  description = "The HTTP(S) address of the Consul server. This must be a full URL, including port and scheme, e.g. https://consul.example.com:8501."
+variable "consul_server_hosts" {
+  description = "The Consul server locations. This can be an IP address or hostname, or an exec command."
   type        = string
+}
+
+variable "consul_server_https" {
+  description = "Whether to use HTTPS connections to the consul_server_hosts. Defaults to true."
+  type        = bool
+  default     = true
+}
+
+variable "consul_server_http_port" {
+  description = "The Consul server HTTP(S) port. Defaults to 8501."
+  type        = number
+  default     = 8501
+}
+
+variable "consul_server_grpc_port" {
+  description = "The Consul server gRPC port. Defaults to 8502."
+  type        = number
+  default     = 8502
 }
 
 variable "name_prefix" {
@@ -59,7 +77,7 @@ variable "name_prefix" {
   type        = string
 }
 
-variable "consul_server_ca_cert_arn" {
+variable "consul_server_https_ca_cert_arn" {
   description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate."
   type        = string
   default     = ""
