@@ -6,6 +6,13 @@ FEATURES
   variable for configuring login to the AWS IAM auth method.
   [[GH-132](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/132)]
 
+BUG FIXES
+* modules/dev-server: Fix a bug where the `dev-server` selects the wrong gossip encryption key
+  secret ARN when creating the execution policy. The gossip encryption key selection would work
+  if the secret ARN was passed in, but it would fail when trying to use the generated gossip key.
+  The cause of the failure was an incorrect resource ARN in the generated policy.
+  [[GH-133](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/133)]
+
 ## 0.5.0 (June 21, 2022)
 
 BREAKING CHANGES
