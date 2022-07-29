@@ -1,4 +1,4 @@
-## 0.5.1 (July 28, 2022)
+## 0.5.1 (July 29, 2022)
 
 FEATURES
 * modules/mesh-task and modules/gateway-task: Add `audit_logging` flag to support audit logging for Consul Enterprise.
