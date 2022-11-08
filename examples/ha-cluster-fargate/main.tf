@@ -48,9 +48,9 @@ module "consul-cluster" {
   private_subnet_ids = module.vpc.private_subnets
   public_subnet_ids  = module.vpc.public_subnets
 
-  lb_enabled                      = true
-  internal_alb_listener           = true
-  lb_ingress_rule_cidr_blocks     = var.lb_ingress_rule_cidr_blocks
+  lb_enabled                  = true
+  internal_alb_listener       = true
+  lb_ingress_rule_cidr_blocks = var.lb_ingress_rule_cidr_blocks
   lb_ingress_rule_security_groups = compact(concat(
     var.lb_ingress_rule_security_groups,
     [module.k6lambda.security_group_id]
