@@ -394,7 +394,6 @@ exec consul agent -server \
 %{endif~}
   -hcl 'node_name = "${local.node_name}"' \
   -hcl='datacenter = "${var.datacenter}"' \
-  -hcl 'telemetry { disable_compat_1.9 = true }' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
 %{if var.tls~}
@@ -402,7 +401,7 @@ exec consul agent -server \
   -hcl='cert_file = "/consul/${var.datacenter}-server-consul-0.pem"' \
   -hcl='key_file = "/consul/${var.datacenter}-server-consul-0-key.pem"' \
   -hcl='auto_encrypt = {allow_tls = true}' \
-  -hcl='ports { https = 8501 }' \
+  -hcl='ports { https = 8501, grpc_tls = 8502 }' \
   -hcl='verify_incoming_rpc = true' \
   -hcl='verify_outgoing = true' \
   -hcl='verify_server_hostname = true' \
@@ -429,6 +428,9 @@ exec consul agent -server \
 %{endif~}
 %{if local.enable_mesh_gateway_wan_federation~}
   -hcl='connect { enable_mesh_gateway_wan_federation = true }' \
+%{endif~}
+%{if var.enable_cluster_peering~}
+  -hcl='peering { enabled = true }' \
 %{endif~}
 %{if length(var.primary_gateways) > 0~}
   -hcl='primary_gateways = [
