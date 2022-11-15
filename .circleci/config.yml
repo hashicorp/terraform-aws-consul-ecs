@@ -10,7 +10,7 @@ executors:
     # medium (2cpu / 4gb) with parallel invocations of Terraform sometimes ran out of memory.
     # Bumped to medium+ (3cpu / 6gb) to help with this.
     # https://circleci.com/docs/configuration-reference#resourceclass
-    resource_class: medium+
+    resource_class: xlarge
 
 jobs:
   go-fmt-and-lint-acceptance:
