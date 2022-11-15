@@ -27,7 +27,8 @@ locals {
     )
     proxy = merge(
       {
-        upstreams = var.upstreams
+        publicListenerPort = var.envoy_public_listener_port
+        upstreams          = var.upstreams
       },
       local.proxyExtra
     )

@@ -344,7 +344,57 @@ func TestValidation_UpstreamsVariable(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestValidation_EnvoyPublicListenerPort(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		port  int
+		error string
+	}{
+		"allowed-port": {
+			port: 21000,
+		},
+		"too-high-port": {
+			port:  65536,
+			error: "The envoy_public_listener_port must be greater than 0 and less than or equal to 65535.",
+		},
+		"disallowed-port": {
+			port:  19000,
+			error: "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy",
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/public-listener-port-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"envoy_public_listener_port": c.port,
+				},
+			})
+
+			if c.error == "" {
+				require.NoError(t, err)
+			} else {
+				// handle multiline error messages.
+				regex := strings.ReplaceAll(regexp.QuoteMeta(c.error), " ", "\\s+")
+				require.Error(t, err)
+				require.Regexp(t, regex, out)
+			}
+		})
+	}
 }
 
 func TestValidation_ChecksVariable(t *testing.T) {
