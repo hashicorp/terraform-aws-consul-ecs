@@ -51,7 +51,7 @@ jobs:
           name: lint-consul-retry
           working_directory: test/acceptance
           command: |
-            go get -u github.com/hashicorp/lint-consul-retry
+            go install github.com/hashicorp/lint-consul-retry@latest
             lint-consul-retry
 
       - run:
