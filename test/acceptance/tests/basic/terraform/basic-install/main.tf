@@ -221,6 +221,8 @@ EOT
   outbound_only     = true
   // This keeps the application running for 10 seconds.
   application_shutdown_delay_seconds = 10
+  // Test with a port other than the default of 20000.
+  envoy_public_listener_port = 21000
 
   tls                            = var.secure
   consul_server_ca_cert_arn      = module.consul_server.ca_cert_arn

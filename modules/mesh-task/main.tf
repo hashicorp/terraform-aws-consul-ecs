@@ -296,7 +296,7 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["nc", "-z", "127.0.0.1", "20000"]
+              command  = ["nc", "-z", "127.0.0.1", tostring(var.envoy_public_listener_port)]
               interval = 30
               retries  = 3
               timeout  = 5
