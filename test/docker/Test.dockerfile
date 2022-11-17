@@ -1,11 +1,11 @@
 # This Dockerfile includes the dependencies for unit and acceptance tests
 # run in CircleCI.
-FROM cimg/go:1.17
+FROM cimg/go:1.19
 
 # change the user to root so we can install stuff
 USER root
 
-ENV TERRAFORM_VERSION "1.2.2"
+ENV TERRAFORM_VERSION "1.3.4"
 
 # base packages
 RUN apt-get install -y \

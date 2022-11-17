@@ -29,7 +29,7 @@ After you've pushed the image, logout of the `hashicorpconsul` user.
 
 Then, update the `.circleci/config.yml` to reference the new version of the image:
 
-```
+```diff
 diff --git a/.circleci/config.yml b/.circleci/config.yml
 index 9b8a5cb..649d193 100644
 --- a/.circleci/config.yml

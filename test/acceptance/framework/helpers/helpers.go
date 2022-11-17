@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	terratestLogger "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/config"
-	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 )
 
 // ExecuteRemoteCommand executes a command inside a container in the task specified
@@ -29,6 +27,5 @@ func ExecuteRemoteCommand(t *testing.T, testConfig *config.TestConfig, clusterAR
 			command,
 			"--interactive",
 		},
-		Logger: terratestLogger.New(logger.TestLogger{}),
 	})
 }

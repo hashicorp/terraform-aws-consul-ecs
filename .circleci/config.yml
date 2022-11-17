@@ -4,7 +4,7 @@ orbs:
 executors:
   consul-ecs-test:
     docker:
-      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.2
+      - image: docker.mirror.hashicorp.services/hashicorpdev/consul-ecs-test:0.3.3
     environment:
       TEST_RESULTS: &TEST_RESULTS /tmp/test-results # path to where test results are saved
     # medium (2cpu / 4gb) with parallel invocations of Terraform sometimes ran out of memory.
@@ -48,23 +48,16 @@ jobs:
             fi
 
       - run:
-          name: go vet
-          working_directory: test/acceptance
-          command: go vet ./...
-
-      - run:
           name: lint-consul-retry
           working_directory: test/acceptance
           command: |
-            go get -u github.com/hashicorp/lint-consul-retry
+            go install github.com/hashicorp/lint-consul-retry@latest
             lint-consul-retry
 
       - run:
           name: golangci-lint
           working_directory: test/acceptance
-          command: |
-            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
-            golangci-lint run
+          command: golangci-lint run
 
   terraform-fmt:
     executor: consul-ecs-test
