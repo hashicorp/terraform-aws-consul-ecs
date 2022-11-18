@@ -49,7 +49,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.1"
+  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:32c1d86"
 }
 
 variable "server_service_name" {
