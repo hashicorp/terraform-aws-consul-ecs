@@ -57,13 +57,13 @@ variable "tags" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.2-ent"
+  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.6-ent"
 }
 
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.1"
+  default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-ecs:0.5.1-dev"
 }
 
 variable "consul_public_endpoint_url" {
