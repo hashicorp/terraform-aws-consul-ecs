@@ -1,3 +1,8 @@
+## Unreleased
+
+FEATURES
+* modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
+
 ## 0.5.1 (July 29, 2022)
 
 FEATURES
