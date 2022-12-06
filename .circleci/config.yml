@@ -70,8 +70,12 @@ jobs:
     executor: consul-ecs-test
     parameters:
       launch_type:
-        default: ""
         type: string
+      consul_version:
+        type: string
+      # HCP is never enabled for PRs.
+      enable_hcp:
+        type: boolean
     steps:
       - checkout
 
@@ -94,9 +98,9 @@ jobs:
             terraform init
 
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
-            VARS+=' -var launch_type=<<parameters.config.launch_type>>'
+            VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
-                main | release/*) VARS+=" -var enable_hcp=<<parameters.config.enable_hcp>>";;
+                main | release/*) VARS+=" -var enable_hcp=<<parameters.enable_hcp>>";;
                 *) VARS+=" -var enable_hcp=false";;
             esac
 
@@ -126,14 +130,23 @@ jobs:
           working_directory: test/acceptance/setup-terraform
           command: |
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
-            VARS+=' -var launch_type=<<parameters.config.launch_type>>'
+            VARS+=' -var launch_type=<<parameters.launch_type>>'
             case $CIRCLE_BRANCH in
-                main | release/*) VARS+=" -var enable_hcp=<<parameters.config.enable_hcp>>";;
+                main | release/*) VARS+=" -var enable_hcp=<<parameters.enable_hcp>>";;
                 *) VARS+=" -var enable_hcp=false";;
             esac
 
             terraform destroy -auto-approve $VARS
           when: always
+
+
+acceptance-common: &acceptance-common
+  filters:
+    branches:
+      # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+      ignore: /pull\/[0-9]+|docs\/.*/
+  requires:
+    - go-fmt-and-lint-acceptance
 
 workflows:
   version: 2.1
@@ -141,22 +154,13 @@ workflows:
     jobs:
       - go-fmt-and-lint-acceptance
       - terraform-fmt
-      - acceptance:
-          matrix:
-            parameters:
-              config:
-                # We have a limit of 6 HCP Consul clusters.
-                # HCP is always disabled for tests on PRs.
-                # The following controls whether to enable HCP when testing release branches.
-                - {consul_version: '1.12.7', enable_hcp: true, launch_type: FARGATE}
-                - {consul_version: '1.13.4', enable_hcp: false, launch_type: FARGATE}
-                - {consul_version: '1.14.2', enable_hcp: true, launch_type: FARGATE}
-                - {consul_version: '1.12.7', enable_hcp: false, launch_type: EC2}
-                - {consul_version: '1.13.4', enable_hcp: true, launch_type: EC2}
-                - {consul_version: '1.14.2', enable_hcp: false, launch_type: EC2}
-          filters:
-            branches:
-              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-              ignore: /pull\/[0-9]+|docs\/.*/
-          requires:
-            - go-fmt-and-lint-acceptance
+      # We have a limit of 6 HCP Consul clusters.
+      # HCP is always disabled for tests on PRs.
+      # The following controls whether to enable HCP when testing release branches.
+      - acceptance: {consul_version: '1.12.7', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {consul_version: '1.13.4', enable_hcp: false, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {consul_version: '1.14.2', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {consul_version: '1.12.7', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {consul_version: '1.13.4', enable_hcp: true, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {consul_version: '1.14.2', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
+
