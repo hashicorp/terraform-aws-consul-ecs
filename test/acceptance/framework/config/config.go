@@ -14,6 +14,7 @@ type TestConfig struct {
 	Tags               interface{}
 	ClientServiceName  string
 	ServerServiceName  string
+	ConsulVersion      string `json:"consul_version"`
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
@@ -25,6 +26,7 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 		"log_group_name":   t.LogGroupName,
 		"vpc_id":           t.VpcID,
 		"route_table_ids":  t.RouteTableIDs,
+		"consul_version":   t.ConsulVersion,
 	}
 
 	// If the flag is an empty string or object then terratest
