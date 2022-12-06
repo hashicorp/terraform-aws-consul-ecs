@@ -99,6 +99,7 @@ jobs:
 
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
             VARS+=' -var launch_type=<<parameters.launch_type>>'
+            VARS+=' -var consul_version=<<parameters.consul_version>>'
             case $CIRCLE_BRANCH in
                 main | release/*) VARS+=" -var enable_hcp=<<parameters.enable_hcp>>";;
                 *) VARS+=" -var enable_hcp=false";;
@@ -131,6 +132,7 @@ jobs:
           command: |
             VARS="-var tags={\"build_url\":\"$CIRCLE_BUILD_URL\"}"
             VARS+=' -var launch_type=<<parameters.launch_type>>'
+            VARS+=' -var consul_version=<<parameters.consul_version>>'
             case $CIRCLE_BRANCH in
                 main | release/*) VARS+=" -var enable_hcp=<<parameters.enable_hcp>>";;
                 *) VARS+=" -var enable_hcp=false";;
