@@ -37,16 +37,11 @@ variable "instance_type" {
 }
 
 variable "consul_version" {
-  description = "The Consul version. Supported versions: 1.12, 1.13, or 1.14. Must be a full MAJOR.MINOR.PATCH version string"
+  description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
   type        = string
 
   validation {
-    # Sanity check that we are using a supported version.
-    condition = anytrue([
-      can(regex("1.12.\\d+", var.consul_version)),
-      can(regex("1.13.\\d+", var.consul_version)),
-      can(regex("1.14.\\d+", var.consul_version)),
-    ])
-    error_message = "Only Consul versions 1.12, 1.13, and 1.14 are supported. Must a valid MAJOR.MINOR.PATCH version string."
+    condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
+    error_message = "Must a valid MAJOR.MINOR.PATCH version string."
   }
 }

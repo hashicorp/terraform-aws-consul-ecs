@@ -26,7 +26,6 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 		"log_group_name":   t.LogGroupName,
 		"vpc_id":           t.VpcID,
 		"route_table_ids":  t.RouteTableIDs,
-		"consul_version":   t.ConsulVersion,
 	}
 
 	// If the flag is an empty string or object then terratest
@@ -41,4 +40,12 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 		delete(vars, v)
 	}
 	return vars
+}
+
+// ConsulImageURI returns the Consul image URI for the configured consul version.
+func (t TestConfig) ConsulImageURI(enterprise bool) string {
+	if enterprise {
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + t.ConsulVersion + "-ent"
+	}
+	return "public.ecr.aws/hashicorp/consul:" + t.ConsulVersion
 }

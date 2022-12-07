@@ -850,7 +850,7 @@ func TestBasic(t *testing.T) {
 				"TF_CLI_ARGS": fmt.Sprintf("-state=%s -state-out=%s", c.stateFile, c.stateFile),
 			}
 
-			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arns", "consul_version")
+			tfVars := cfg.TFVars("route_table_ids", "ecs_cluster_arns")
 			tfVars["secure"] = c.secure
 			tfVars["suffix"] = randomSuffix
 			tfVars["ecs_cluster_arn"] = c.ecsClusterARN
@@ -864,7 +864,7 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
-			image := consulImage(c.enterprise, cfg.ConsulVersion)
+			image := cfg.ConsulImageURI(c.enterprise)
 			t.Logf("using consul image = %s", image)
 			tfVars["consul_image"] = image
 			if c.enterprise {
@@ -1112,14 +1112,6 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
-}
-
-// consulImage formats the Consul image URI for the given version.
-func consulImage(enterprise bool, version string) string {
-	if enterprise {
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
-	}
-	return "public.ecr.aws/hashicorp/consul:" + version
 }
 
 type listTasksResponse struct {
