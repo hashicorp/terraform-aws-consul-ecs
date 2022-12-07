@@ -35,10 +35,14 @@ func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.Test
 		parts := strings.SplitN(line, "\t", 2)
 		timestamp, err := time.Parse(time.RFC3339, parts[0])
 		if err != nil {
-			t.Errorf("failed to parse timestamp in log line `%s`", line)
+			t.Errorf("failed to parse timestamp in CloudWatch log line: %q", line)
 			return nil, err
 		}
-		result = append(result, LogEvent{timestamp, parts[1]})
+		msg := ""
+		if len(parts) > 1 {
+			msg = parts[1]
+		}
+		result = append(result, LogEvent{timestamp, msg})
 	}
 	return result, nil
 }

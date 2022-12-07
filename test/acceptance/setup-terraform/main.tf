@@ -91,7 +91,8 @@ module "hcp" {
   count  = var.enable_hcp ? 1 : 0
   source = "./hcp"
 
-  region = var.region
-  suffix = local.suffix
-  vpc    = module.vpc
+  region         = var.region
+  suffix         = local.suffix
+  vpc            = module.vpc
+  consul_version = var.consul_version
 }

@@ -51,9 +51,8 @@ variable "tags" {
 }
 
 variable "consul_image" {
-  description = "Consul Docker image."
+  description = "Consul Docker image for Consul client agents in ECS."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.2-ent"
 }
 
 variable "consul_ecs_image" {

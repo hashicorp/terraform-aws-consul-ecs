@@ -864,7 +864,7 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
-			image := discoverConsulImage(t, c.enterprise)
+			image := cfg.ConsulImageURI(c.enterprise)
 			t.Logf("using consul image = %s", image)
 			tfVars["consul_image"] = image
 			if c.enterprise {
@@ -1112,25 +1112,6 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
-}
-
-// discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
-// and uses that same version of the enterprise image.
-func discoverConsulImage(t *testing.T, enterprise bool) string {
-	filepath := "../../../../modules/mesh-task/variables.tf"
-	data, err := os.ReadFile(filepath)
-	require.NoError(t, err)
-
-	// Parse the default consul image from the mesh-task module.
-	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
-	matches := re.FindSubmatch(data)
-	require.Len(t, matches, 2) // entire match + one submatch
-	version := string(matches[1])
-
-	if enterprise {
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
-	}
-	return "public.ecr.aws/hashicorp/consul:" + version
 }
 
 type listTasksResponse struct {
