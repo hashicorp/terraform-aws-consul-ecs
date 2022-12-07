@@ -35,3 +35,13 @@ variable "instance_type" {
   type        = string
   default     = "t3a.micro"
 }
+
+variable "consul_version" {
+  description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
+  type        = string
+
+  validation {
+    condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
+    error_message = "Must a valid MAJOR.MINOR.PATCH version string."
+  }
+}

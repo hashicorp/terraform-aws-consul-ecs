@@ -80,7 +80,7 @@ func TestHCP(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -108,6 +108,7 @@ func TestHCP(t *testing.T) {
 	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix"] = randomSuffix
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
@@ -167,7 +168,7 @@ func TestNamespaces(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -198,6 +199,7 @@ func TestNamespaces(t *testing.T) {
 	tfVars["suffix"] = randomSuffix
 	tfVars["client_namespace"] = clientTask.Namespace
 	tfVars["server_namespace"] = serverTask.Namespace
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ns", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
@@ -226,7 +228,7 @@ func TestAdminPartitions(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp"}
+	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp", "consul_version"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -263,6 +265,7 @@ func TestAdminPartitions(t *testing.T) {
 	tfVars["suffix_2"] = serverSuffix
 	tfVars["server_partition"] = serverTask.Partition
 	tfVars["server_namespace"] = serverTask.Namespace
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ap", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
@@ -597,7 +600,7 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 func TestAuditLogging(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -625,6 +628,7 @@ func TestAuditLogging(t *testing.T) {
 	serverTask := helpers.NewMeshTask(t, taskConfig)
 
 	tfVars["suffix"] = randomSuffix
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
 
 	// Enable audit logging
 	tfVars["audit_logging"] = true

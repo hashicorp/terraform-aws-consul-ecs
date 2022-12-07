@@ -402,7 +402,11 @@ exec consul agent -server \
   -hcl='cert_file = "/consul/${var.datacenter}-server-consul-0.pem"' \
   -hcl='key_file = "/consul/${var.datacenter}-server-consul-0-key.pem"' \
   -hcl='auto_encrypt = {allow_tls = true}' \
+%{if local.is_consul_1_14_plus~}
+  -hcl='ports { https = 8501, grpc_tls = 8503 }' \
+%{else~}
   -hcl='ports { https = 8501, grpc = 8502 }' \
+%{endif~}
   -hcl='verify_incoming_rpc = true' \
   -hcl='verify_outgoing = true' \
   -hcl='verify_server_hostname = true' \

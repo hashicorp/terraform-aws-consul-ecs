@@ -13,3 +13,7 @@ variable "vpc" {
   type        = any
 }
 
+variable "consul_version" {
+  description = "The Consul server version."
+  type        = string
+}
