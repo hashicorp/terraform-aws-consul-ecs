@@ -3,6 +3,9 @@
 FEATURES
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
 
+IMPROVEMENTS
+* Support Consul 1.13 and 1.14
+
 ## 0.5.1 (July 29, 2022)
 
 FEATURES
