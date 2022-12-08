@@ -37,11 +37,11 @@ variable "instance_type" {
 }
 
 variable "consul_version" {
-  description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
+  description = "The Consul version. Must be a valid MAJOR.MINOR.PATCH version string."
   type        = string
 
   validation {
     condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
-    error_message = "Must a valid MAJOR.MINOR.PATCH version string."
+    error_message = "Must be a valid MAJOR.MINOR.PATCH version string."
   }
 }
