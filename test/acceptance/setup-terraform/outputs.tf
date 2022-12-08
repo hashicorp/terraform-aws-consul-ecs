@@ -66,3 +66,7 @@ output "gossip_key_secret_arn" {
 output "consul_ca_cert_secret_arn" {
   value = var.enable_hcp ? module.hcp[0].consul_ca_cert_secret_arn : ""
 }
+
+output "consul_version" {
+  value = var.consul_version
+}

@@ -93,14 +93,16 @@ func TestVolumeVariable(t *testing.T) {
 // TestPassingExistingRoles will create the task definitions to validate
 // creation and passing of IAM roles by mesh-task. It creates two task definitions
 // with mesh-task:
-//  - one which has mesh-task create the roles
-//  - one which passes in existing roles
+//   - one which has mesh-task create the roles
+//   - one which passes in existing roles
+//
 // This test does not start any services.
 //
 // Note: We don't have a validation for create_task_role=true XOR task_role=<non-null>.
-//       If the role is created as part of the terraform plan/apply and passed in to mesh-task,
-//       then the role is an unknown value during the plan, since it is not yet created, and you
-//       can't reliably test its value for validations.
+//
+//	If the role is created as part of the terraform plan/apply and passed in to mesh-task,
+//	then the role is an unknown value during the plan, since it is not yet created, and you
+//	can't reliably test its value for validations.
 func TestPassingExistingRoles(t *testing.T) {
 	t.Parallel()
 
@@ -861,7 +863,7 @@ func TestBasic(t *testing.T) {
 			}
 			tfVars["server_service_name"] = serverServiceName
 
-			image := discoverConsulImage(t, c.enterprise)
+			image := cfg.ConsulImageURI(c.enterprise)
 			t.Logf("using consul image = %s", image)
 			tfVars["consul_image"] = image
 			if c.enterprise {
@@ -1100,6 +1102,7 @@ func TestBasic(t *testing.T) {
 					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-ecs-health-sync")
 					require.NoError(r, err)
 					syncLogs = syncLogs.Filter("[INFO]  log out token:")
+					require.GreaterOrEqual(r, len(syncLogs), 2)
 					require.Contains(r, syncLogs[0].Message, "/consul/service-token")
 					require.Contains(r, syncLogs[1].Message, "/consul/client-token")
 				})
@@ -1108,25 +1111,6 @@ func TestBasic(t *testing.T) {
 			logger.Log(t, "Test successful!")
 		})
 	}
-}
-
-// discoverConsulEnterpriseImage looks in mesh-task for the default Consul image
-// and uses that same version of the enterprise image.
-func discoverConsulImage(t *testing.T, enterprise bool) string {
-	filepath := "../../../../modules/mesh-task/variables.tf"
-	data, err := os.ReadFile(filepath)
-	require.NoError(t, err)
-
-	// Parse the default consul image from the mesh-task module.
-	re := regexp.MustCompile(`default\s+=\s+"public.ecr.aws/hashicorp/consul:(.*)"`)
-	matches := re.FindSubmatch(data)
-	require.Len(t, matches, 2) // entire match + one submatch
-	version := string(matches[1])
-
-	if enterprise {
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
-	}
-	return "public.ecr.aws/hashicorp/consul:" + version
 }
 
 type listTasksResponse struct {

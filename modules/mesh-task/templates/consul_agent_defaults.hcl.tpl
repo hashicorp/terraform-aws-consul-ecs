@@ -20,9 +20,6 @@ retry_join = [
   "${j}",
 %{ endfor ~}
 ]
-telemetry {
-  disable_compat_1.9 = true
-}
 
 %{~ if tls ~}
 auto_encrypt = {
