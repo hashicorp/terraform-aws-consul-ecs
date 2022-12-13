@@ -1,7 +1,10 @@
-## Unreleased
+## 0.4.3 (December 13, 2022)
 
 FEATURES
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
+
+IMPROVEMENTS
+* Update default Consul image to 1.11.11 and default Envoy image to 1.20.7.
 
 ## 0.4.2 (Jun 29, 2022)
 
