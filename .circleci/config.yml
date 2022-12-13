@@ -164,5 +164,5 @@ workflows:
       - acceptance: {name: "acceptance-1.14-FARGATE-HCP", consul_version: '1.14.2', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
       - acceptance: {name: "acceptance-1.12-EC2", consul_version: '1.12.7', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
       - acceptance: {name: "acceptance-1.13-EC2-HCP", consul_version: '1.13.4', enable_hcp: true, launch_type: EC2, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.14-EC2", consul_version: '1.14.', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.14-EC2", consul_version: '1.14.2', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
 
