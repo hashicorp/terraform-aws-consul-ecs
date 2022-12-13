@@ -2,9 +2,11 @@
 
 FEATURES
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
+  [[GH-142](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/142)]
 
 IMPROVEMENTS
 * Update default Consul image to 1.11.11 and default Envoy image to 1.20.7.
+  [[GH-149](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/149)]
 
 ## 0.4.2 (Jun 29, 2022)
 
