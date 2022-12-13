@@ -12,13 +12,13 @@ variable "tags" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.11.4-ent"
+  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.11.11-ent"
 }
 
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.1"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.4.3"
 }
 
 variable "client_partition" {
