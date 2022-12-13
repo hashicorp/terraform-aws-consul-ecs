@@ -82,19 +82,19 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.12.2"
+  default     = "public.ecr.aws/hashicorp/consul:1.12.7"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.1"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.2"
 }
 
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.21.4"
+  default     = "envoyproxy/envoy-alpine:v1.21.6"
 }
 
 variable "log_configuration" {

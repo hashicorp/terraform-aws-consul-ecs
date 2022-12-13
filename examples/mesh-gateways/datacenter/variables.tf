@@ -94,5 +94,5 @@ variable "replication_token" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use in all tasks."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.1"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.2"
 }
