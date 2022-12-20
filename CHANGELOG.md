@@ -2,6 +2,8 @@
 
 FEATURES
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
+* modules/acl-controller: Add `additional_execution_role_policies` variable to allow the ECS service execution role to perform
+  more actions.
 
 ## 0.5.1 (July 29, 2022)
 
