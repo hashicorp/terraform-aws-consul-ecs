@@ -165,3 +165,9 @@ resource "aws_iam_role_policy_attachment" "consul-controller-execution" {
   role       = aws_iam_role.this_execution.id
   policy_arn = aws_iam_policy.this_execution.arn
 }
+
+resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
+  count      = length(var.additional_execution_role_policies)
+  role       = aws_iam_role.this_execution.id
+  policy_arn = var.additional_execution_role_policies[count.index]
+}

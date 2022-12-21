@@ -87,3 +87,9 @@ variable "security_groups" {
   type        = list(string)
   default     = []
 }
+
+variable "additional_execution_role_policies" {
+  description = "List of additional policy ARNs to attach to the execution role."
+  type        = list(string)
+  default     = []
+}
