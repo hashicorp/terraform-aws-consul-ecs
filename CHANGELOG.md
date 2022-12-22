@@ -5,7 +5,7 @@ FEATURES
 * modules/acl-controller: Add `additional_execution_role_policies` variable to support attaching custom policies to the task's execution role.
 * modules/mesh-task: Improve the logic behind the `defaulted_check_containers` local creation in order to prevent enabling health checks when
   the task definition passed in `var.container_definitions` has the `healthCheck` set to `null`.
-  [[GH-152]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/152)
+  [[GH-153]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/153)
 
 ## 0.5.1 (July 29, 2022)
 
