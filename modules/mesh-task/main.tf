@@ -317,12 +317,26 @@ resource "aws_ecs_task_definition" "this" {
           command          = ["health-sync"]
           cpu              = 0
           volumesFrom      = []
-          environment = [
-            {
-              name  = "CONSUL_ECS_CONFIG_JSON",
-              value = local.encoded_config
-            }
-          ]
+          environment = concat(
+            [
+              {
+                name  = "CONSUL_ECS_CONFIG_JSON",
+                value = local.encoded_config
+              }
+            ],
+            var.consul_namespace != "" ? [
+              {
+                name  = "CONSUL_NAMESPACE",
+                value = var.consul_namespace
+              }
+            ] : [],
+            var.consul_partition != "" ? [
+              {
+                name  = "CONSUL_PARTITION",
+                value = var.consul_partition
+              }
+            ] : []
+          )
           portMappings = []
           mountPoints = [
             local.consul_data_mount
