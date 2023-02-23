@@ -4,6 +4,10 @@ FEATURES
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
 * modules/acl-controller: Add `additional_execution_role_policies` variable to support attaching custom policies to the task's execution role.
 
+IMPROVEMENTS
+* module/acl-controller: Restrict container access (read-only) to root file system.
+  [[GH-158](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/158)]
+
 ## 0.5.1 (July 29, 2022)
 
 FEATURES

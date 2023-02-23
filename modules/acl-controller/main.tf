@@ -55,6 +55,7 @@ resource "aws_ecs_task_definition" "this" {
           value = var.consul_server_http_addr
         }
       ]
+      readonlyRootFilesystem = true
     },
   ])
 }
