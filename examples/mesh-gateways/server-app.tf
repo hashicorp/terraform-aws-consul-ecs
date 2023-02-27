@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // The server app is deployed in the second datacenter.
 // It has no public ingress and can only be reached through the mesh gateways.
 locals {

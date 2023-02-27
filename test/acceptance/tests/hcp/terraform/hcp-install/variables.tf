@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "ecs_cluster_arns" {
   type        = list(string)
   description = "ARNs of ECS clusters. One is required."

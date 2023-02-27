@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // Create HCP Consul resources.
 resource "hcp_hvn" "server" {
   hvn_id         = "hvn-${local.rand_suffix}"

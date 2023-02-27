@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   require_tls_for_wan_federation = var.enable_mesh_gateway_wan_federation && !var.tls ? file("ERROR: tls must be true when enable_mesh_gateway_wan_federation is true") : null
   wan_address_xor_lb_enabled     = var.wan_address != "" && var.lb_enabled ? file("ERROR: Only one of wan_address or lb_enabled may be provided") : null

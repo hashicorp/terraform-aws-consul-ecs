@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "hcp_hvn" "server" {
   hvn_id         = "hvn-${var.suffix}"
   cloud_provider = "aws"

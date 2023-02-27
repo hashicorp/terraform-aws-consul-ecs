@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # Run the Consul dev server as an ECS task.
 module "dev_consul_server" {
   name                           = "${var.name}-consul-server"

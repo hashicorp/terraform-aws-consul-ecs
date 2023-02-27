@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   // Determine which secrets are provided and which ones need to be created.
   generate_gossip_key      = var.gossip_encryption_enabled && var.generate_gossip_encryption_key

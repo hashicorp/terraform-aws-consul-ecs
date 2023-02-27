@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   mgw_name_1 = "${var.name}-${local.primary_datacenter}-mesh-gateway"
   mgw_name_2 = "${var.name}-${local.secondary_datacenter}-mesh-gateway"

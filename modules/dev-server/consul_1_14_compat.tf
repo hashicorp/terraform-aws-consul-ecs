@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   // parse the consul version from the provided image: ["1", "12", "2"]
   consul_image_version_parts = regex(":.*(\\d+)[.](\\d+)[.](\\d+)", var.consul_image)

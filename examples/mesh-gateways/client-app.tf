@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // The client app will be deployed in the first datacenter.
 // It will reach its upstream located in the second datacenter.
 // It has an application load balancer for ingress.

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // We test this with a 'terraform apply'.
 // It creates roles and the task definition.
 

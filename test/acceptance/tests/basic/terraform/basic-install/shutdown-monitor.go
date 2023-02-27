@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // This code is intended to run as an additional container in Task
 // to help us monitor shutdown behavior of applications.
 //
