@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   // both VPCs use the same overlapping subnet addresses
   private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]

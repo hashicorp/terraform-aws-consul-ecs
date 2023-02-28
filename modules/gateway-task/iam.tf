@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // Create the task role
 resource "aws_iam_role" "task" {
   path = var.iam_role_path

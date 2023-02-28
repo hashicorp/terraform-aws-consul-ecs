@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "ecs_cluster_arn" {
   description = "ARN of pre-existing ECS cluster."
   type        = string

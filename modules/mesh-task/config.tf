@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   // Define the Consul ECS config file contents.
   serviceExtra = lookup(var.consul_ecs_config, "service", {})

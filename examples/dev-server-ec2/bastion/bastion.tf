@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // Bastion server to SSH into container instances in a private subnet
 data "aws_ami" "bastion" {
   most_recent = true

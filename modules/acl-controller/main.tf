@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "aws_ecs_service" "this" {
   name            = "consul-acl-controller"
   cluster         = var.ecs_cluster_arn

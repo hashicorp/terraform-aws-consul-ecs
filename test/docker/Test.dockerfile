@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This Dockerfile includes the dependencies for unit and acceptance tests
 # run in CircleCI.
 FROM cimg/go:1.19

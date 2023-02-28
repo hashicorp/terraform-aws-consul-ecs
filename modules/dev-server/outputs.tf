@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 output "ecs_service_name" {
   description = "Name of created Consul server ECS service."
   value       = aws_ecs_service.this.name

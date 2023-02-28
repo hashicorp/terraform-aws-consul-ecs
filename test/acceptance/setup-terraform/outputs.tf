@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 output "ecs_cluster_arns" {
   value = [for c in aws_ecs_cluster.clusters : c.arn]
 }

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 output "consul_server_lb_address" {
   value = "http://${module.dev_consul_server.lb_dns_name}:8500"
 }
