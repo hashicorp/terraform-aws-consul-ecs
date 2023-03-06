@@ -1,6 +1,8 @@
 ## Unreleased
 
 FEATURES
+* modules/mesh-task and modules/gateway-task: Add support for Consul 1.15.x.
+  [[GH-159]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/159)
 * modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
 * modules/acl-controller: Add `additional_execution_role_policies` variable to support attaching custom policies to the task's execution role.
 
