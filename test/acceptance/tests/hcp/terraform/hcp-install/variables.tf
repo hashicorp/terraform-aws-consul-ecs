@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "ecs_cluster_arns" {
   type        = list(string)
   description = "ARNs of ECS clusters. One is required."
@@ -51,9 +54,8 @@ variable "tags" {
 }
 
 variable "consul_image" {
-  description = "Consul Docker image."
+  description = "Consul Docker image for Consul client agents in ECS."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.12.2-ent"
 }
 
 variable "consul_ecs_image" {

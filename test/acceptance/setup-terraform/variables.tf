@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "region" {
   default     = "us-west-2"
   description = "AWS region"
@@ -34,4 +37,14 @@ variable "instance_type" {
   description = "The instance type for EC2 instances if launch type is EC2."
   type        = string
   default     = "t3a.micro"
+}
+
+variable "consul_version" {
+  description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
+  type        = string
+
+  validation {
+    condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
+    error_message = "Must a valid MAJOR.MINOR.PATCH version string."
+  }
 }

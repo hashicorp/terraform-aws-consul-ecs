@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 data "aws_region" "current" {}
 
 locals {
@@ -69,7 +72,7 @@ locals {
   ]
 
   defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
-  if contains(keys(def), "essential") && contains(keys(def), "healthCheck")] : []
+  if contains(keys(def), "essential") && contains(keys(def), "healthCheck") && (try(def.healthCheck, null) != null)] : []
   // health-sync is enabled if acls are enabled, in order to run 'consul logout' to cleanup tokens when the task stops
   health_sync_enabled = length(local.defaulted_check_containers) > 0 || var.acls
 
@@ -291,7 +294,7 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["nc", "-z", "127.0.0.1", "20000"]
+              command  = ["nc", "-z", "127.0.0.1", tostring(var.envoy_public_listener_port)]
               interval = 30
               retries  = 3
               timeout  = 5

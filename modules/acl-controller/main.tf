@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "aws_ecs_service" "this" {
   name            = "consul-acl-controller"
   cluster         = var.ecs_cluster_arn
@@ -55,6 +58,7 @@ resource "aws_ecs_task_definition" "this" {
           value = var.consul_server_http_addr
         }
       ]
+      readonlyRootFilesystem = true
     },
   ])
 }
@@ -164,4 +168,10 @@ EOF
 resource "aws_iam_role_policy_attachment" "consul-controller-execution" {
   role       = aws_iam_role.this_execution.id
   policy_arn = aws_iam_policy.this_execution.arn
+}
+
+resource "aws_iam_role_policy_attachment" "additional_execution_policies" {
+  count      = length(var.additional_execution_role_policies)
+  role       = aws_iam_role.this_execution.id
+  policy_arn = var.additional_execution_role_policies[count.index]
 }

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
@@ -84,6 +87,12 @@ variable "consul_partition" {
 
 variable "security_groups" {
   description = "Configure the ECS service with security groups. If not specified, the default security group for the VPC is used."
+  type        = list(string)
+  default     = []
+}
+
+variable "additional_execution_role_policies" {
+  description = "List of additional policy ARNs to attach to the execution role."
   type        = list(string)
   default     = []
 }

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   loginExtra = lookup(var.consul_ecs_config, "consulLogin", {})
 

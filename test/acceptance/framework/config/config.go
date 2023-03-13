@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 // TestConfig holds configuration for the test suite.
@@ -14,6 +17,7 @@ type TestConfig struct {
 	Tags               interface{}
 	ClientServiceName  string
 	ServerServiceName  string
+	ConsulVersion      string `json:"consul_version"`
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
@@ -39,4 +43,12 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 		delete(vars, v)
 	}
 	return vars
+}
+
+// ConsulImageURI returns the Consul image URI for the configured consul version.
+func (t TestConfig) ConsulImageURI(enterprise bool) string {
+	if enterprise {
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + t.ConsulVersion + "-ent"
+	}
+	return "public.ecr.aws/hashicorp/consul:" + t.ConsulVersion
 }

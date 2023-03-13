@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   execution_role_id = var.create_execution_role ? aws_iam_role.execution[0].id : lookup(var.execution_role, "id", null)
   task_role_id      = var.create_task_role ? aws_iam_role.task[0].id : lookup(var.task_role, "id", null)

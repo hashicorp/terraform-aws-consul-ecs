@@ -1,10 +1,21 @@
 ## Unreleased
+
+FEATURES
+* modules/mesh-task: Add `envoy_public_listener_port` variable to set Envoy's public listener port.
+* modules/acl-controller: Add `additional_execution_role_policies` variable to support attaching custom policies to the task's execution role.
+* modules/mesh-task: Improve the logic behind the `defaulted_check_containers` local creation in order to prevent enabling health checks when
+  the task definition passed in `var.container_definitions` has the `healthCheck` set to `null`.
+  [[GH-153]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/153)
+
+IMPROVEMENTS
+* module/acl-controller: Restrict container access (read-only) to root file system.
+  [[GH-158](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/158)]
+
+## 0.5.1 (July 29, 2022)
+
 FEATURES
 * modules/mesh-task and modules/gateway-task: Add `audit_logging` flag to support audit logging for Consul Enterprise.
   [[GH-128]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/128)
-* modules/mesh-task and modules/gateway-task: Support `consulLogin` field in the `consul_ecs_config`
-  variable for configuring login to the AWS IAM auth method.
-  [[GH-132](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/132)]
 
 BUG FIXES
 * modules/dev-server: Fix a bug where the `dev-server` selects the wrong gossip encryption key

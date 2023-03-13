@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "family" {
   description = "Task definition family (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The lower-cased family name is used by default as the Consul service name if `consul_service_name` is not provided."
   type        = string
@@ -149,6 +152,31 @@ variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
   default     = "envoyproxy/envoy-alpine:v1.21.4"
+}
+
+variable "envoy_public_listener_port" {
+  description = "The public listener port for Envoy that is used for service-to-service communication."
+  type        = number
+  default     = 20000
+
+  validation {
+    error_message = "The envoy_public_listener_port must be greater than 0 and less than or equal to 65535."
+    condition     = var.envoy_public_listener_port > 0 && var.envoy_public_listener_port <= 65535
+  }
+
+  validation {
+    error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000."
+    condition = !contains([
+      8300,  // consul rpc port
+      8301,  // consul lan serf
+      8302,  // consul wan serf
+      8500,  // consul http
+      8501,  // consul https
+      8502,  // consul grpc
+      8600,  // consul dns
+      19000, // envoy admin port
+    ], var.envoy_public_listener_port)
+  }
 }
 
 variable "log_configuration" {

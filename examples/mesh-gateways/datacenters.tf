@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   primary_datacenter   = var.datacenter_names[0]
   secondary_datacenter = var.datacenter_names[1]

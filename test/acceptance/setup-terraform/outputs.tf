@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 output "ecs_cluster_arns" {
   value = [for c in aws_ecs_cluster.clusters : c.arn]
 }
@@ -65,4 +68,8 @@ output "gossip_key_secret_arn" {
 
 output "consul_ca_cert_secret_arn" {
   value = var.enable_hcp ? module.hcp[0].consul_ca_cert_secret_arn : ""
+}
+
+output "consul_version" {
+  value = var.consul_version
 }

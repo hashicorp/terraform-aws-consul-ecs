@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "ecs_cluster_arn" {
   description = "ARN of pre-existing ECS cluster."
   type        = string
@@ -195,7 +198,7 @@ variable "primary_datacenter" {
 }
 
 variable "retry_join_wan" {
-  description = "List of WAN addresses to join for Consul cluster peering. Must not be provided when using mesh-gateway WAN federation."
+  description = "List of WAN addresses to join for Consul WAN federation. Must not be provided when using mesh-gateway WAN federation."
   type        = list(string)
   default     = []
 }
@@ -207,7 +210,13 @@ variable "primary_gateways" {
 }
 
 variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN cluster peering via mesh gateways is enabled. Default is false."
+  description = "Controls whether or not WAN federations via mesh gateways is enabled. Default is false."
+  type        = bool
+  default     = false
+}
+
+variable "enable_cluster_peering" {
+  description = "Controls whether or not cluster peering is enabled. Default is false."
   type        = bool
   default     = false
 }

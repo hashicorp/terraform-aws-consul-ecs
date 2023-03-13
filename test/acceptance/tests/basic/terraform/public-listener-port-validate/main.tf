@@ -5,8 +5,8 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "iam_role_path" {
-  type = string
+variable "envoy_public_listener_port" {
+  type = number
 }
 
 module "test_client" {
@@ -15,8 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  outbound_only = true
-  retry_join    = ["test"]
-
-  iam_role_path = var.iam_role_path
+  retry_join                 = ["test"]
+  outbound_only              = true
+  envoy_public_listener_port = var.envoy_public_listener_port
 }

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 locals {
   require_tls_for_wan_federation = var.enable_mesh_gateway_wan_federation && !var.tls ? file("ERROR: tls must be true when enable_mesh_gateway_wan_federation is true") : null
   wan_address_xor_lb_enabled     = var.wan_address != "" && var.lb_enabled ? file("ERROR: Only one of wan_address or lb_enabled may be provided") : null
@@ -7,4 +10,5 @@ locals {
   create_xor_modify_security_group = var.lb_create_security_group && var.lb_modify_security_group ? file("ERROR: Only one of lb_create_security_group or lb_modify_security_group may be true") : null
   require_sg_id_for_modify         = var.lb_modify_security_group && var.lb_modify_security_group_id == "" ? file("ERROR: lb_modify_security_group_id is required when lb_modify_security_group is true") : null
   require_acls_if_audit_enabled    = (var.audit_logging && !var.acls) ? file("ERROR: ACLs must be enabled if audit logging is enabled") : null
+  require_consul_http_addr_if_acls = (var.acls && var.consul_http_addr == "") ? file("ERROR: consul_http_addr must be set if acls is true") : null
 }

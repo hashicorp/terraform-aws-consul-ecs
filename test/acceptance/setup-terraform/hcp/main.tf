@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "hcp_hvn" "server" {
   hvn_id         = "hvn-${var.suffix}"
   cloud_provider = "aws"
@@ -45,7 +48,7 @@ resource "hcp_consul_cluster" "this" {
   hvn_id             = hcp_hvn.server.hvn_id
   tier               = "development"
   public_endpoint    = true
-  min_consul_version = "1.12.0"
+  min_consul_version = var.consul_version
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {
