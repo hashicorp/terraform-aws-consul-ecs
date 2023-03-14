@@ -162,10 +162,10 @@ workflows:
       # We have a limit of 6 HCP Consul clusters.
       # The following controls whether to enable HCP when testing release branches.
       # HCP is always disabled for tests on PRs.
-      - acceptance: {name: "acceptance-1.12-FARGATE-HCP", consul_version: '1.12.6', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.13-FARGATE", consul_version: '1.13.3', enable_hcp: false, launch_type: FARGATE, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.14-FARGATE-HCP", consul_version: '1.14.1', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.12-EC2", consul_version: '1.12.6', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.13-EC2-HCP", consul_version: '1.13.3', enable_hcp: true, launch_type: EC2, <<: *acceptance-common}
-      - acceptance: {name: "acceptance-1.14-EC2", consul_version: '1.14.1', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.15-FARGATE-HCP", consul_version: '1.15.1', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.13-FARGATE", consul_version: '1.13.7', enable_hcp: false, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.14-FARGATE-HCP", consul_version: '1.14.5', enable_hcp: true, launch_type: FARGATE, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.15-EC2", consul_version: '1.15.1', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.13-EC2-HCP", consul_version: '1.13.7', enable_hcp: true, launch_type: EC2, <<: *acceptance-common}
+      - acceptance: {name: "acceptance-1.14-EC2", consul_version: '1.14.5', enable_hcp: false, launch_type: EC2, <<: *acceptance-common}
 

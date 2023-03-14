@@ -202,7 +202,7 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["nc", "-z", "127.0.0.1", tostring(local.lan_port)]
+              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", local.lan_port)]
               interval = 30
               retries  = 3
               timeout  = 5

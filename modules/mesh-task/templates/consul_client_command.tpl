@@ -36,12 +36,16 @@ consul_login() {
 }
 
 read_token_stale() {
-    consul acl token read -http-addr ${ consul_http_addr } \
+    # Attempt to read the token via the HTTP API. We don't use the `consul` CLI to read
+    # the token here because there is an issue in Consul 1.15.0 that causes the read to
+    # fail even for valid requests. The issue is fixed in Consul > 1.15.0 but in order
+    # to support 1.15.0 we use the HTTP API in all cases.
+    curl '${ consul_http_addr }/v1/acl/token/self?stale' \
+      -H "X-Consul-Token: \$(cat /consul/client-token)" \
     %{ if https ~}
-      -ca-file /consul/consul-https-ca-cert.pem \
+      --cacert /consul/consul-https-ca-cert.pem \
     %{ endif ~}
-      -stale -self -token-file /consul/client-token \
-      > /dev/null
+      -sS -o /dev/null
 }
 
 # Retry in order to login successfully.

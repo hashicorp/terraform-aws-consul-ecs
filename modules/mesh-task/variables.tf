@@ -151,7 +151,7 @@ variable "consul_ecs_image" {
 variable "envoy_image" {
   description = "Envoy Docker image."
   type        = string
-  default     = "envoyproxy/envoy-alpine:v1.21.4"
+  default     = "envoyproxy/envoy-distroless:v1.23.1"
 }
 
 variable "envoy_public_listener_port" {
