@@ -184,6 +184,7 @@ resource "aws_ecs_task_definition" "this" {
             image            = var.envoy_image
             essential        = true
             logConfiguration = var.log_configuration
+            entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
             command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
             portMappings = [
               {
