@@ -294,7 +294,7 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["/consul/consul-ecs", "net-dial", "127.0.0.1", tostring(var.envoy_public_listener_port)]
+              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", var.envoy_public_listener_port)]
               interval = 30
               retries  = 3
               timeout  = 5
