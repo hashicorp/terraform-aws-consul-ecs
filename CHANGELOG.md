@@ -1,4 +1,4 @@
-## Unreleased
+## 0.6.0 (Mar 15, 2023)
 
 FEATURES
 * modules/gateway-task: Use `consul-ecs envoy-entrypoint` to start the Envoy process for gateway tasks.
