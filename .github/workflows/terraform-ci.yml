@@ -60,6 +60,7 @@ jobs:
           only-new-issues: false
           skip-pkg-cache: true
           skip-build-cache: true
+          working-directory: ./test/acceptance
       - name: Lint Consul retry
         run: |
           go install github.com/hashicorp/lint-consul-retry@latest
@@ -76,6 +77,7 @@ jobs:
     - name: Validate
       run: terraform fmt -check -recursive .
   acceptance:
+    name: ${{matrix.name}}
     runs-on: ubuntu-latest
     env:
       GOTESTSUM_VERSION: 1.8.0
