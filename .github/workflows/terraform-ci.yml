@@ -1,0 +1,148 @@
+name: terraform-ci
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+  pull_request:
+    branches:
+      - 'main'
+      - 'release/**'
+env:
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+  get-go-version:
+    runs-on: ubuntu-latest
+    needs:
+      - checkout
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+  setup-go:
+    runs-on: ubuntu-latest
+    needs:
+      - get-go-version
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+  go-fmt-and-lint-acceptance:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-go
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    steps:
+      - name: go fmt
+        run: |
+          files=$(go fmt ./...)
+          if [ -n "$files" ]; then
+            echo "The following file(s) do not conform to go fmt:"
+            echo "$files"
+            exit 1
+          fi
+      - name: Go CI lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: |
+            --verbose
+          only-new-issues: false
+          skip-pkg-cache: true
+          skip-build-cache: true
+      - name: Lint Consul retry
+        run: |
+          go install github.com/hashicorp/lint-consul-retry@latest
+          lint-consul-retry
+  terraform-fmt:
+    runs-on: ubuntu-latest
+    needs:
+      - checkout
+    steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.4.2
+    - name: Validate
+      run: terraform fmt -check -recursive .
+  setup-runtime:
+    runs-on: ubuntu-latest
+    env:
+      GOTESTSUM_VERSION: 1.8.0
+    needs:
+      # We only want to proceed with the acceptance test setup if the linting jobs succeed.
+      - go-fmt-and-lint-acceptance
+      - terraform-fmt
+    steps:
+    - name: Install base apps
+      run: |
+        sudo apt-get install -y expect openssl jq
+    - name: Install gotestsum
+      run: |
+        curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
+        tar -xz --overwrite -C /usr/local/bin gotestsum
+    - name: Install AWS CLI
+      run: |
+        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+        sudo dpkg -i session-manager-plugin.deb
+        aws --version
+        echo session-manager-plugin version $(session-manager-plugin --version)
+    - name: Install AWS ECS CLI
+      run: |
+        curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
+        chmod +x /usr/local/bin/ecs-cli
+        ecs-cli --version
+  acceptance:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-runtime
+    strategy:
+      matrix:
+        name:
+          - acceptance-1.15-FARGATE-HCP
+          - acceptance-1.13-FARGATE
+          # - acceptance-1.14-FARGATE-HCP
+          #- acceptance-1.15-EC2
+          # - acceptance-1.13-EC2-HCP
+          - acceptance-1.14-EC2
+        include:
+          - name: acceptance-1.15-FARGATE-HCP
+            consul-version: '1.15.1'
+            enable-hcp: true
+            launch-type: FARGATE
+          - name: acceptance-1.13-EC2
+            consul-version: '1.13.7'
+            enable-hcp: false
+            launch-type: FARGATE
+          - name: acceptance-1.14-EC2
+            consul-version: '1.14.5'
+            enable-hcp: false
+            launch-type: EC2
+    steps:
+    - name: Configure AWS
+      # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
+      run: |
+        aws configure --profile ecs_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        aws configure --profile ecs_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
+        aws configure set region us-west-2
+        aws configure set source_profile ecs_user
+    - name: Test matrix config
+      run: |
+        echo "running test for ${{matrix.name}}: consul-version: ${{matrix.consul-version}}, enable-hcp: ${{matrix.enable-hcp}}, launch-type: ${{matrix.launch-type}}"
