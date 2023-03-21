@@ -255,6 +255,7 @@ func TestPassingAppEntrypoint(t *testing.T) {
 
 	terraform.Init(t, terraformOptions)
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			opts := &terraform.Options{
@@ -595,6 +596,7 @@ func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 	_ = terraform.Init(t, terraformOptions)
 
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			terraformOptions.Vars = map[string]interface{}{
@@ -1148,6 +1150,7 @@ func TestValidation_AuditLogging(t *testing.T) {
 	}
 
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			terraformOptions.Vars = map[string]interface{}{
