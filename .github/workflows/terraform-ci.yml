@@ -82,7 +82,6 @@ jobs:
     env:
       GOTESTSUM_VERSION: 1.8.0
     needs:
-      # We only want to proceed with the acceptance test setup if the linting jobs succeed.
       - get-go-version
       - terraform-fmt
       - go-fmt-and-lint-acceptance
@@ -93,24 +92,42 @@ jobs:
       matrix:
         name:
           - acceptance-1.15-FARGATE-HCP
+          - acceptance-1.14-FARGATE-HCP
           - acceptance-1.13-FARGATE
-          # - acceptance-1.14-FARGATE-HCP
-          #- acceptance-1.15-EC2
-          # - acceptance-1.13-EC2-HCP
+          - acceptance-1.15-EC2
           - acceptance-1.14-EC2
+          - acceptance-1.13-EC2-HCP
         include:
           - name: acceptance-1.15-FARGATE-HCP
             consul-version: '1.15.1'
             enable-hcp: true
             launch-type: FARGATE
-          - name: acceptance-1.13-EC2
+
+          - name: acceptance-1.14-FARGATE-HCP
+            consul-version: '1.14.4'
+            enable-hcp: true
+            launch-type: FARGATE
+
+          - name: acceptance-1.13-FARGATE
             consul-version: '1.13.7'
             enable-hcp: false
             launch-type: FARGATE
+
+          - name: acceptance-1.15-EC2
+            consul-version: '1.15.1'
+            enable-hcp: false
+            launch-type: EC2
+
           - name: acceptance-1.14-EC2
             consul-version: '1.14.5'
             enable-hcp: false
             launch-type: EC2
+
+          - name: acceptance-1.13-EC2-HCP
+            consul-version: '1.13.6'
+            enable-hcp: true
+            launch-type: EC2
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -144,7 +161,24 @@ jobs:
         aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
         aws configure set region us-west-2
         aws configure set source_profile ecs_user
-    - name: Test matrix config
+    - name: terraform init & apply
       run: |
+        echo "GITHUB_REF_NAME = ${GITHUB_REF_NAME}, GITHUB_JOB = ${GITHUB_JOB}"
         echo "cwd = $(pwd)"
         echo "running test for ${{matrix.name}}: consul-version: ${{matrix.consul-version}}, enable-hcp: ${{matrix.enable-hcp}}, launch-type: ${{matrix.launch-type}}"
+        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+        VARS+=' -var launch_type=${{matrix.launch-type}}'
+        VARS+=' -var consul_version=${{matrix.consul-version}}'
+        case $GITHUB_REF_NAME in
+            main | release/* | cthain/cci-to-gha) VARS+=" -var enable_hcp=${{matrix.enable-hcp}}";;
+            *) VARS+=" -var enable_hcp=false";;
+        esac
+        echo terraform init
+        echo terraform apply -auto-approve $VARS
+    - name: Acceptance tests
+      run: |
+        cd ./tests
+        echo "TODO cwd = $(pwd)"
+    - name: terraform destroy
+      run: |
+        echo "TODO cwd = $(pwd)"
