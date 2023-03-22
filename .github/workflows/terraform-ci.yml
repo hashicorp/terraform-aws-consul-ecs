@@ -24,6 +24,8 @@ jobs:
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
   get-go-version:
     runs-on: ubuntu-latest
+    needs:
+      - action-lint
     defaults:
       run:
         working-directory: ./test/acceptance
@@ -38,7 +40,7 @@ jobs:
         # version, because "goenv" can react to it automatically.
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
   go-fmt-and-lint-acceptance:
     runs-on: ubuntu-latest
     needs:
@@ -76,6 +78,8 @@ jobs:
           lint-consul-retry
   terraform-fmt:
     runs-on: ubuntu-latest
+    needs:
+      - action-lint
     steps:
     - name: Checkout
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
@@ -157,7 +161,7 @@ jobs:
         curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
         sudo dpkg -i session-manager-plugin.deb
         aws --version
-        echo session-manager-plugin version $(session-manager-plugin --version)
+        echo session-manager-plugin version "$(session-manager-plugin --version)"
     - name: Install AWS ECS CLI
       run: |
         curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
@@ -182,10 +186,10 @@ jobs:
             *) VARS+=" -var enable_hcp=false";;
         esac
         terraform init
-        terraform apply -auto-approve $VARS
+        terraform apply -auto-approve "$VARS"
     - name: Acceptance tests
       run: |
-        mkdir -p $TEST_RESULTS
+        mkdir -p "$TEST_RESULTS"
         cd tests/
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
@@ -204,4 +208,4 @@ jobs:
             main | release/*) VARS+=" -var enable_hcp=${{matrix.enable-hcp}}";;
             *) VARS+=" -var enable_hcp=false";;
         esac
-        terraform destroy -auto-approve $VARS
+        terraform destroy -auto-approve "$VARS"
