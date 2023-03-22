@@ -1,0 +1,168 @@
+name: terraform-ci
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+  pull_request:
+    branches:
+      - 'main'
+      - 'release/**'
+env:
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+  HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+  HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+permissions: {}
+jobs:
+  action-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - name: Lint workflow
+        uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
+        with:
+          # we need to ignore the SC2086 rule to pass unescaped $VARS to the terraform commands
+          args: -ignore SC2086
+  get-go-version:
+    runs-on: ubuntu-latest
+    needs:
+      - action-lint
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
+  go-fmt-and-lint-acceptance:
+    runs-on: ubuntu-latest
+    needs:
+      - get-go-version
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - name: Setup Go
+        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      - name: go fmt
+        run: |
+          files=$(go fmt ./...)
+          if [ -n "$files" ]; then
+            echo "The following file(s) do not conform to go fmt:"
+            echo "$files"
+            exit 1
+          fi
+      - name: Go CI lint
+        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
+        with:
+          args: |
+            --verbose
+          only-new-issues: false
+          skip-pkg-cache: true
+          skip-build-cache: true
+          working-directory: ./test/acceptance
+      - name: Lint Consul retry
+        run: |
+          go install github.com/hashicorp/lint-consul-retry@latest
+          lint-consul-retry
+  terraform-fmt:
+    runs-on: ubuntu-latest
+    needs:
+      - action-lint
+    steps:
+    - name: Checkout
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.4.2
+    - name: Validate
+      run: terraform fmt -check -recursive .
+  acceptance:
+    name: ${{ matrix.launch-type }}
+    runs-on: ubuntu-latest
+    env:
+      TEST_RESULTS: /tmp/test-results
+      GOTESTSUM_VERSION: 1.8.0
+    needs:
+      - get-go-version
+      - terraform-fmt
+      - go-fmt-and-lint-acceptance
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    strategy:
+      matrix:
+        launch-type:
+          - FARGATE
+          - EC2
+    steps:
+    - name: Checkout
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+    - name: Setup Go
+      uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+      with:
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
+    - name: Install base apps
+      run: |
+        sudo apt-get install -y expect openssl jq
+    - name: Install gotestsum
+      run: |
+        curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
+        tar -xz --overwrite -C /usr/local/bin gotestsum
+    - name: Install AWS CLI
+      run: |
+        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+        sudo dpkg -i session-manager-plugin.deb
+        aws --version
+        echo session-manager-plugin version "$(session-manager-plugin --version)"
+    - name: Install AWS ECS CLI
+      run: |
+        curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
+        chmod +x /usr/local/bin/ecs-cli
+        ecs-cli --version
+    - name: Assume AWS IAM Role
+      uses: aws-actions/configure-aws-credentials@e1e17a757e536f70e52b5a12b2e8d1d1c60e04ef # v2.0.0
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-duration-seconds: 3600
+    - name: terraform init & apply
+      run: |
+        cd setup-terraform/
+        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+        VARS+=' -var launch_type=${{ matrix.launch-type }}'
+        terraform init
+        terraform apply -auto-approve $VARS
+    - name: Acceptance tests
+      run: |
+        mkdir -p "$TEST_RESULTS"
+        cd tests/
+        gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      if: always()
+      with:
+        name: acceptance-test-results
+        path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+    - name: terraform destroy
+      if: always()
+      run: |
+        cd setup-terraform/
+        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+        VARS+=' -var launch_type=${{ matrix.launch-type }}'
+        terraform destroy -auto-approve $VARS
