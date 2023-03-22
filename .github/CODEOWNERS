@@ -1,0 +1,4 @@
+# consul-zts as code owner by default.
+# later matches take precedence.
+
+@hashicorp/consul-zts
