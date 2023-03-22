@@ -93,7 +93,7 @@ jobs:
     - name: Validate
       run: terraform fmt -check -recursive .
   acceptance:
-    name: ${{matrix.name}}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     env:
       TEST_RESULTS: /tmp/test-results
@@ -106,19 +106,24 @@ jobs:
       run:
         working-directory: ./test/acceptance
     strategy:
+      # We have a limit of 6 HCP Consul clusters.
+      # The following controls whether to enable HCP when testing release branches.
+      # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.15-FARGATE-HCP
+          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
+          # TODO: - acceptance-1.15-FARGATE-HCP
           - acceptance-1.14-FARGATE-HCP
           - acceptance-1.13-FARGATE
           - acceptance-1.15-EC2
           - acceptance-1.14-EC2
           - acceptance-1.13-EC2-HCP
         include:
-          - name: acceptance-1.15-FARGATE-HCP
-            consul-version: '1.15.1'
-            enable-hcp: true
-            launch-type: FARGATE
+          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
+          # - name: acceptance-1.15-FARGATE-HCP
+          #   consul-version: '1.15.1'
+          #   enable-hcp: true
+          #   launch-type: FARGATE
 
           - name: acceptance-1.14-FARGATE-HCP
             consul-version: '1.14.4'
@@ -170,22 +175,22 @@ jobs:
         curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
-    - name: Configure AWS
-      # Environment variables for IAM roles are unsupported: https://github.com/aws/aws-cli/issues/5639
-      run: |
-        aws configure --profile ecs_user set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
-        aws configure --profile ecs_user set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-        aws configure set role_arn "${{ secrets.AWS_ROLE_ARN }}"
-        aws configure set region us-west-2
-        aws configure set source_profile ecs_user
+    - name: Assume AWS IAM Role
+      uses: aws-actions/configure-aws-credentials@e1e17a757e536f70e52b5a12b2e8d1d1c60e04ef # v2.0.0
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-duration-seconds: 3600
     - name: terraform init & apply
       run: |
         cd setup-terraform/
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{matrix.launch-type}}'
-        VARS+=' -var consul_version=${{matrix.consul-version}}'
+        VARS+=' -var launch_type=${{ matrix.launch-type }}'
+        VARS+=' -var consul_version=${{ matrix.consul-version }}'
         case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{matrix.enable-hcp}}";;
+            main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
         esac
         terraform init
@@ -205,10 +210,10 @@ jobs:
       run: |
         cd setup-terraform/
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{matrix.launch-type}}'
-        VARS+=' -var consul_version=${{matrix.consul-version}}'
+        VARS+=' -var launch_type=${{ matrix.launch-type }}'
+        VARS+=' -var consul_version=${{ matrix.consul-version }}'
         case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{matrix.enable-hcp}}";;
+            main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
         esac
         terraform destroy -auto-approve $VARS
