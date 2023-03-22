@@ -1,4 +1,9 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # consul-zts as code owner by default.
 # later matches take precedence.
 
 @hashicorp/consul-zts
+
+/.github/workflows/* @hashicorp/release-engineering @hashicorp/consul-zts
