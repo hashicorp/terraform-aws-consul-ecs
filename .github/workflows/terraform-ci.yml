@@ -22,6 +22,9 @@ jobs:
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
+        with:
+          # we need to ignore the SC2086 rule to pass unescaped $VARS to the terraform commands
+          args: -ignore SC2086
   get-go-version:
     runs-on: ubuntu-latest
     needs:
@@ -186,7 +189,7 @@ jobs:
             *) VARS+=" -var enable_hcp=false";;
         esac
         terraform init
-        terraform apply -auto-approve "$VARS"
+        terraform apply -auto-approve $VARS
     - name: Acceptance tests
       run: |
         mkdir -p "$TEST_RESULTS"
@@ -208,4 +211,4 @@ jobs:
             main | release/*) VARS+=" -var enable_hcp=${{matrix.enable-hcp}}";;
             *) VARS+=" -var enable_hcp=false";;
         esac
-        terraform destroy -auto-approve "$VARS"
+        terraform destroy -auto-approve $VARS
