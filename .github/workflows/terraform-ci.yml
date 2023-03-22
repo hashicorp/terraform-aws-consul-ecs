@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 name: terraform-ci
 on:
   push:
@@ -57,19 +60,10 @@ jobs:
         uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      - name: go fmt
-        run: |
-          files=$(go fmt ./...)
-          if [ -n "$files" ]; then
-            echo "The following file(s) do not conform to go fmt:"
-            echo "$files"
-            exit 1
-          fi
       - name: Go CI lint
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         with:
-          args: |
-            --verbose
+          args: "--verbose --enable gofmt"
           only-new-issues: false
           skip-pkg-cache: true
           skip-build-cache: true
@@ -118,32 +112,32 @@ jobs:
           - acceptance-1.14-EC2
         include:
           - name: acceptance-1.12-FARGATE-HCP
-            consul-version: '1.12.7'
+            consul-version: '1.12.9'
             enable-hcp: true
             launch-type: FARGATE
 
           - name: acceptance-1.13-FARGATE
-            consul-version: '1.13.4'
+            consul-version: '1.13.6'
             enable-hcp: false
             launch-type: FARGATE
 
           - name: acceptance-1.14-FARGATE-HCP
-            consul-version: '1.14.2'
+            consul-version: '1.14.4'
             enable-hcp: true
             launch-type: FARGATE
 
           - name: acceptance-1.12-EC2
-            consul-version: '1.12.7'
+            consul-version: '1.12.9'
             enable-hcp: false
             launch-type: EC2
 
           - name: acceptance-1.13-EC2-HCP
-            consul-version: '1.13.4'
+            consul-version: '1.13.6'
             enable-hcp: true
             launch-type: EC2
 
           - name: acceptance-1.14-EC2
-            consul-version: '1.14.2'
+            consul-version: '1.14.4'
             enable-hcp: true
             launch-type: EC2
 
