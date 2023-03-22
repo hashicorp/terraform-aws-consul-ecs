@@ -355,7 +355,7 @@ func upsertIntention(t *testing.T, consulClient *api.Client, action api.Intentio
 			Partition: dst.Partition,
 			Namespace: dst.Namespace,
 			Sources: []*api.SourceIntention{
-				&api.SourceIntention{
+				{
 					Name:      src.Name,
 					Partition: src.Partition,
 					Namespace: src.Namespace,
