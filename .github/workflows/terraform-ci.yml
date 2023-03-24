@@ -60,6 +60,7 @@ jobs:
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+          cache-dependency-path: ./test/acceptance/go.sum
       - name: Go CI lint
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         with:
@@ -110,6 +111,7 @@ jobs:
       uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
+        cache-dependency-path: ./test/acceptance/go.sum
     - name: Install base apps
       run: |
         sudo apt-get install -y expect openssl jq
