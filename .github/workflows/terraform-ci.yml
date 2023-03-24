@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
         with:
@@ -38,7 +38,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Determine Go version
         id: get-go-version
         # We use .go-version as our source of truth for current Go
@@ -55,9 +55,9 @@ jobs:
         working-directory: ./test/acceptance
     steps:
       - name: Checkout
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Setup Go
-        uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Go CI lint
@@ -78,7 +78,7 @@ jobs:
       - action-lint
     steps:
     - name: Checkout
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
@@ -105,9 +105,9 @@ jobs:
           - EC2
     steps:
     - name: Checkout
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
     - name: Setup Go
-      uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+      uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Install base apps
