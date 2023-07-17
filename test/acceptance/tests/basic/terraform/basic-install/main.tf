@@ -64,7 +64,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "ganeshrockz/ecs"
 }
 
 variable "server_service_name" {
@@ -166,7 +166,7 @@ module "acl_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
+  consul_server_addr                = module.consul_server.server_dns
   consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
@@ -242,7 +242,7 @@ EOT
       ]
     }
   ]
-  retry_join = [module.consul_server.server_dns]
+  consul_server_addr = module.consul_server.server_dns
   upstreams = [
     {
       destinationName = "${var.server_service_name}_${var.suffix}"
@@ -258,23 +258,15 @@ EOT
 
   tls                       = var.secure
   consul_server_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
   consul_image              = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
-  consul_http_addr = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
   # For dev-server, the server_ca_cert (internal rpc) and the https ca cert are the same.
   # But, they are different in HCP.
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-
-  consul_agent_configuration = <<-EOT
-  log_level = "debug"
-  EOT
-
-  consul_datacenter = var.consul_datacenter
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -302,28 +294,16 @@ module "test_server" {
     essential        = true
     logConfiguration = local.test_server_log_configuration
   }]
-  retry_join        = [module.consul_server.server_dns]
+  consul_server_addr = module.consul_server.server_dns
   log_configuration = local.test_server_log_configuration
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "2s"
-    }
-  ]
   port = 9090
 
   tls                       = var.secure
   consul_server_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
   acls                      = var.secure
   consul_ecs_image          = var.consul_ecs_image
   consul_image              = var.consul_image
 
-  consul_http_addr         = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
 
   // Test passing in roles. This requires users to correctly configure the roles outside mesh-task.
@@ -331,8 +311,6 @@ module "test_server" {
   create_execution_role = false
   task_role             = aws_iam_role.task
   execution_role        = aws_iam_role.execution
-
-  consul_datacenter = var.consul_datacenter
 }
 
 // Configure a task role for passing in to mesh-task.
