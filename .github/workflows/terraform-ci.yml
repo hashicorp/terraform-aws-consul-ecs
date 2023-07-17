@@ -118,7 +118,7 @@ jobs:
           #   enable-hcp: true
           #   launch-type: FARGATE
 
-          - name: acceptance-1.16-FARGATE-HCP
+          - name: acceptance-1.16-FARGATE
             consul-version: '1.16.0'
             enable-hcp: false
             launch-type: FARGATE
