@@ -94,7 +94,6 @@ jobs:
       GOTESTSUM_VERSION: 1.8.0
     needs:
       - get-go-version
-      - terraform-fmt
       - go-fmt-and-lint-acceptance
     defaults:
       run:
