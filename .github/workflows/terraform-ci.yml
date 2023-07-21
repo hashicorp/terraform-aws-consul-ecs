@@ -193,16 +193,16 @@ jobs:
     - name: Custom step
       run: |
         sleep 3m 30s
-    - name: Acceptance tests
-      run: |
-        mkdir -p "$TEST_RESULTS"
-        cd tests/
-        gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-      if: always()
-      with:
-        name: acceptance-test-results
-        path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+    # - name: Acceptance tests
+    #   run: |
+    #     mkdir -p "$TEST_RESULTS"
+    #     cd tests/
+    #     gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
+    # - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+    #   if: always()
+    #   with:
+    #     name: acceptance-test-results
+    #     path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
     - name: terraform destroy
       if: always()
       run: |

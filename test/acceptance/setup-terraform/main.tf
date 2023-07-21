@@ -48,6 +48,14 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
   tags                 = var.tags
+  default_security_group_egress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
 }
 
 // Create ECS clusters
@@ -99,13 +107,3 @@ module "hcp" {
   vpc            = module.vpc
   consul_version = var.consul_version
 }
-
-# resource "aws_security_group_rule" "cluster_egress" {
-#   description       = "Access to endpoints outside the VPC"
-#   type              = "egress"
-#   from_port         = 0
-#   to_port           = 0
-#   protocol          = "-1"
-#   cidr_blocks       = ["0.0.0.0/0"]
-#   security_group_id = module.vpc.default_security_group_id
-# }
