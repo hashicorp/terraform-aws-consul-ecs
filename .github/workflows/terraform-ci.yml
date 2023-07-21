@@ -105,44 +105,42 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
           - acceptance-1.15-FARGATE-HCP
-          # - acceptance-1.14-FARGATE-HCP
-          # - acceptance-1.13-FARGATE
-          # - acceptance-1.15-EC2
-          # - acceptance-1.14-EC2
-          # - acceptance-1.13-EC2-HCP
+          - acceptance-1.14-FARGATE-HCP
+          - acceptance-1.13-FARGATE
+          - acceptance-1.15-EC2
+          - acceptance-1.14-EC2
+          - acceptance-1.13-EC2-HCP
         include:
-          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
           - name: acceptance-1.15-FARGATE-HCP
             consul-version: '1.15.4'
             enable-hcp: true
             launch-type: FARGATE
 
-          # - name: acceptance-1.14-FARGATE-HCP
-          #   consul-version: '1.14.7'
-          #   enable-hcp: true
-          #   launch-type: FARGATE
+          - name: acceptance-1.14-FARGATE-HCP
+            consul-version: '1.14.7'
+            enable-hcp: true
+            launch-type: FARGATE
 
-          # - name: acceptance-1.13-FARGATE
-          #   consul-version: '1.13.9'
-          #   enable-hcp: false
-          #   launch-type: FARGATE
+          - name: acceptance-1.13-FARGATE
+            consul-version: '1.13.9'
+            enable-hcp: false
+            launch-type: FARGATE
 
-          # - name: acceptance-1.15-EC2
-          #   consul-version: '1.15.4'
-          #   enable-hcp: false
-          #   launch-type: EC2
+          - name: acceptance-1.15-EC2
+            consul-version: '1.15.4'
+            enable-hcp: false
+            launch-type: EC2
 
-          # - name: acceptance-1.14-EC2
-          #   consul-version: '1.14.8'
-          #   enable-hcp: false
-          #   launch-type: EC2
+          - name: acceptance-1.14-EC2
+            consul-version: '1.14.8'
+            enable-hcp: false
+            launch-type: EC2
 
-          # - name: acceptance-1.13-EC2-HCP
-          #   consul-version: '1.13.8'
-          #   enable-hcp: true
-          #   launch-type: EC2
+          - name: acceptance-1.13-EC2-HCP
+            consul-version: '1.13.8'
+            enable-hcp: true
+            launch-type: EC2
 
     steps:
     - name: Checkout
