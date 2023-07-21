@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
         with:
@@ -38,7 +38,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Determine Go version
         id: get-go-version
         # We use .go-version as our source of truth for current Go
@@ -55,14 +55,14 @@ jobs:
         working-directory: ./test/acceptance
     steps:
       - name: Checkout
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Setup Go
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
           cache-dependency-path: ./test/acceptance/go.sum
       - name: Go CI lint
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
+        uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
         with:
           args: "--verbose --enable gofmt"
           only-new-issues: false
@@ -79,7 +79,7 @@ jobs:
       - action-lint
     steps:
     - name: Checkout
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
@@ -105,48 +105,46 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
-          # TODO: - acceptance-1.15-FARGATE-HCP
+          - acceptance-1.15-FARGATE-HCP
           - acceptance-1.14-FARGATE-HCP
           - acceptance-1.13-FARGATE
           - acceptance-1.15-EC2
           - acceptance-1.14-EC2
           - acceptance-1.13-EC2-HCP
         include:
-          # TODO: Enable testing on HCP for Consul 1.15.x when it is supported on HCP
-          # - name: acceptance-1.15-FARGATE-HCP
-          #   consul-version: '1.15.1'
-          #   enable-hcp: true
-          #   launch-type: FARGATE
+          - name: acceptance-1.15-FARGATE-HCP
+            consul-version: '1.15.4'
+            enable-hcp: true
+            launch-type: FARGATE
 
           - name: acceptance-1.14-FARGATE-HCP
-            consul-version: '1.14.4'
+            consul-version: '1.14.7'
             enable-hcp: true
             launch-type: FARGATE
 
           - name: acceptance-1.13-FARGATE
-            consul-version: '1.13.7'
+            consul-version: '1.13.9'
             enable-hcp: false
             launch-type: FARGATE
 
           - name: acceptance-1.15-EC2
-            consul-version: '1.15.1'
+            consul-version: '1.15.4'
             enable-hcp: false
             launch-type: EC2
 
           - name: acceptance-1.14-EC2
-            consul-version: '1.14.5'
+            consul-version: '1.14.8'
             enable-hcp: false
             launch-type: EC2
 
           - name: acceptance-1.13-EC2-HCP
-            consul-version: '1.13.6'
+            consul-version: '1.13.8'
             enable-hcp: true
             launch-type: EC2
 
     steps:
     - name: Checkout
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
     - name: Setup Go
       uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
@@ -171,7 +169,7 @@ jobs:
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
     - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@e1e17a757e536f70e52b5a12b2e8d1d1c60e04ef # v2.0.0
+      uses: aws-actions/configure-aws-credentials@5727f247b64f324ec403ac56ae05e220fd02b65f # v2.1.0
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_REGION }}
