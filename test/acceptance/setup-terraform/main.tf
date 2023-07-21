@@ -56,6 +56,14 @@ module "vpc" {
       cidr_blocks = "0.0.0.0/0"
     }
   ]
+  default_security_group_ingress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
 }
 
 // Create ECS clusters
