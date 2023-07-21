@@ -30,7 +30,7 @@ resource "random_shuffle" "azs" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "2.78.0"
+  version = "5.0.0"
 
   name = local.name
   cidr = "10.0.0.0/16"
@@ -48,6 +48,22 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
   tags                 = var.tags
+  default_security_group_egress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
+  default_security_group_ingress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
 }
 
 // Create ECS clusters
