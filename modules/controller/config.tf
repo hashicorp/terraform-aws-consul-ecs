@@ -5,7 +5,7 @@ locals {
   httpTLSSettings = merge(
     {
       port = var.tls ? 8501 : 8500
-      http = var.tls
+      https = var.tls
     },
     var.http_tls_config
   )
