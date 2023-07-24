@@ -925,8 +925,8 @@ func TestBasic(t *testing.T) {
 		datacenter    string
 	}{
 		//{secure: false},
-		{secure: true},
-		// {secure: true, enterprise: true},
+		//{secure: true},
+		{secure: true, enterprise: true},
 	}
 
 	cfg := suite.Config()
