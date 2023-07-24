@@ -59,8 +59,8 @@ module "vpc" {
   default_security_group_ingress = [
     {
       description = "Allow all"
-      protocol = -1
-      self = true
+      protocol    = -1
+      self        = true
     }
   ]
 }
