@@ -1,8 +1,13 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+locals {
+  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_server_ca_cert_arn
+  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_server_ca_cert_arn
+}
+
 resource "aws_ecs_service" "this" {
-  name            = "consul-acl-controller"
+  name            = "consul-ecs-controller"
   cluster         = var.ecs_cluster_arn
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
@@ -16,7 +21,7 @@ resource "aws_ecs_service" "this" {
 }
 
 resource "aws_ecs_task_definition" "this" {
-  family                   = "${var.name_prefix}-consul-acl-controller"
+  family                   = "${var.name_prefix}-consul-ecs-controller"
   requires_compatibilities = var.requires_compatibilities
   network_mode             = "awsvpc"
   cpu                      = 256
@@ -25,19 +30,11 @@ resource "aws_ecs_task_definition" "this" {
   execution_role_arn       = aws_iam_role.this_execution.arn
   container_definitions = jsonencode([
     {
-      name             = "consul-acl-controller"
+      name             = "consul-ecs-controller"
       image            = var.consul_ecs_image
       essential        = true
       logConfiguration = var.log_configuration,
-      command = concat(
-        [
-          "acl-controller", "-iam-role-path", var.iam_role_path,
-        ],
-        var.consul_partitions_enabled ? [
-          "-partitions-enabled",
-          "-partition", var.consul_partition
-        ] : [],
-      )
+      command          = ["controller"]
       linuxParameters = {
         initProcessEnabled = true
       }
@@ -46,16 +43,23 @@ resource "aws_ecs_task_definition" "this" {
           name      = "CONSUL_HTTP_TOKEN",
           valueFrom = var.consul_bootstrap_token_secret_arn
         }],
-        var.consul_server_ca_cert_arn != "" ? [
+        local.grpc_ca_cert_arn != "" ? [
           {
-            name      = "CONSUL_CACERT_PEM",
-            valueFrom = var.consul_server_ca_cert_arn
-          }
-      ] : [])
+            name      = "CONSUL_GRPC_CACERT_PEM",
+            valueFrom = local.grpc_ca_cert_arn
+          },
+        ] : [],
+        local.https_ca_cert_arn != "" ? [
+          {
+            name      = "CONSUL_HTTPS_CACERT_PEM",
+            valueFrom = local.https_ca_cert_arn
+          },
+        ] : [],
+      )
       environment = [
         {
-          name  = "CONSUL_HTTP_ADDR"
-          value = var.consul_server_http_addr
+          name  = "CONSUL_ECS_CONFIG_JSON",
+          value = local.encoded_config
         }
       ]
       readonlyRootFilesystem = true
@@ -64,7 +68,7 @@ resource "aws_ecs_task_definition" "this" {
 }
 
 resource "aws_iam_role" "this_task" {
-  name = "${var.name_prefix}-consul-acl-controller-task"
+  name = "${var.name_prefix}-consul-ecs-controller-task"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -103,7 +107,7 @@ resource "aws_iam_role" "this_task" {
 }
 
 resource "aws_iam_policy" "this_execution" {
-  name        = "${var.name_prefix}-consul-acl-controller-execution"
+  name        = "${var.name_prefix}-consul-ecs-controller-execution"
   path        = "/ecs/"
   description = "Consul controller execution"
 
@@ -145,7 +149,7 @@ EOF
 }
 
 resource "aws_iam_role" "this_execution" {
-  name = "${var.name_prefix}-consul-acl-controller-execution"
+  name = "${var.name_prefix}-consul-ecs-controller-execution"
   path = "/ecs/"
 
   assume_role_policy = <<EOF

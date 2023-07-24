@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join        = ["test"]
+  consul_server_address = "consul.dc1.host"
   outbound_only     = true
   consul_ecs_config = jsondecode(file("${path.module}/${var.consul_ecs_config_file}"))
 }

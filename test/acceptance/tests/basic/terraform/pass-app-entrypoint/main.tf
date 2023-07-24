@@ -18,7 +18,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join    = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only = true
 
   application_shutdown_delay_seconds = var.application_shutdown_delay_seconds

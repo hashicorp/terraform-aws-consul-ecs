@@ -1,0 +1,4 @@
+{
+    "tls": true,
+    "tlsServerName": "consul.dc1.name"
+}

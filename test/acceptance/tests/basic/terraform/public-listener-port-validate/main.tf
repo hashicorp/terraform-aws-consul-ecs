@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join                 = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only              = true
   envoy_public_listener_port = var.envoy_public_listener_port
 }

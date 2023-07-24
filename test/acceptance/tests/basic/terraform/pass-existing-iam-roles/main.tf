@@ -61,7 +61,7 @@ module "test_client_pass_existing_roles" {
   family                = local.pass_roles_family
   log_configuration     = null
   container_definitions = local.container_definitions
-  retry_join            = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only         = true
 
   create_task_role      = false

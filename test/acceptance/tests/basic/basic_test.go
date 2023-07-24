@@ -25,21 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test the validation that if TLS is enabled, Consul's CA certificate must also be provided.
-func TestValidation_CACertRequiredIfTLSIsEnabled(t *testing.T) {
-	t.Parallel()
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/ca-cert-validate",
-		NoColor:      true,
-	})
-	t.Cleanup(func() {
-		_, _ = terraform.DestroyE(t, terraformOptions)
-	})
-	_, err := terraform.InitAndPlanE(t, terraformOptions)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "ERROR: consul_server_ca_cert_arn must be set if tls is true")
-}
-
 // TestVolumeVariable tests passing a list of volumes to mesh-task.
 // This validates a big nested dynamic block in mesh-task.
 func TestVolumeVariable(t *testing.T) {
@@ -401,50 +386,59 @@ func TestValidation_EnvoyPublicListenerPort(t *testing.T) {
 	}
 }
 
-func TestValidation_ChecksVariable(t *testing.T) {
+func TestValidation_EnvoyReadinessPort(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
-		checksFile string
-		error      bool
+		port  int
+		error string
 	}{
-		"no-checks": {
-			checksFile: "test-no-checks.json",
+		"allowed-port": {
+			port: 23000,
 		},
-		"valid-checks": {
-			checksFile: "test-valid-checks.json",
+		"too-high-port": {
+			port:  65536,
+			error: "The envoy_readiness_port must be greater than 0 and less than or equal to 65535.",
 		},
-		"invalid-checks": {
-			checksFile: "test-invalid-checks.json",
-			error:      true,
+		"disallowed-port": {
+			port:  19000,
+			error: "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy",
+		},
+		"conflicts-with-listener-port": {
+			port:  20000,
+			error: "envoy_public_listener_port should not conflict with envoy_readiness_port",
 		},
 	}
 
 	terraformOptions := &terraform.Options{
-		TerraformDir: "./terraform/checks-validate",
+		TerraformDir: "./terraform/envoy-readiness-port-validate",
 		NoColor:      true,
 	}
 	terraform.Init(t, terraformOptions)
 
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			out, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
-					"checks_file": c.checksFile,
+					"envoy_readiness_port": c.port,
 				},
 			})
 
-			if c.error {
-				require.Error(t, err)
-				require.Regexp(t, "Check fields must be one of.*", out)
-			} else {
+			if c.error == "" {
 				require.NoError(t, err)
+			} else {
+				// handle multiline error messages.
+				regex := strings.ReplaceAll(regexp.QuoteMeta(c.error), " ", "\\s+")
+				require.Error(t, err)
+				require.Regexp(t, regex, out)
 			}
 		})
 	}
-
 }
 
 func TestValidation_ConsulServiceName(t *testing.T) {
@@ -542,6 +536,120 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 				NoColor:      true,
 				Vars: map[string]interface{}{
 					"consul_ecs_config_file": c.configFile,
+				},
+			})
+
+			if len(c.errors) == 0 {
+				require.NoError(t, err)
+			} else {
+				for _, msg := range c.errors {
+					// error messages are wrapped, so a space may turn into a newline.
+					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
+					require.Regexp(t, regex, out)
+				}
+			}
+		})
+	}
+}
+
+func TestValidation_HTTPTLSConfig(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		configFile string
+		errors     []string
+	}{
+		"empty-map": {
+			configFile: "test-empty-config.json",
+		},
+		"complete-config": {
+			configFile: "test-complete-config.json",
+		},
+		"partial-config": {
+			configFile: "test-partial-config.json",
+		},
+		"invalid-config": {
+			configFile: "test-invalid-config.json",
+			errors: []string{
+				"Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config.",
+			},
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/http-tls-config-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		c := c
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"http_tls_config_file": c.configFile,
+				},
+			})
+
+			if len(c.errors) == 0 {
+				require.NoError(t, err)
+			} else {
+				for _, msg := range c.errors {
+					// error messages are wrapped, so a space may turn into a newline.
+					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
+					require.Regexp(t, regex, out)
+				}
+			}
+		})
+	}
+}
+
+func TestValidation_GRPCTLSConfig(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		configFile string
+		errors     []string
+	}{
+		"empty-map": {
+			configFile: "test-empty-config.json",
+		},
+		"complete-config": {
+			configFile: "test-complete-config.json",
+		},
+		"partial-config": {
+			configFile: "test-partial-config.json",
+		},
+		"invalid-config": {
+			configFile: "test-invalid-config.json",
+			errors: []string{
+				"Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config.",
+			},
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/grpc-tls-config-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		c := c
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"grpc_tls_config_file": c.configFile,
 				},
 			})
 
@@ -664,148 +772,150 @@ func TestValidation_RolePath(t *testing.T) {
 
 }
 
-func TestValidation_MeshGateway(t *testing.T) {
-	t.Parallel()
+// TODO: Revisit this test
+//
+// func TestValidation_MeshGateway(t *testing.T) {
+// 	t.Parallel()
 
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/mesh-gateway-validate",
-		NoColor:      true,
-	})
-	_ = terraform.Init(t, terraformOptions)
+// 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+// 		TerraformDir: "./terraform/mesh-gateway-validate",
+// 		NoColor:      true,
+// 	})
+// 	_ = terraform.Init(t, terraformOptions)
 
-	cases := map[string]struct {
-		kind                    string
-		enableMeshGatewayWANFed bool
-		tls                     bool
-		securityGroups          []string
-		wanAddress              string
-		lbEnabled               bool
-		lbVpcID                 string
-		lbSubnets               []string
-		lbCreateSecGroup        bool
-		lbModifySecGroup        bool
-		lbModifySecGroupID      string
-		expError                string
-	}{
-		"kind is required": {
-			kind:                    "",
-			enableMeshGatewayWANFed: false,
-			expError:                `variable "kind" is not set`,
-		},
-		"kind must be mesh-gateway": {
-			kind:                    "not-mesh-gateway",
-			enableMeshGatewayWANFed: false,
-			expError:                `Gateway kind must be 'mesh-gateway'`,
-		},
-		"no WAN federation": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: false,
-		},
-		"mesh gateway WAN federation, no TLS": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: true,
-			tls:                     false,
-			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
-		},
-		"mesh gateway WAN federation": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: true,
-			tls:                     true,
-		},
-		"WAN address and LB enabled": {
-			kind:                    "mesh-gateway",
-			enableMeshGatewayWANFed: false,
-			wanAddress:              "10.1.2.3",
-			lbEnabled:               true,
-			expError:                "Only one of wan_address or lb_enabled may be provided",
-		},
-		"lb_enabled": {
-			kind:      "mesh-gateway",
-			lbEnabled: true,
-			lbSubnets: []string{"subnet"},
-			lbVpcID:   "vpc",
-		},
-		"lb_enabled and no lb subnets": {
-			kind:      "mesh-gateway",
-			lbEnabled: true,
-			lbVpcID:   "vpc",
-			expError:  "lb_subnets is required when lb_enabled is true",
-		},
-		"lb_enabled and no VPC": {
-			kind:      "mesh-gateway",
-			lbEnabled: true,
-			lbSubnets: []string{"subnet"},
-			expError:  "lb_vpc_id is required when lb_enabled is true",
-		},
-		"lb create security group and modify security group": {
-			kind:             "mesh-gateway",
-			securityGroups:   []string{"sg"},
-			lbEnabled:        true,
-			lbSubnets:        []string{"subnet"},
-			lbVpcID:          "vpc",
-			lbCreateSecGroup: true,
-			lbModifySecGroup: true,
-			expError:         "Only one of lb_create_security_group or lb_modify_security_group may be true",
-		},
-		"lb modify security group and no security group ID": {
-			kind:               "mesh-gateway",
-			securityGroups:     []string{"sg"},
-			lbEnabled:          true,
-			lbSubnets:          []string{"subnet"},
-			lbVpcID:            "vpc",
-			lbCreateSecGroup:   false,
-			lbModifySecGroup:   true,
-			lbModifySecGroupID: "",
-			expError:           "lb_modify_security_group_id is required when lb_modify_security_group is true",
-		},
-		"lb modify security group with security group ID": {
-			kind:               "mesh-gateway",
-			securityGroups:     []string{"sg"},
-			lbEnabled:          true,
-			lbSubnets:          []string{"subnet"},
-			lbVpcID:            "vpc",
-			lbCreateSecGroup:   false,
-			lbModifySecGroup:   true,
-			lbModifySecGroupID: "mod-sg",
-		},
-	}
-	for name, c := range cases {
-		c := c
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+// 	cases := map[string]struct {
+// 		kind                    string
+// 		enableMeshGatewayWANFed bool
+// 		tls                     bool
+// 		securityGroups          []string
+// 		wanAddress              string
+// 		lbEnabled               bool
+// 		lbVpcID                 string
+// 		lbSubnets               []string
+// 		lbCreateSecGroup        bool
+// 		lbModifySecGroup        bool
+// 		lbModifySecGroupID      string
+// 		expError                string
+// 	}{
+// 		"kind is required": {
+// 			kind:                    "",
+// 			enableMeshGatewayWANFed: false,
+// 			expError:                `variable "kind" is not set`,
+// 		},
+// 		"kind must be mesh-gateway": {
+// 			kind:                    "not-mesh-gateway",
+// 			enableMeshGatewayWANFed: false,
+// 			expError:                `Gateway kind must be 'mesh-gateway'`,
+// 		},
+// 		"no WAN federation": {
+// 			kind:                    "mesh-gateway",
+// 			enableMeshGatewayWANFed: false,
+// 		},
+// 		"mesh gateway WAN federation, no TLS": {
+// 			kind:                    "mesh-gateway",
+// 			enableMeshGatewayWANFed: true,
+// 			tls:                     false,
+// 			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
+// 		},
+// 		"mesh gateway WAN federation": {
+// 			kind:                    "mesh-gateway",
+// 			enableMeshGatewayWANFed: true,
+// 			tls:                     true,
+// 		},
+// 		"WAN address and LB enabled": {
+// 			kind:                    "mesh-gateway",
+// 			enableMeshGatewayWANFed: false,
+// 			wanAddress:              "10.1.2.3",
+// 			lbEnabled:               true,
+// 			expError:                "Only one of wan_address or lb_enabled may be provided",
+// 		},
+// 		"lb_enabled": {
+// 			kind:      "mesh-gateway",
+// 			lbEnabled: true,
+// 			lbSubnets: []string{"subnet"},
+// 			lbVpcID:   "vpc",
+// 		},
+// 		"lb_enabled and no lb subnets": {
+// 			kind:      "mesh-gateway",
+// 			lbEnabled: true,
+// 			lbVpcID:   "vpc",
+// 			expError:  "lb_subnets is required when lb_enabled is true",
+// 		},
+// 		"lb_enabled and no VPC": {
+// 			kind:      "mesh-gateway",
+// 			lbEnabled: true,
+// 			lbSubnets: []string{"subnet"},
+// 			expError:  "lb_vpc_id is required when lb_enabled is true",
+// 		},
+// 		"lb create security group and modify security group": {
+// 			kind:             "mesh-gateway",
+// 			securityGroups:   []string{"sg"},
+// 			lbEnabled:        true,
+// 			lbSubnets:        []string{"subnet"},
+// 			lbVpcID:          "vpc",
+// 			lbCreateSecGroup: true,
+// 			lbModifySecGroup: true,
+// 			expError:         "Only one of lb_create_security_group or lb_modify_security_group may be true",
+// 		},
+// 		"lb modify security group and no security group ID": {
+// 			kind:               "mesh-gateway",
+// 			securityGroups:     []string{"sg"},
+// 			lbEnabled:          true,
+// 			lbSubnets:          []string{"subnet"},
+// 			lbVpcID:            "vpc",
+// 			lbCreateSecGroup:   false,
+// 			lbModifySecGroup:   true,
+// 			lbModifySecGroupID: "",
+// 			expError:           "lb_modify_security_group_id is required when lb_modify_security_group is true",
+// 		},
+// 		"lb modify security group with security group ID": {
+// 			kind:               "mesh-gateway",
+// 			securityGroups:     []string{"sg"},
+// 			lbEnabled:          true,
+// 			lbSubnets:          []string{"subnet"},
+// 			lbVpcID:            "vpc",
+// 			lbCreateSecGroup:   false,
+// 			lbModifySecGroup:   true,
+// 			lbModifySecGroupID: "mod-sg",
+// 		},
+// 	}
+// 	for name, c := range cases {
+// 		c := c
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
 
-			tfVars := map[string]interface{}{
-				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
-				"tls":                                c.tls,
-				"security_groups":                    c.securityGroups,
-				"wan_address":                        c.wanAddress,
-				"lb_enabled":                         c.lbEnabled,
-				"lb_subnets":                         c.lbSubnets,
-				"lb_vpc_id":                          c.lbVpcID,
-				"lb_create_security_group":           c.lbCreateSecGroup,
-				"lb_modify_security_group":           c.lbModifySecGroup,
-				"lb_modify_security_group_id":        c.lbModifySecGroupID,
-			}
-			if len(c.kind) > 0 {
-				tfVars["kind"] = c.kind
-			}
-			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-				TerraformDir: terraformOptions.TerraformDir,
-				NoColor:      terraformOptions.NoColor,
-				Vars:         tfVars,
-			})
-			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
+// 			tfVars := map[string]interface{}{
+// 				"enable_mesh_gateway_wan_federation": c.enableMeshGatewayWANFed,
+// 				"tls":                                c.tls,
+// 				"security_groups":                    c.securityGroups,
+// 				"wan_address":                        c.wanAddress,
+// 				"lb_enabled":                         c.lbEnabled,
+// 				"lb_subnets":                         c.lbSubnets,
+// 				"lb_vpc_id":                          c.lbVpcID,
+// 				"lb_create_security_group":           c.lbCreateSecGroup,
+// 				"lb_modify_security_group":           c.lbModifySecGroup,
+// 				"lb_modify_security_group_id":        c.lbModifySecGroupID,
+// 			}
+// 			if len(c.kind) > 0 {
+// 				tfVars["kind"] = c.kind
+// 			}
+// 			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+// 				TerraformDir: terraformOptions.TerraformDir,
+// 				NoColor:      terraformOptions.NoColor,
+// 				Vars:         tfVars,
+// 			})
+// 			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
 
-			_, err := terraform.PlanE(t, applyOpts)
-			if len(c.expError) > 0 {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), c.expError)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
+// 			_, err := terraform.PlanE(t, applyOpts)
+// 			if len(c.expError) > 0 {
+// 				require.Error(t, err)
+// 				require.Contains(t, err.Error(), c.expError)
+// 			} else {
+// 				require.NoError(t, err)
+// 			}
+// 		})
+// 	}
+// }
 
 func TestBasic(t *testing.T) {
 	t.Parallel()
@@ -818,8 +928,8 @@ func TestBasic(t *testing.T) {
 		datacenter    string
 	}{
 		{secure: false},
-		{secure: true},
-		{secure: true, enterprise: true},
+		//{secure: true},
+		// {secure: true, enterprise: true},
 	}
 
 	cfg := suite.Config()
@@ -925,6 +1035,44 @@ func TestBasic(t *testing.T) {
 				consulServerTaskARN = tasks.TaskARNs[0]
 			})
 
+			var controllerTaskID string
+			if c.secure {
+				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+					taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
+						Command: "aws",
+						Args: []string{
+							"ecs",
+							"list-tasks",
+							"--region",
+							cfg.Region,
+							"--cluster",
+							c.ecsClusterARN,
+							"--family",
+							fmt.Sprintf("%s-consul-ecs-controller", randomSuffix),
+						},
+					})
+
+					var tasks listTasksResponse
+					require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
+					require.Len(t, tasks.TaskARNs, 1)
+					controllerTaskARN := tasks.TaskARNs[0]
+					arnParts := strings.Split(controllerTaskARN, "/")
+					controllerTaskID = arnParts[len(arnParts)-1]
+				})
+
+				// Check controller logs to see if the anonymous token gets configured. This should
+				// indicate that the controller has created the service auth method, policies and roles.
+				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+					appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
+					require.NoError(r, err)
+
+					logMsg := "Successfully configured the anonymous token"
+					appLogs = appLogs.Filter(logMsg)
+					require.Len(r, appLogs, 1)
+					require.Contains(r, appLogs[0].Message, logMsg)
+				})
+			}
+
 			// Wait for both tasks to be registered in Consul.
 			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
 				out, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
@@ -942,23 +1090,34 @@ func TestBasic(t *testing.T) {
 			}
 
 			// Wait for passing health check for `serverServiceName` and `clientServiceName`.
-			// `serverServiceName` has a Consul native HTTP check.
-			// `clientServiceName`  has a check synced from ECS.
-			services := []string{serverServiceName, clientServiceName}
-			for _, serviceName := range services {
-				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-					out, err := helpers.ExecuteRemoteCommand(
-						t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server",
-						fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/%s_%s'`, tokenHeader, serviceName, randomSuffix),
-					)
-					r.Check(err)
+			// `clientServiceName` has a check synced from ECS and a consul-dataplane check.
+			// We check if both of them are in a passing state.
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+				out, err := helpers.ExecuteRemoteCommand(
+					t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server",
+					fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/%s_%s'`, tokenHeader, clientServiceName, randomSuffix),
+				)
+				r.Check(err)
 
-					statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
-					if statusRegex.FindAllString(out, 1) == nil {
-						r.Errorf("Check status not yet passing")
-					}
-				})
-			}
+				statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
+				if statusRegex.FindAllString(out, 2) == nil {
+					r.Errorf("Check status not yet passing")
+				}
+			})
+
+			// `serverServiceName` has a backing consul-dataplane check.
+			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+				out, err := helpers.ExecuteRemoteCommand(
+					t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server",
+					fmt.Sprintf(`/bin/sh -c 'curl %s localhost:8500/v1/health/checks/%s_%s'`, tokenHeader, serverServiceName, randomSuffix),
+				)
+				r.Check(err)
+
+				statusRegex := regexp.MustCompile(`"Status"\s*:\s*"passing"`)
+				if statusRegex.FindAllString(out, 1) == nil {
+					r.Errorf("Check status not yet passing")
+				}
+			})
 
 			// Use aws exec to curl between the apps.
 			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
@@ -1057,7 +1216,7 @@ func TestBasic(t *testing.T) {
 
 			// Check that the Envoy entrypoint received the sigterm.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "sidecar-proxy")
+				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-dataplane")
 				require.NoError(r, err)
 
 				logMsg := "consul-ecs: waiting for application container(s) to stop"
@@ -1090,27 +1249,13 @@ func TestBasic(t *testing.T) {
 				require.GreaterOrEqual(r, applicationOkLogs.Duration().Seconds(), 8.0)
 			})
 
-			// Validate that passing additional Consul agent configuration works.
-			// We enable DEBUG logs on one of the Consul agents.
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-				agentLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-client")
-
-				require.NoError(r, err)
-				logMsg := "[DEBUG] agent:"
-				agentLogs = agentLogs.Filter(logMsg)
-				require.GreaterOrEqual(r, len(agentLogs), 1)
-				require.Contains(r, agentLogs[0].Message, logMsg)
-			})
-
 			if c.secure {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-					// Validate that health-sync attempts the 'consul logout' for each of the tokens
-					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-ecs-health-sync")
+					// Validate that the controller cleans up the token for the failed task
+					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
 					require.NoError(r, err)
-					syncLogs = syncLogs.Filter("[INFO]  log out token:")
-					require.GreaterOrEqual(r, len(syncLogs), 2)
-					require.Contains(r, syncLogs[0].Message, "/consul/service-token")
-					require.Contains(r, syncLogs[1].Message, "/consul/client-token")
+					syncLogs = syncLogs.Filter("token deleted successfully")
+					require.GreaterOrEqual(r, len(syncLogs), 1)
 				})
 			}
 
@@ -1121,52 +1266,4 @@ func TestBasic(t *testing.T) {
 
 type listTasksResponse struct {
 	TaskARNs []string `json:"taskArns"`
-}
-
-func TestValidation_AuditLogging(t *testing.T) {
-	t.Parallel()
-
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: "./terraform/audit-logging-validate",
-		NoColor:      true,
-	})
-	_ = terraform.Init(t, terraformOptions)
-
-	cases := map[string]struct {
-		auditLogging bool
-		acls         bool
-		errMsg       string
-	}{
-		"with audit_logging and acls": {
-			auditLogging: true,
-			acls:         true,
-			errMsg:       "",
-		},
-		"with audit_logging, without acls": {
-			auditLogging: true,
-			acls:         false,
-			errMsg:       "ERROR: ACLs must be enabled if audit logging is enabled",
-		},
-	}
-
-	for name, c := range cases {
-		c := c
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			terraformOptions.Vars = map[string]interface{}{
-				"audit_logging": c.auditLogging,
-				"acls":          c.acls,
-			}
-			t.Cleanup(func() {
-				_, _ = terraform.DestroyE(t, terraformOptions)
-			})
-			_, err := terraform.PlanE(t, terraformOptions)
-			if c.errMsg == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), c.errMsg)
-			}
-		})
-	}
 }

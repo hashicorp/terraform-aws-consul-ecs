@@ -5,7 +5,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "checks_file" {
+variable "grpc_tls_config_file" {
   type = string
 }
 
@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join    = ["test"]
-  outbound_only = true
-  checks        = jsondecode(file("${path.module}/${var.checks_file}"))
+  consul_server_address = "consul.dc1.host"
+  outbound_only     = true
+  grpc_tls_config = jsondecode(file("${path.module}/${var.grpc_tls_config_file}"))
 }
