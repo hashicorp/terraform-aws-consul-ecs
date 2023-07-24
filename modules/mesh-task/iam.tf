@@ -109,6 +109,7 @@ resource "aws_iam_policy" "execution" {
   "Version": "2012-10-17",
   "Statement": [
 %{if var.tls~}
+%{if var.consul_server_ca_cert_arn != ""~}
     {
       "Effect": "Allow",
       "Action": [
@@ -118,6 +119,29 @@ resource "aws_iam_policy" "execution" {
         "${var.consul_server_ca_cert_arn}"
       ]
     },
+%{endif~}
+%{if var.consul_https_ca_cert_arn != ""~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.consul_https_ca_cert_arn}"
+      ]
+    },
+%{endif~}
+%{if var.consul_grpc_ca_cert_arn != ""~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.consul_grpc_ca_cert_arn}"
+      ]
+    },
+%{endif~}
 %{endif~}
     {
       "Effect": "Allow",
