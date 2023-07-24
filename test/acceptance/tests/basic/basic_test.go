@@ -1053,8 +1053,8 @@ func TestBasic(t *testing.T) {
 					})
 
 					var tasks listTasksResponse
-					require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
-					require.Len(t, tasks.TaskARNs, 1)
+					require.NoError(r, json.Unmarshal([]byte(taskListOut), &tasks))
+					require.Len(r, tasks.TaskARNs, 1)
 					controllerTaskARN := tasks.TaskARNs[0]
 					arnParts := strings.Split(controllerTaskARN, "/")
 					controllerTaskID = arnParts[len(arnParts)-1]
