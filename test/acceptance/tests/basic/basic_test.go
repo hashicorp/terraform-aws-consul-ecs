@@ -924,8 +924,8 @@ func TestBasic(t *testing.T) {
 		ecsClusterARN string
 		datacenter    string
 	}{
-		{secure: false},
-		//{secure: true},
+		//{secure: false},
+		{secure: true},
 		// {secure: true, enterprise: true},
 	}
 
