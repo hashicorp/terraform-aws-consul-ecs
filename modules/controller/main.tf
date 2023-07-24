@@ -47,13 +47,13 @@ resource "aws_ecs_task_definition" "this" {
           {
             name      = "CONSUL_GRPC_CACERT_PEM",
             valueFrom = local.grpc_ca_cert_arn
-          },
+          }
         ] : [],
         local.https_ca_cert_arn != "" ? [
           {
             name      = "CONSUL_HTTPS_CACERT_PEM",
             valueFrom = local.https_ca_cert_arn
-          },
+          }
         ] : [],
       )
       environment = [
