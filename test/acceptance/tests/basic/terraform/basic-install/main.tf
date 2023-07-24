@@ -413,7 +413,7 @@ resource "aws_iam_role" "execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${module.consul_server.ca_cert_arn}",
+        "${module.consul_server.ca_cert_arn}"
       ]
     },
 %{endif~}
