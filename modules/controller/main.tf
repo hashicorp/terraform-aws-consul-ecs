@@ -40,25 +40,25 @@ resource "aws_ecs_task_definition" "this" {
       }
       secrets = concat([
         {
-          name      = "CONSUL_HTTP_TOKEN",
+          name      = "CONSUL_HTTP_TOKEN"
           valueFrom = var.consul_bootstrap_token_secret_arn
         }],
         local.grpc_ca_cert_arn != "" ? [
           {
-            name      = "CONSUL_GRPC_CACERT_PEM",
+            name      = "CONSUL_GRPC_CACERT_PEM"
             valueFrom = local.grpc_ca_cert_arn
           }
         ] : [],
         local.https_ca_cert_arn != "" ? [
           {
-            name      = "CONSUL_HTTPS_CACERT_PEM",
+            name      = "CONSUL_HTTPS_CACERT_PEM"
             valueFrom = local.https_ca_cert_arn
           }
         ] : [],
       )
       environment = [
         {
-          name  = "CONSUL_ECS_CONFIG_JSON",
+          name  = "CONSUL_ECS_CONFIG_JSON"
           value = local.encoded_config
         }
       ]
