@@ -49,7 +49,7 @@ module "test_client_create_new_roles" {
   family                = local.create_roles_family
   log_configuration     = null
   container_definitions = local.container_definitions
-  retry_join            = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only         = true
 
   // Roles are not passed. This tests the default values for create_task_role,
