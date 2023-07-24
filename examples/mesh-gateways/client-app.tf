@@ -21,16 +21,11 @@ module "example_client_app" {
   source                       = "../../modules/mesh-task"
   family                       = local.example_client_app_name
   port                         = "9090"
-  consul_datacenter            = local.primary_datacenter
-  consul_primary_datacenter    = local.primary_datacenter
   acls                         = true
-  enable_acl_token_replication = true
-  consul_http_addr             = "http://${module.dc1.dev_consul_server.server_dns}:8500"
   consul_https_ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
   tls                          = true
   consul_server_ca_cert_arn    = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_secret_arn        = aws_secretsmanager_secret.gossip_key.arn
-  retry_join                   = [module.dc1.dev_consul_server.server_dns]
+  consul_server_addr           = module.dc1.dev_consul_server.server_dns
   upstreams = [
     {
       destinationName = "${var.name}-${local.secondary_datacenter}-example-server-app"
@@ -39,6 +34,10 @@ module "example_client_app" {
       meshGateway = {
         mode = "local"
       }
+    },
+    {
+      destinationName = "${var.name}-${local.primary_datacenter}-example-server-app"
+      localBindPort   = 2345
     }
   ]
   log_configuration = local.example_client_app_log_config
@@ -69,7 +68,7 @@ module "example_client_app" {
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
-  consul_ecs_image = var.consul_ecs_image
+  consul_ecs_image = "ganeshrockz/ecs"
 }
 
 resource "aws_ecs_service" "example_client_app" {

@@ -31,7 +31,7 @@ module "dc1" {
   bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
   bootstrap_token     = random_uuid.bootstrap_token.result
 
-  consul_ecs_image = var.consul_ecs_image
+  consul_ecs_image = "ganeshrockz/ecs"
 }
 
 module "dc2" {
@@ -63,7 +63,7 @@ module "dc2" {
   // See https://www.consul.io/docs/security/acl/acl-federated-datacenters#create-the-replication-token-for-acl-management
   replication_token = random_uuid.bootstrap_token.result
 
-  consul_ecs_image = var.consul_ecs_image
+  consul_ecs_image = "ganeshrockz/ecs"
 }
 
 // Create a null_resource that will wait for the Consul server to be available via its ALB.

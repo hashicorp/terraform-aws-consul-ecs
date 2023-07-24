@@ -28,7 +28,7 @@ module "task_role_test" {
   family                = "family-1"
   log_configuration     = null
   container_definitions = local.container_definitions
-  retry_join            = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only         = true
 
   create_task_role              = false
@@ -46,7 +46,7 @@ module "execution_role_test" {
   family                = "family-2"
   log_configuration     = null
   container_definitions = local.container_definitions
-  retry_join            = ["test"]
+  consul_server_address = "consul.dc1"
   outbound_only         = true
 
   create_execution_role              = false

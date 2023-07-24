@@ -53,6 +53,7 @@ module "example_client_app" {
   source = "../../modules/mesh-task"
   family = "${var.name}-example-client-app"
   port   = "9090"
+  tls = false
   upstreams = [
     {
       destinationName = "${var.name}-example-server-app"
@@ -93,7 +94,7 @@ module "example_client_app" {
       timeout  = 5
     }
   }]
-  retry_join = [module.dev_consul_server.server_dns]
+  consul_server_addr = module.dev_consul_server.server_dns
 }
 
 # The server app is part of the service mesh. It's called
@@ -115,6 +116,9 @@ module "example_server_app" {
   source            = "../../modules/mesh-task"
   family            = "${var.name}-example-server-app"
   port              = "9090"
+  tls = false
+  # consul_server_ca_cert_arn = "arn:aws:secretsmanager:us-east-1:462181688919:secret:consul-ecs-consul-server-ca-cert-poHAJa"
+  # consul_https_ca_cert_arn = "arn:aws:secretsmanager:us-east-1:462181688919:secret:consul-ecs-consul-server-ca-cert-poHAJa"
   log_configuration = local.example_server_app_log_config
   container_definitions = [{
     name             = "example-server-app"
@@ -128,18 +132,7 @@ module "example_server_app" {
       }
     ]
   }]
-  # A Consul-native check, included in service registration.
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "5s"
-    }
-  ]
-  retry_join = [module.dev_consul_server.server_dns]
+  consul_server_addr = module.dev_consul_server.server_dns
 }
 
 resource "aws_lb" "example_client_app" {
@@ -237,4 +230,54 @@ locals {
       awslogs-stream-prefix = "client"
     }
   }
+}
+
+resource "aws_iam_role" "task" {
+  name = "test_server_task_role"
+  path = "/consul-ecs/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_policy" "execute-command" {
+  name   = "ecs-execute-command"
+  path   = "/consul-ecs/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+
+  # TODO: don't have permission to add tags
+  # tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "execute-command" {
+  role       = aws_iam_role.task.id
+  policy_arn = aws_iam_policy.execute-command.arn
 }

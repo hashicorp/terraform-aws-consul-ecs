@@ -6,11 +6,6 @@ variable "name" {
   type        = string
 }
 
-variable "datacenter" {
-  description = "Name of the consul datacenter."
-  type        = string
-}
-
 variable "region" {
   description = "AWS region."
   type        = string
@@ -34,20 +29,9 @@ variable "public_subnets" {
   type        = list(string)
 }
 
-variable "primary_datacenter" {
-  description = "Primary datacenter for the consul agent (required to match across datacenters for CA to work right with WAN fed)."
-  type        = string
-  default     = ""
-}
-
 variable "cluster" {
   description = "The ARN of the ECS cluster to deploy the mesh gateway into."
   type        = string
-}
-
-variable "retry_join" {
-  description = "List of addresses for the gateway to join."
-  type        = list(string)
 }
 
 variable "log_group_name" {
@@ -55,14 +39,8 @@ variable "log_group_name" {
   type        = string
 }
 
-variable "enable_mesh_gateway_wan_federation" {
-  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
-  type        = bool
-  default     = false
-}
-
-variable "consul_http_addr" {
-  description = "Consul server HTTP address."
+variable "consul_server_addr" {
+  description = "Address of the consul server."
   type        = string
 }
 
@@ -74,18 +52,6 @@ variable "ca_cert_arn" {
 
 variable "ca_key_arn" {
   description = "The Secrets Manager ARN of the Consul CA certificate key. A CA certificate key will automatically be created and stored in Secrets Manager if TLS is enabled and this variable is not provided."
-  type        = string
-  default     = ""
-}
-
-variable "gossip_encryption_enabled" {
-  description = "Whether or not to enable gossip encryption."
-  type        = bool
-  default     = false
-}
-
-variable "gossip_key_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will be generated if gossip encryption is enabled and this is not provided."
   type        = string
   default     = ""
 }
@@ -111,5 +77,11 @@ variable "additional_task_role_policies" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use in all tasks."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
+  default     = "ganeshrockz/ecs"
+}
+
+variable "enable_mesh_gateway_wan_federation" {
+  description = "Controls whether or not WAN federation via mesh gateways is enabled. Default is false."
+  type        = bool
+  default     = false
 }

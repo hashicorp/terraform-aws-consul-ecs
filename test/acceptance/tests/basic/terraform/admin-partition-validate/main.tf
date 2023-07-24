@@ -22,7 +22,7 @@ module "test_client" {
     name = "basic"
   }]
   outbound_only = true
-  retry_join    = ["test"]
+  consul_server_address = "consul.dc1.host"
 
   consul_partition = var.partition
   consul_namespace = var.namespace

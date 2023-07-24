@@ -104,17 +104,6 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
-%{if local.gossip_encryption_enabled~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": [
-        "${var.gossip_key_secret_arn}"
-      ]
-    },
-%{endif~}
     {
       "Effect": "Allow",
       "Action": [

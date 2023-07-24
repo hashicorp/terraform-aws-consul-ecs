@@ -5,13 +5,17 @@ provider "aws" {
   region = "us-west-2"
 }
 
+variable "grpc_tls_config_file" {
+  type = string
+}
+
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
   family = "family"
   container_definitions = [{
     name = "basic"
   }]
-  outbound_only = true
-  retry_join    = ["test"]
-  tls           = true
+  consul_server_address = "consul.dc1.host"
+  outbound_only     = true
+  grpc_tls_config = jsondecode(file("${path.module}/${var.grpc_tls_config_file}"))
 }

@@ -88,16 +88,21 @@ variable "consul_image" {
   default     = "public.ecr.aws/hashicorp/consul:1.15.1"
 }
 
+variable "consul_dataplane_image" {
+  description = "Consul Dataplane Image."
+  type = string
+  default = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
+}
+
+variable "consul_server_addr" {
+  description = "Address of the consul server host"
+  type = string
+}
+
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.6.0"
-}
-
-variable "envoy_image" {
-  description = "Envoy Docker image."
-  type        = string
-  default     = "envoyproxy/envoy-distroless:v1.23.1"
+  default     = "ganeshrockz/ecs"
 }
 
 variable "log_configuration" {
@@ -106,27 +111,10 @@ variable "log_configuration" {
   default     = null
 }
 
-variable "retry_join" {
-  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or `consul_server_service_name` must be set."
-  type        = list(string)
-}
-
-variable "consul_http_addr" {
-  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
-  type        = string
-  default     = ""
-}
-
 variable "consul_https_ca_cert_arn" {
   description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul's HTTPS interface."
   type        = string
   default     = ""
-}
-
-variable "client_token_auth_method_name" {
-  description = "The name of the Consul Auth Method to login to for client tokens."
-  type        = string
-  default     = "iam-ecs-client-token"
 }
 
 variable "service_token_auth_method_name" {
@@ -153,40 +141,10 @@ variable "consul_server_ca_cert_arn" {
   default     = ""
 }
 
-variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
-  type        = string
-  default     = ""
-}
-
 variable "acls" {
   description = "Whether to enable ACLs for the gateway task."
   type        = bool
   default     = false
-}
-
-variable "enable_acl_token_replication" {
-  type        = bool
-  description = "Whether or not to enable ACL token replication. ACL token replication is required when the gateway-task is part of a WAN-federated Consul service mesh."
-  default     = false
-}
-
-variable "consul_datacenter" {
-  type        = string
-  description = "The name of the Consul datacenter the client belongs to."
-  default     = "dc1"
-}
-
-variable "consul_primary_datacenter" {
-  type        = string
-  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN-federated Consul service mesh."
-  default     = ""
-}
-
-variable "consul_agent_configuration" {
-  type        = string
-  description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = ""
 }
 
 variable "kind" {
@@ -233,12 +191,6 @@ variable "security_groups" {
   description = "Security group IDs that will be attached to the gateway. The default security group will be used if this is not specified. Required when lb_enabled is true so ingress rules can be added for the security groups."
   type        = list(string)
   default     = []
-}
-
-variable "audit_logging" {
-  description = "Whether to enable audit logging for the Consul agent [Consul Enterprise]. ACLs must be enabled to enable audit logging."
-  type        = bool
-  default     = false
 }
 
 variable "subnets" {

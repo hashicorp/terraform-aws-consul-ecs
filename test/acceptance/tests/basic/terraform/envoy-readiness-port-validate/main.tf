@@ -5,17 +5,17 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "volumes" {
-  type = any
+variable "envoy_readiness_port" {
+  type = number
 }
 
 module "test_client" {
-  source  = "../../../../../../modules/mesh-task"
-  family  = "family"
-  volumes = var.volumes
+  source = "../../../../../../modules/mesh-task"
+  family = "family"
   container_definitions = [{
     name = "basic"
   }]
   consul_server_address = "consul.dc1"
-  outbound_only = true
+  outbound_only              = true
+  envoy_readiness_port =  var.envoy_readiness_port
 }

@@ -9,6 +9,4 @@ locals {
 
   create_xor_modify_security_group = var.lb_create_security_group && var.lb_modify_security_group ? file("ERROR: Only one of lb_create_security_group or lb_modify_security_group may be true") : null
   require_sg_id_for_modify         = var.lb_modify_security_group && var.lb_modify_security_group_id == "" ? file("ERROR: lb_modify_security_group_id is required when lb_modify_security_group is true") : null
-  require_acls_if_audit_enabled    = (var.audit_logging && !var.acls) ? file("ERROR: ACLs must be enabled if audit logging is enabled") : null
-  require_consul_http_addr_if_acls = (var.acls && var.consul_http_addr == "") ? file("ERROR: consul_http_addr must be set if acls is true") : null
 }

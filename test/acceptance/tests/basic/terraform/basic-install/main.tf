@@ -85,24 +85,6 @@ locals {
   enterprise_enabled = var.consul_license != ""
 }
 
-// Generate a gossip encryption key if a secure installation.
-resource "random_id" "gossip_encryption_key" {
-  count       = var.secure ? 1 : 0
-  byte_length = 32
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  count = var.secure ? 1 : 0
-  // Only 'consul_server*' secrets are allowed by the IAM role used by Circle CI
-  name = "consul_server_${var.suffix}-gossip-encryption-key"
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  count         = var.secure ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.gossip_key[0].id
-  secret_string = random_id.gossip_encryption_key[0].b64_std
-}
-
 module "consul_server" {
   source          = "../../../../../../modules/dev-server"
   lb_enabled      = false
@@ -122,11 +104,8 @@ module "consul_server" {
 
   tags = var.tags
 
-  tls                            = var.secure
-  gossip_encryption_enabled      = var.secure
-  generate_gossip_encryption_key = false
-  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                           = var.secure
+  tls  = var.secure
+  acls = var.secure
 
   service_discovery_namespace = var.consul_datacenter
   datacenter                  = var.consul_datacenter
@@ -166,14 +145,16 @@ module "acl_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
-  consul_server_addr                = module.consul_server.server_dns
+  consul_server_address             = module.consul_server.server_dns
   consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
+  consul_https_ca_cert_arn          = module.consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = local.enterprise_enabled
+  tls                               = var.secure
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -242,7 +223,7 @@ EOT
       ]
     }
   ]
-  consul_server_addr = module.consul_server.server_dns
+  consul_server_address = module.consul_server.server_dns
   upstreams = [
     {
       destinationName = "${var.server_service_name}_${var.suffix}"
@@ -295,8 +276,8 @@ module "test_server" {
     logConfiguration = local.test_server_log_configuration
   }]
   consul_server_addr = module.consul_server.server_dns
-  log_configuration = local.test_server_log_configuration
-  port = 9090
+  log_configuration  = local.test_server_log_configuration
+  port               = 9090
 
   tls                       = var.secure
   consul_server_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
@@ -433,7 +414,6 @@ resource "aws_iam_role" "execution" {
       ],
       "Resource": [
         "${module.consul_server.ca_cert_arn}",
-        "${aws_secretsmanager_secret.gossip_key[0].arn}"
       ]
     },
 %{endif~}

@@ -4,7 +4,7 @@
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.6.0"
+  default     = "ganeshrockz/ecs"
 }
 
 variable "ecs_cluster_arn" {
@@ -51,9 +51,15 @@ variable "subnets" {
   type        = list(string)
 }
 
-variable "consul_server_http_addr" {
-  description = "The HTTP(S) address of the Consul server. This must be a full URL, including port and scheme, e.g. https://consul.example.com:8501."
+variable "consul_server_address" {
+  description = "Address of the consul server host"
   type        = string
+}
+
+variable "skip_server_watch" {
+  description = "If true, setting this prevents the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  type        = bool
+  default     = false
 }
 
 variable "name_prefix" {
@@ -62,7 +68,19 @@ variable "name_prefix" {
 }
 
 variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate."
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC and HTTP interfaces."
+  type        = string
+  default     = ""
+}
+
+variable "consul_grpc_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC. Overrides var.consul_server_ca_cert_arn"
+  type        = string
+  default     = ""
+}
+
+variable "consul_https_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_server_ca_cert_arn"
   type        = string
   default     = ""
 }
@@ -77,6 +95,27 @@ variable "consul_partitions_enabled" {
   description = "Enable admin partitions [Consul Enterprise]."
   type        = bool
   default     = false
+}
+
+variable "tls" {
+  description = "Whether to enable TLS for the controller to control plane traffic."
+  type        = bool
+  default     = false
+}
+
+variable "tls_server_name" {
+  description = "The server name to use as the SNI host when connecting via TLS for Consul's HTTP and gRPC interfaces."
+  type        = string
+  default     = ""
+}
+
+variable "ca_cert_file" {
+  description = <<-EOT
+  The CA certificate file for Consul's internal HTTP and gRPC interfaces. `CONSUL_HTTPS_CACERT_PEM` and 
+  `CONSUL_GRPC_CACERT_PEM` takes a higher precedence when configuring TLS settings in the controller."
+  EOT
+  type        = string
+  default     = ""
 }
 
 variable "consul_partition" {
@@ -95,4 +134,38 @@ variable "additional_execution_role_policies" {
   description = "List of additional policy ARNs to attach to the execution role."
   type        = list(string)
   default     = []
+}
+
+variable "http_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. 
+  EOT
+
+  validation {
+    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config."
+    condition = alltrue([
+      for key in keys(var.http_tls_config) :
+      contains(["port", "https", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
+}
+
+variable "grpc_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. 
+  EOT
+
+  validation {
+    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config."
+    condition = alltrue([
+      for key in keys(var.grpc_tls_config) :
+      contains(["port", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
 }

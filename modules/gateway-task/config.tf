@@ -19,8 +19,6 @@ locals {
   )
 
   config = {
-    consulHTTPAddr   = var.consul_http_addr
-    consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
     consulLogin      = merge(local.consulLogin, local.loginExtra)
     gateway = {
       kind      = var.kind
@@ -40,6 +38,19 @@ locals {
     }
     healthSyncContainers = []
     bootstrapDir         = local.consul_data_mount.containerPath
+    consulServers = {
+      hosts = var.consul_server_addr
+      defaults = {
+        tls = true
+      }
+      http = {
+        port = 8501
+        https = true
+      }
+      grpc = {
+        port = 8503
+      }
+    }
   }
 
   encoded_config = jsonencode(local.config)

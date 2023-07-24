@@ -124,6 +124,12 @@ variable "additional_execution_role_policies" {
   default     = []
 }
 
+variable "skip_server_watch" {
+  description = "If true, setting this prevents the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  type        = bool
+  default     = false
+}
+
 variable "port" {
   description = "Port that the application listens on. If the application does not listen on a port, set outbound_only to true."
   type        = number
@@ -139,19 +145,19 @@ variable "outbound_only" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.15.1"
+  default     = "public.ecr.aws/hashicorp/consul:1.16.0"
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.6.0"
+  default     = "ganeshrockz/ecs"
 }
 
-variable "envoy_image" {
-  description = "Envoy Docker image."
+variable "consul_dataplane_image" {
+  description = "consul-dataplane docker image."
   type        = string
-  default     = "envoyproxy/envoy-distroless:v1.23.1"
+  default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
 }
 
 variable "envoy_public_listener_port" {
@@ -165,7 +171,7 @@ variable "envoy_public_listener_port" {
   }
 
   validation {
-    error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000."
+    error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000, 10000."
     condition = !contains([
       8300,  // consul rpc port
       8301,  // consul lan serf
@@ -175,7 +181,34 @@ variable "envoy_public_listener_port" {
       8502,  // consul grpc
       8600,  // consul dns
       19000, // envoy admin port
+      10000, // consul-ecs-control-plane health check port
     ], var.envoy_public_listener_port)
+  }
+}
+
+variable "envoy_readiness_port" {
+  description = "The port that is exposed by Envoy to indicate it's readiness. ECS uses this port to detect envoy's readiness and start the app containers depending on this."
+  type        = number
+  default     = 22000
+
+  validation {
+    error_message = "The envoy_readiness_port must be greater than 0 and less than or equal to 65535."
+    condition     = var.envoy_readiness_port > 0 && var.envoy_readiness_port <= 65535
+  }
+
+  validation {
+    error_message = "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000, 10000."
+    condition = !contains([
+      8300,  // consul rpc port
+      8301,  // consul lan serf
+      8302,  // consul wan serf
+      8500,  // consul http
+      8501,  // consul https
+      8502,  // consul grpc
+      8600,  // consul dns
+      19000, // envoy admin port
+      10000, // consul-ecs-control-plane health check port
+    ], var.envoy_readiness_port)
   }
 }
 
@@ -189,6 +222,11 @@ variable "container_definitions" {
   description = "Application container definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)."
   # This is `any` on purpose. Using `list(any)` is too restrictive. It requires maps in the list to have the same key set, and same value types.
   type = any
+}
+
+variable "consul_server_address" {
+  description = "Address of the consul server host"
+  type        = string
 }
 
 variable "upstreams" {
@@ -233,77 +271,6 @@ variable "upstreams" {
   }
 }
 
-variable "checks" {
-  description = <<-EOT
-  A list of maps defining Consul checks for this service. This follows the schema of the `service.checks` field
-  of the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json). See
-  the Consul checks documentation (https://www.consul.io/docs/discovery/checks) for more.
-  EOT
-
-  type    = any
-  default = []
-
-  validation {
-    error_message = "Check fields must be one of 'checkId', 'name', 'args', 'items', 'interval', 'timeout', 'ttl', 'http', 'header', 'method', 'body', 'tcp', 'status', 'notes', 'tlsServerName', 'tlsSkipVerify', 'grpc', 'grpcUseTls', 'h2ping', 'h2pingUseTls', 'aliasNode', 'aliasService', 'successBeforePassing', or 'failuresBeforeCritical'."
-    condition = alltrue(flatten([
-      for check in var.checks : [
-        for key in keys(check) : contains(
-          [
-            "checkId",
-            "name",
-            "args",
-            "items",
-            "interval",
-            "timeout",
-            "ttl",
-            "http",
-            "header",
-            "method",
-            "body",
-            "tcp",
-            "status",
-            "notes",
-            "tlsServerName",
-            "tlsSkipVerify",
-            "grpc",
-            "grpcUseTls",
-            "h2ping",
-            "h2pingUseTls",
-            "aliasNode",
-            "aliasService",
-            "successBeforePassing",
-            "failuresBeforeCritical",
-          ],
-          key
-        )
-      ]
-    ]))
-  }
-}
-
-variable "retry_join" {
-  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join)."
-  type        = list(string)
-}
-
-variable "consul_http_addr" {
-  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
-  type        = string
-  default     = ""
-}
-
-variable "consul_https_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul's HTTPS interface."
-  type        = string
-  default     = ""
-}
-
-variable "client_token_auth_method_name" {
-  description = "The name of the Consul Auth Method to login to for client tokens."
-  type        = string
-  default     = "iam-ecs-client-token"
-}
-
 variable "service_token_auth_method_name" {
   description = "The name of the Consul Auth Method to login to for service tokens."
   type        = string
@@ -317,19 +284,40 @@ variable "tags" {
 }
 
 variable "tls" {
-  description = "Whether to enable TLS for the mesh-task for the control plane traffic."
+  description = "Whether to enable TLS for the communication between mesh-task and Consul's HTTP and gRPC interfaces."
   type        = bool
   default     = false
 }
 
-variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC."
+variable "tls_server_name" {
+  description = "The server name to use as the SNI host when connecting via TLS for Consul's HTTP and gRPC interfaces."
   type        = string
   default     = ""
 }
 
-variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
+variable "ca_cert_file" {
+  description = <<-EOT
+  The CA certificate file for Consul's internal HTTP and gRPC interfaces. `CONSUL_HTTPS_CACERT_PEM` and 
+  `CONSUL_GRPC_CACERT_PEM` takes a higher precedence when configuring TLS settings in the mesh-task."
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "consul_server_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC and HTTP interfaces."
+  type        = string
+  default     = ""
+}
+
+variable "consul_grpc_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC. Overrides var.consul_server_ca_cert_arn"
+  type        = string
+  default     = ""
+}
+
+variable "consul_https_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_server_ca_cert_arn"
   type        = string
   default     = ""
 }
@@ -338,30 +326,6 @@ variable "acls" {
   description = "Whether to enable ACLs for the mesh task."
   type        = bool
   default     = false
-}
-
-variable "enable_acl_token_replication" {
-  type        = bool
-  description = "Whether or not to enable ACL token replication for federated. ACL token replication is required when the mesh-task is part of a WAN federated Consul service mesh."
-  default     = false
-}
-
-variable "consul_datacenter" {
-  type        = string
-  description = "The name of the Consul datacenter the client belongs to."
-  default     = "dc1"
-}
-
-variable "consul_primary_datacenter" {
-  type        = string
-  description = "The name of the primary Consul datacenter. Required when the mesh-task is part of a WAN federated Consul service mesh."
-  default     = ""
-}
-
-variable "consul_agent_configuration" {
-  type        = string
-  description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = ""
 }
 
 variable "application_shutdown_delay_seconds" {
@@ -384,7 +348,7 @@ variable "consul_ecs_config" {
   description = <<-EOT
   Additional configuration to pass to the consul-ecs binary for Consul service and sidecar proxy registration requests.
   This accepts a subset of the consul-ecs config file (https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json).
-  For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `checks`, `consul_service_name`,
+  For the remainder of the consul-ecs config file contents, use the variables `upstreams`, `consul_service_name`,
   `consul_service_tags`, `consul_service_meta`, `consul_namespace`, and `consul_partition`.
   In most cases, these separate variables will suffice.
   EOT
@@ -477,8 +441,36 @@ variable "consul_ecs_config" {
 
 }
 
-variable "audit_logging" {
-  description = "Whether to enable audit logging for the Consul agent [Consul Enterprise]. ACLs must be enabled to enable audit logging."
-  type        = bool
-  default     = false
+variable "http_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. 
+  EOT
+
+  validation {
+    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config."
+    condition = alltrue([
+      for key in keys(var.http_tls_config) :
+      contains(["port", "https", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
+}
+
+variable "grpc_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. 
+  EOT
+
+  validation {
+    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config."
+    condition = alltrue([
+      for key in keys(var.grpc_tls_config) :
+      contains(["port", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
 }

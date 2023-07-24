@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  retry_join    = ["test"]
+  consul_server_address = "consul.dc1.host"
   outbound_only = true
   upstreams     = jsondecode(file("${path.module}/${var.upstreams_file}"))
 }

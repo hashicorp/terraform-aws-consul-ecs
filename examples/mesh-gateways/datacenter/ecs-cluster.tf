@@ -17,7 +17,7 @@ module "acl_controller" {
   ecs_cluster_arn           = aws_ecs_cluster.this.arn
   region                    = var.region
   subnets                   = var.private_subnets
-  consul_server_http_addr   = "http://${module.dev_consul_server.server_dns}:8500"
+  consul_server_addr        = module.dev_consul_server.server_dns
   consul_server_ca_cert_arn = var.ca_cert_arn
   launch_type               = "FARGATE"
 
@@ -32,5 +32,5 @@ module "acl_controller" {
     }
   }
 
-  consul_ecs_image = var.consul_ecs_image
+  consul_ecs_image = "ganeshrockz/ecs"
 }

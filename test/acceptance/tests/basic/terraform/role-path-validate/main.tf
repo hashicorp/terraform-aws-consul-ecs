@@ -16,7 +16,7 @@ module "test_client" {
     name = "basic"
   }]
   outbound_only = true
-  retry_join    = ["test"]
+  consul_server_address = "consul.dc1.host"
 
   iam_role_path = var.iam_role_path
 }
