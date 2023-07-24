@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  outbound_only = true
+  outbound_only         = true
   consul_server_address = "consul.dc1"
 
   iam_role_path = var.iam_role_path

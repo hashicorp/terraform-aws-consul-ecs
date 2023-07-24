@@ -16,6 +16,6 @@ module "test_client" {
     name = "basic"
   }]
   consul_server_address = "consul.dc1.host"
-  outbound_only     = true
-  http_tls_config = jsondecode(file("${path.module}/${var.http_tls_config_file}"))
+  outbound_only         = true
+  http_tls_config       = jsondecode(file("${path.module}/${var.http_tls_config_file}"))
 }

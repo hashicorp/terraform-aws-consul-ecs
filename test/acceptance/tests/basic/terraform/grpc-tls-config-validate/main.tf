@@ -16,6 +16,6 @@ module "test_client" {
     name = "basic"
   }]
   consul_server_address = "consul.dc1.host"
-  outbound_only     = true
-  grpc_tls_config = jsondecode(file("${path.module}/${var.grpc_tls_config_file}"))
+  outbound_only         = true
+  grpc_tls_config       = jsondecode(file("${path.module}/${var.grpc_tls_config_file}"))
 }

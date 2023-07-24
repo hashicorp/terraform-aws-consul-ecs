@@ -15,6 +15,6 @@ module "test_client" {
     name = "basic"
   }]
   consul_server_address = "consul.dc1"
-  outbound_only              = true
-  envoy_readiness_port =  var.envoy_readiness_port
+  outbound_only         = true
+  envoy_readiness_port  = var.envoy_readiness_port
 }
