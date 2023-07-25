@@ -12,7 +12,7 @@ terraform {
 
 // Configure the provider
 provider "hcp" {
-  project_id = "a9915bb1-59f1-4805-8218-df1bd1646b51"
+  project_id = "b5644cc0-c2fa-40c1-858a-27013047b66e"
 }
 
 provider "aws" {
