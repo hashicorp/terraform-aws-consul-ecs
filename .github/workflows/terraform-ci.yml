@@ -106,7 +106,7 @@ jobs:
       matrix:
         name:
           - acceptance-1.16-FARGATE-HCP
-          # - acceptance-1.14-FARGATE-HCP
+           # - acceptance-1.14-FARGATE-HCP
           # - acceptance-1.13-EC2-HCP
           # - acceptance-1.16-FARGATE
           # - acceptance-1.16-EC2
