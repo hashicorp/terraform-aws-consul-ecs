@@ -177,7 +177,7 @@ jobs:
         VARS+=' -var consul_version=${{ matrix.consul-version }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
+            *) VARS+=" -var enable_hcp=true";;
         esac
         terraform init
         terraform apply -auto-approve $VARS
