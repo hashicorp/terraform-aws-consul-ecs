@@ -1,6 +1,20 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    hcp = {
+      source  = "hashicorp/hcp"
+      version = "~> 0.66.0"
+    }
+  }
+}
+
+// Configure the provider
+provider "hcp" {
+  project_id = "a9915bb1-59f1-4805-8218-df1bd1646b51"
+}
+
 provider "aws" {
   region = var.region
 }

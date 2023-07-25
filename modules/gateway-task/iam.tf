@@ -104,14 +104,25 @@ resource "aws_iam_policy" "execution" {
       ]
     },
 %{endif~}
-%{if local.gossip_encryption_enabled~}
+%{if var.consul_https_ca_cert_arn != ""~}
     {
       "Effect": "Allow",
       "Action": [
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${var.gossip_key_secret_arn}"
+        "${var.consul_https_ca_cert_arn}"
+      ]
+    },
+%{endif~}
+%{if var.consul_grpc_ca_cert_arn != ""~}
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "${var.consul_grpc_ca_cert_arn}"
       ]
     },
 %{endif~}

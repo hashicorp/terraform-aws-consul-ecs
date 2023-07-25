@@ -85,19 +85,30 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.15.1"
+  default     = "public.ecr.aws/hashicorp/consul:1.16.0"
+}
+
+variable "consul_server_address" {
+  description = "Address of the consul server host"
+  type        = string
+}
+
+variable "skip_server_watch" {
+  description = "If true, setting this prevents the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  type        = bool
+  default     = false
 }
 
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.6.0"
+  default     = "ganeshrockz/ecs"
 }
 
-variable "envoy_image" {
-  description = "Envoy Docker image."
+variable "consul_dataplane_image" {
+  description = "consul-dataplane docker image."
   type        = string
-  default     = "envoyproxy/envoy-distroless:v1.23.1"
+  default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
 }
 
 variable "log_configuration" {
@@ -106,27 +117,16 @@ variable "log_configuration" {
   default     = null
 }
 
-variable "retry_join" {
-  description = "Arguments to pass to -retry-join (https://www.consul.io/docs/agent/options#_retry_join). This or `consul_server_service_name` must be set."
-  type        = list(string)
-}
-
-variable "consul_http_addr" {
-  description = "Consul HTTP Address. Required when using the IAM Auth Method to obtain ACL tokens."
-  type        = string
-  default     = ""
-}
-
 variable "consul_https_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul's HTTPS interface."
+  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul's HTTPS interface. Overrides var.consul_server_ca_cert_arn"
   type        = string
   default     = ""
 }
 
-variable "client_token_auth_method_name" {
-  description = "The name of the Consul Auth Method to login to for client tokens."
+variable "consul_grpc_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC. Overrides var.consul_server_ca_cert_arn"
   type        = string
-  default     = "iam-ecs-client-token"
+  default     = ""
 }
 
 variable "service_token_auth_method_name" {
@@ -142,19 +142,28 @@ variable "tags" {
 }
 
 variable "tls" {
-  description = "Whether to enable TLS for the mesh-task for the control plane traffic."
+  description = "Whether to enable TLS for the communication between gateway-task and Consul's HTTP and gRPC interfaces."
   type        = bool
   default     = false
 }
 
-variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC."
+variable "tls_server_name" {
+  description = "The server name to use as the SNI host when connecting via TLS for Consul's HTTP and gRPC interfaces."
   type        = string
   default     = ""
 }
 
-variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
+variable "ca_cert_file" {
+  description = <<-EOT
+  The CA certificate file for Consul's internal HTTP and gRPC interfaces. `CONSUL_HTTPS_CACERT_PEM` and 
+  `CONSUL_GRPC_CACERT_PEM` takes a higher precedence when configuring TLS settings in the mesh-task."
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "consul_server_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC and HTTP interfaces."
   type        = string
   default     = ""
 }
@@ -163,30 +172,6 @@ variable "acls" {
   description = "Whether to enable ACLs for the gateway task."
   type        = bool
   default     = false
-}
-
-variable "enable_acl_token_replication" {
-  type        = bool
-  description = "Whether or not to enable ACL token replication. ACL token replication is required when the gateway-task is part of a WAN-federated Consul service mesh."
-  default     = false
-}
-
-variable "consul_datacenter" {
-  type        = string
-  description = "The name of the Consul datacenter the client belongs to."
-  default     = "dc1"
-}
-
-variable "consul_primary_datacenter" {
-  type        = string
-  description = "The name of the primary Consul datacenter. Required when the gateway-task is part of a WAN-federated Consul service mesh."
-  default     = ""
-}
-
-variable "consul_agent_configuration" {
-  type        = string
-  description = "The contents of a configuration file for the Consul Agent in HCL format."
-  default     = ""
 }
 
 variable "kind" {
@@ -233,12 +218,6 @@ variable "security_groups" {
   description = "Security group IDs that will be attached to the gateway. The default security group will be used if this is not specified. Required when lb_enabled is true so ingress rules can be added for the security groups."
   type        = list(string)
   default     = []
-}
-
-variable "audit_logging" {
-  description = "Whether to enable audit logging for the Consul agent [Consul Enterprise]. ACLs must be enabled to enable audit logging."
-  type        = bool
-  default     = false
 }
 
 variable "subnets" {
@@ -330,4 +309,36 @@ variable "consul_ecs_config" {
 
 }
 
+variable "http_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. 
+  EOT
 
+  validation {
+    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config."
+    condition = alltrue([
+      for key in keys(var.http_tls_config) :
+      contains(["port", "https", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
+}
+
+variable "grpc_tls_config" {
+  type        = any
+  default     = {}
+  description = <<-EOT
+  This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
+  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. 
+  EOT
+
+  validation {
+    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config."
+    condition = alltrue([
+      for key in keys(var.grpc_tls_config) :
+      contains(["port", "tls", "tlsServerName", "caCertFile"], key)
+    ])
+  }
+}

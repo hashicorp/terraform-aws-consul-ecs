@@ -18,10 +18,23 @@ locals {
     var.enable_mesh_gateway_wan_federation ? { "consul-wan-federation" : "1" } : {}
   )
 
+  httpTLSSettings = merge(
+    {
+      port  = var.tls ? 8501 : 8500
+      https = var.tls
+    },
+    var.http_tls_config
+  )
+
+  grpcTLSSettings = merge(
+    {
+      port = var.tls ? 8503 : 8502
+    },
+    var.grpc_tls_config
+  )
+
   config = {
-    consulHTTPAddr   = var.consul_http_addr
-    consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
-    consulLogin      = merge(local.consulLogin, local.loginExtra)
+    consulLogin = merge(local.consulLogin, local.loginExtra)
     gateway = {
       kind      = var.kind
       name      = local.service_name
@@ -40,6 +53,17 @@ locals {
     }
     healthSyncContainers = []
     bootstrapDir         = local.consul_data_mount.containerPath
+    consulServers = {
+      hosts           = var.consul_server_address
+      skipServerWatch = var.skip_server_watch
+      defaults = {
+        tls           = var.tls
+        tlsServerName = var.tls_server_name
+        caCertFile    = var.ca_cert_file
+      }
+      http = local.httpTLSSettings
+      grpc = local.grpcTLSSettings
+    }
   }
 
   encoded_config = jsonencode(local.config)

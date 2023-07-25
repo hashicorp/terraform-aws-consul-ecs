@@ -57,10 +57,8 @@ type HCPTestConfig struct {
 	EnableHCP               bool        `json:"enable_hcp"`
 	ConsulAddr              string      `json:"consul_public_endpoint_url"`
 	ConsulToken             string      `json:"token"`
-	ConsulPrivateAddr       string      `json:"consul_private_endpoint_url"`
 	RetryJoin               interface{} `json:"retry_join"`
 	BootstrapTokenSecretARN string      `json:"bootstrap_token_secret_arn"`
-	GossipKeySecretARN      string      `json:"gossip_key_secret_arn"`
 	ConsulCASecretARN       string      `json:"consul_ca_cert_secret_arn"`
 }
 
@@ -83,7 +81,7 @@ func TestHCP(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -112,6 +110,14 @@ func TestHCP(t *testing.T) {
 
 	tfVars["suffix"] = randomSuffix
 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+
+	var retryJoinAddresses []string
+	retryJoinArr := cfg.RetryJoin.([]interface{})
+	for _, v := range retryJoinArr {
+		retryJoinAddresses = append(retryJoinAddresses, v.(string))
+	}
+	tfVars["consul_server_address"] = retryJoinAddresses[0]
+
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
@@ -130,37 +136,30 @@ func TestHCP(t *testing.T) {
 	logger.Log(t, "checking that the connection succeeds with an intention")
 	expectCurlOutput(t, clientTask, `"code": 200`)
 
-	// TODO: The token deletion check is disabled due to a race condition.
-	// If the service still exists in Consul after a Task stops, the controller skips
-	// token deletion. This avoids removing tokens that are still in use, but it means it
-	// may never delete a token depending on the timing of consul-client shutting down and
-	// the polling interval of the controller.
-	//
 	// Check that the ACL tokens for services are deleted
 	// when services are destroyed.
-	//if secure {
-	//	// First, destroy just the service mesh services.
-	//	tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-	//		TerraformDir: "./terraform/basic-install",
-	//		Vars:         tfVars,
-	//		NoColor:      true,
-	//		Targets: []string{
-	//			"aws_ecs_service.test_server",
-	//			"aws_ecs_service.test_client",
-	//			"module.test_server",
-	//			"module.test_client",
-	//		},
-	//	})
-	//	terraform.Destroy(t, tfOptions)
-	//
-	//	// Check that the ACL tokens are deleted from Consul.
-	//	retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-	//		out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
-	//		require.NoError(r, err)
-	//		require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
-	//		require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
-	//	})
-	//}
+
+	// First, destroy just the service mesh services.
+	// tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+	// 	TerraformDir: "./terraform/basic-install",
+	// 	Vars:         tfVars,
+	// 	NoColor:      true,
+	// 	Targets: []string{
+	// 		"aws_ecs_service.test_server",
+	// 		"aws_ecs_service.test_client",
+	// 		"module.test_server",
+	// 		"module.test_client",
+	// 	},
+	// })
+	// terraform.Destroy(t, tfOptions)
+
+	// // Check that the ACL tokens are deleted from Consul.
+	// retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+	// 	out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
+	// 	require.NoError(r, err)
+	// 	require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
+	// 	require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
+	// })
 
 	logger.Log(t, "Test successful!")
 }
