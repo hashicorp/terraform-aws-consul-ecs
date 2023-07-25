@@ -136,7 +136,7 @@ variable "additional_execution_role_policies" {
   default     = []
 }
 
-variable "http_tls_config" {
+variable "http_config" {
   type        = any
   default     = {}
   description = <<-EOT
@@ -145,15 +145,15 @@ variable "http_tls_config" {
   EOT
 
   validation {
-    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config."
+    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_config."
     condition = alltrue([
-      for key in keys(var.http_tls_config) :
+      for key in keys(var.http_config) :
       contains(["port", "https", "tls", "tlsServerName", "caCertFile"], key)
     ])
   }
 }
 
-variable "grpc_tls_config" {
+variable "grpc_config" {
   type        = any
   default     = {}
   description = <<-EOT
@@ -162,9 +162,9 @@ variable "grpc_tls_config" {
   EOT
 
   validation {
-    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config."
+    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_config."
     condition = alltrue([
-      for key in keys(var.grpc_tls_config) :
+      for key in keys(var.grpc_config) :
       contains(["port", "tls", "tlsServerName", "caCertFile"], key)
     ])
   }

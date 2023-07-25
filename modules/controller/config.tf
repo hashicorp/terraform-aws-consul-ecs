@@ -2,19 +2,19 @@
 # SPDX-License-Identifier: MPL-2.0
 
 locals {
-  httpTLSSettings = merge(
+  httpSettings = merge(
     {
       port  = var.tls ? 8501 : 8500
       https = var.tls
     },
-    var.http_tls_config
+    var.http_config
   )
 
-  grpcTLSSettings = merge(
+  grpcSettings = merge(
     {
       port = var.tls ? 8503 : 8502
     },
-    var.grpc_tls_config
+    var.grpc_config
   )
 
   config = {
@@ -32,8 +32,8 @@ locals {
         tlsServerName = var.tls_server_name
         caCertFile    = var.ca_cert_file
       }
-      http = local.httpTLSSettings
-      grpc = local.grpcTLSSettings
+      http = local.httpSettings
+      grpc = local.grpcSettings
     }
   }
 
