@@ -571,7 +571,7 @@ package basic
 // 		"invalid-config": {
 // 			configFile: "test-invalid-config.json",
 // 			errors: []string{
-// 				"Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_tls_config.",
+// 				"Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_config.",
 // 			},
 // 		},
 // 	}
@@ -592,7 +592,7 @@ package basic
 // 				TerraformDir: terraformOptions.TerraformDir,
 // 				NoColor:      true,
 // 				Vars: map[string]interface{}{
-// 					"http_tls_config_file": c.configFile,
+// 					"http_config_file": c.configFile,
 // 				},
 // 			})
 
@@ -628,7 +628,7 @@ package basic
 // 		"invalid-config": {
 // 			configFile: "test-invalid-config.json",
 // 			errors: []string{
-// 				"Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_tls_config.",
+// 				"Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_config.",
 // 			},
 // 		},
 // 	}
@@ -649,7 +649,7 @@ package basic
 // 				TerraformDir: terraformOptions.TerraformDir,
 // 				NoColor:      true,
 // 				Vars: map[string]interface{}{
-// 					"grpc_tls_config_file": c.configFile,
+// 					"grpc_config_file": c.configFile,
 // 				},
 // 			})
 
