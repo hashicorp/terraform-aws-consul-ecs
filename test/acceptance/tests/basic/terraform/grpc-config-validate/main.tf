@@ -5,7 +5,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "http_tls_config_file" {
+variable "grpc_config_file" {
   type = string
 }
 
@@ -17,5 +17,5 @@ module "test_client" {
   }]
   consul_server_address = "consul.dc1.host"
   outbound_only         = true
-  http_tls_config       = jsondecode(file("${path.module}/${var.http_tls_config_file}"))
+  grpc_config       = jsondecode(file("${path.module}/${var.grpc_config_file}"))
 }

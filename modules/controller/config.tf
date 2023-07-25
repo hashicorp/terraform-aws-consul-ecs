@@ -7,14 +7,14 @@ locals {
       port  = var.tls ? 8501 : 8500
       https = var.tls
     },
-    var.http_tls_config
+    var.http_config
   )
 
   grpcTLSSettings = merge(
     {
       port = var.tls ? 8503 : 8502
     },
-    var.grpc_tls_config
+    var.grpc_config
   )
 
   config = {
