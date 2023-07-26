@@ -106,7 +106,7 @@ variable "consul_ecs_image" {
 }
 
 variable "consul_dataplane_image" {
-  description = "consul-dataplane docker image."
+  description = "consul-dataplane Docker image."
   type        = string
   default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
 }
