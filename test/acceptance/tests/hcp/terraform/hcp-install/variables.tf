@@ -77,4 +77,17 @@ variable "bootstrap_token_secret_arn" {
 variable "consul_ca_cert_secret_arn" {
   description = "ARN of the secret holding the Consul CA certificate."
   type        = string
+  default     = ""
+}
+
+variable "http_port" {
+  description = "Port where the server's HTTP interface is exposed"
+  type        = number
+  default     = 443
+}
+
+variable "grpc_port" {
+  description = "Port where the server's gRPC interface is exposed"
+  type        = number
+  default     = 8502
 }

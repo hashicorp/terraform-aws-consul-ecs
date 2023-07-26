@@ -111,12 +111,7 @@ func TestHCP(t *testing.T) {
 	tfVars["suffix"] = randomSuffix
 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
 
-	var retryJoinAddresses []string
-	retryJoinArr := cfg.RetryJoin.([]interface{})
-	for _, v := range retryJoinArr {
-		retryJoinAddresses = append(retryJoinAddresses, v.(string))
-	}
-	tfVars["consul_server_address"] = retryJoinAddresses[0]
+	tfVars["consul_server_address"] = cfg.getServerAddress()
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
@@ -165,136 +160,138 @@ func TestHCP(t *testing.T) {
 }
 
 // TestNamespaces ensures that services in different namespaces can be
-// // can be configured to communicate.
-// func TestNamespaces(t *testing.T) {
-// 	cfg := parseHCPTestConfig(t)
+// can be configured to communicate.
+func TestNamespaces(t *testing.T) {
+	cfg := parseHCPTestConfig(t)
 
-// 	// generate input variables to the test terraform using the config.
-// 	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
-// 	tfVars := TFVars(cfg, ignoreVars...)
+	// generate input variables to the test terraform using the config.
+	ignoreVars := []string{"token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
+	tfVars := TFVars(cfg, ignoreVars...)
 
-// 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
-// 	require.NoError(t, err)
-// 	t.Cleanup(func() {
-// 		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
-// 			logger.Log(t, "failed to restore Consul state:", err)
-// 		}
-// 	})
+	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
+			logger.Log(t, "failed to restore Consul state:", err)
+		}
+	})
 
-// 	randomSuffix := strings.ToLower(random.UniqueId())
+	randomSuffix := strings.ToLower(random.UniqueId())
 
-// 	taskConfig := helpers.MeshTaskConfig{
-// 		ConsulClient: consulClient,
-// 		Region:       cfg.Region,
-// 		ClusterARN:   cfg.ECSClusterARNs[0],
-// 		Partition:    "default",
-// 	}
+	taskConfig := helpers.MeshTaskConfig{
+		ConsulClient: consulClient,
+		Region:       cfg.Region,
+		ClusterARN:   cfg.ECSClusterARNs[0],
+		Partition:    "default",
+	}
 
-// 	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
-// 	taskConfig.Namespace = "ns1"
-// 	clientTask := helpers.NewMeshTask(t, taskConfig)
+	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
+	taskConfig.Namespace = "ns1"
+	clientTask := helpers.NewMeshTask(t, taskConfig)
 
-// 	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
-// 	taskConfig.Namespace = "ns2"
-// 	serverTask := helpers.NewMeshTask(t, taskConfig)
+	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
+	taskConfig.Namespace = "ns2"
+	serverTask := helpers.NewMeshTask(t, taskConfig)
 
-// 	tfVars["suffix"] = randomSuffix
-// 	tfVars["client_namespace"] = clientTask.Namespace
-// 	tfVars["server_namespace"] = serverTask.Namespace
-// 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["suffix"] = randomSuffix
+	tfVars["client_namespace"] = clientTask.Namespace
+	tfVars["server_namespace"] = serverTask.Namespace
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["consul_server_address"] = cfg.getServerAddress()
 
-// 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ns", tfVars)
-// 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
+	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ns", tfVars)
+	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
-// 	// Wait for both tasks to be registered in Consul.
-// 	waitForTasks(t, clientTask, serverTask)
+	// Wait for both tasks to be registered in Consul.
+	waitForTasks(t, clientTask, serverTask)
 
-// 	// Check that the connection between apps is unsuccessful without an intention.
-// 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
-// 	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
+	// Check that the connection between apps is unsuccessful without an intention.
+	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
+	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
 
-// 	// Create an intention.
-// 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
-// 	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
+	// Create an intention.
+	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
+	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
-// 	// Now check that the connection succeeds.
-// 	logger.Log(t, "checking that the connection succeeds with an intention")
-// 	expectCurlOutput(t, clientTask, `"code": 200`)
+	// Now check that the connection succeeds.
+	logger.Log(t, "checking that the connection succeeds with an intention")
+	expectCurlOutput(t, clientTask, `"code": 200`)
 
-// 	logger.Log(t, "Test successful!")
-// }
+	logger.Log(t, "Test successful!")
+}
 
-// // TestAdminPartitions ensures that services in different admin partitions and namespaces can be
-// // can be configured to communicate.
-// func TestAdminPartitions(t *testing.T) {
-// 	cfg := parseHCPTestConfig(t)
+// TestAdminPartitions ensures that services in different admin partitions and namespaces can be
+// can be configured to communicate.
+func TestAdminPartitions(t *testing.T) {
+	cfg := parseHCPTestConfig(t)
 
-// 	// generate input variables to the test terraform using the config.
-// 	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp", "consul_version"}
-// 	tfVars := TFVars(cfg, ignoreVars...)
+	// generate input variables to the test terraform using the config.
+	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
+	tfVars := TFVars(cfg, ignoreVars...)
 
-// 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
-// 	require.NoError(t, err)
-// 	t.Cleanup(func() {
-// 		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
-// 			logger.Log(t, "failed to restore Consul state:", err)
-// 		}
-// 	})
+	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
+			logger.Log(t, "failed to restore Consul state:", err)
+		}
+	})
 
-// 	clientSuffix := strings.ToLower(random.UniqueId())
-// 	serverSuffix := strings.ToLower(random.UniqueId())
+	clientSuffix := strings.ToLower(random.UniqueId())
+	serverSuffix := strings.ToLower(random.UniqueId())
 
-// 	taskConfig := helpers.MeshTaskConfig{
-// 		ConsulClient: consulClient,
-// 		Region:       cfg.Region,
-// 	}
+	taskConfig := helpers.MeshTaskConfig{
+		ConsulClient: consulClient,
+		Region:       cfg.Region,
+	}
 
-// 	taskConfig.Name = fmt.Sprintf("test_client_%s", clientSuffix)
-// 	taskConfig.Partition = "part1"
-// 	taskConfig.Namespace = "ns1"
-// 	taskConfig.ClusterARN = cfg.ECSClusterARNs[0]
-// 	clientTask := helpers.NewMeshTask(t, taskConfig)
+	taskConfig.Name = fmt.Sprintf("test_client_%s", clientSuffix)
+	taskConfig.Partition = "part1"
+	taskConfig.Namespace = "ns1"
+	taskConfig.ClusterARN = cfg.ECSClusterARNs[0]
+	clientTask := helpers.NewMeshTask(t, taskConfig)
 
-// 	taskConfig.Name = fmt.Sprintf("test_server_%s", serverSuffix)
-// 	taskConfig.Partition = "part2"
-// 	taskConfig.Namespace = "ns2"
-// 	taskConfig.ClusterARN = cfg.ECSClusterARNs[1]
-// 	serverTask := helpers.NewMeshTask(t, taskConfig)
+	taskConfig.Name = fmt.Sprintf("test_server_%s", serverSuffix)
+	taskConfig.Partition = "part2"
+	taskConfig.Namespace = "ns2"
+	taskConfig.ClusterARN = cfg.ECSClusterARNs[1]
+	serverTask := helpers.NewMeshTask(t, taskConfig)
 
-// 	tfVars["suffix_1"] = clientSuffix
-// 	tfVars["client_partition"] = clientTask.Partition
-// 	tfVars["client_namespace"] = clientTask.Namespace
-// 	tfVars["suffix_2"] = serverSuffix
-// 	tfVars["server_partition"] = serverTask.Partition
-// 	tfVars["server_namespace"] = serverTask.Namespace
-// 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["suffix_1"] = clientSuffix
+	tfVars["client_partition"] = clientTask.Partition
+	tfVars["client_namespace"] = clientTask.Namespace
+	tfVars["suffix_2"] = serverSuffix
+	tfVars["server_partition"] = serverTask.Partition
+	tfVars["server_namespace"] = serverTask.Namespace
+	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["consul_server_address"] = cfg.getServerAddress()
 
-// 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ap", tfVars)
-// 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
+	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ap", tfVars)
+	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
-// 	// Wait for both tasks to be registered in Consul.
-// 	waitForTasks(t, clientTask, serverTask)
+	// Wait for both tasks to be registered in Consul.
+	waitForTasks(t, clientTask, serverTask)
 
-// 	logger.Log(t, "checking that the connection is refused without an `exported-services` config entry")
-// 	expectCurlOutput(t, clientTask, `Connection refused`)
+	logger.Log(t, "checking that the connection is refused without an `exported-services` config entry")
+	expectCurlOutput(t, clientTask, `Connection refused`)
 
-// 	// Create an exported-services config entry for the server
-// 	upsertExportedServices(t, consulClient, clientTask, serverTask)
-// 	t.Cleanup(func() { deleteExportedServices(t, consulClient, serverTask) })
+	// Create an exported-services config entry for the server
+	upsertExportedServices(t, consulClient, clientTask, serverTask)
+	t.Cleanup(func() { deleteExportedServices(t, consulClient, serverTask) })
 
-// 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
-// 	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
+	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
+	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
 
-// 	// Create an intention.
-// 	logger.Log(t, "upserting intention")
-// 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
-// 	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
+	// Create an intention.
+	logger.Log(t, "upserting intention")
+	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
+	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
-// 	logger.Log(t, "checking that the connection succeeds with an exported-services and intention")
-// 	expectCurlOutput(t, clientTask, `"code": 200`)
+	logger.Log(t, "checking that the connection succeeds with an exported-services and intention")
+	expectCurlOutput(t, clientTask, `"code": 200`)
 
-// 	logger.Log(t, "Test successful!")
-// }
+	logger.Log(t, "Test successful!")
+}
 
 func terraformInitAndApply(t *testing.T, tfDir string, tfVars map[string]interface{}) (*terraform.Options, map[string]interface{}) {
 	tfOptions := &terraform.Options{
@@ -393,33 +390,33 @@ func deleteIntention(t *testing.T, consulClient *api.Client, dst *helpers.MeshTa
 	}))
 }
 
-// func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *helpers.MeshTask) {
-// 	require.NoError(t, retryFunc(consulTimeout, t, func() error {
-// 		_, _, err := consulClient.ConfigEntries().Set(&api.ExportedServicesConfigEntry{
-// 			Name:      dst.Partition,
-// 			Partition: dst.Partition,
-// 			Services: []api.ExportedService{{
-// 				Name:      dst.Name,
-// 				Namespace: dst.Namespace,
-// 				Consumers: []api.ServiceConsumer{{Partition: src.Partition}},
-// 			}},
-// 		}, dst.WriteOpts())
-// 		if err != nil {
-// 			return fmt.Errorf("failed to upsert exported-services for %s/%s/%s: %w", dst.Partition, dst.Namespace, dst.Name, err)
-// 		}
-// 		return nil
-// 	}))
-// }
+func upsertExportedServices(t *testing.T, consulClient *api.Client, src, dst *helpers.MeshTask) {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
+		_, _, err := consulClient.ConfigEntries().Set(&api.ExportedServicesConfigEntry{
+			Name:      dst.Partition,
+			Partition: dst.Partition,
+			Services: []api.ExportedService{{
+				Name:      dst.Name,
+				Namespace: dst.Namespace,
+				Consumers: []api.ServiceConsumer{{Partition: src.Partition}},
+			}},
+		}, dst.WriteOpts())
+		if err != nil {
+			return fmt.Errorf("failed to upsert exported-services for %s/%s/%s: %w", dst.Partition, dst.Namespace, dst.Name, err)
+		}
+		return nil
+	}))
+}
 
-// func deleteExportedServices(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
-// 	require.NoError(t, retryFunc(consulTimeout, t, func() error {
-// 		_, err := consulClient.ConfigEntries().Delete(api.ExportedServices, dst.Partition, dst.WriteOpts())
-// 		if err != nil {
-// 			return fmt.Errorf("failed to delete exported-services for %s: %w", dst.Partition, err)
-// 		}
-// 		return nil
-// 	}))
-// }
+func deleteExportedServices(t *testing.T, consulClient *api.Client, dst *helpers.MeshTask) {
+	require.NoError(t, retryFunc(consulTimeout, t, func() error {
+		_, err := consulClient.ConfigEntries().Delete(api.ExportedServices, dst.Partition, dst.WriteOpts())
+		if err != nil {
+			return fmt.Errorf("failed to delete exported-services for %s: %w", dst.Partition, err)
+		}
+		return nil
+	}))
+}
 
 func consulClient(t *testing.T, addr, token string) (*api.Client, ConsulState, error) {
 	cfg := api.DefaultConfig()
@@ -659,3 +656,13 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 // 	})
 // 	logger.Log(t, "Test successful!")
 // }
+
+func (c *HCPTestConfig) getServerAddress() string {
+	var retryJoinAddresses []string
+	retryJoinArr := c.RetryJoin.([]interface{})
+	for _, v := range retryJoinArr {
+		retryJoinAddresses = append(retryJoinAddresses, v.(string))
+	}
+
+	return retryJoinAddresses[0]
+}

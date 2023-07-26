@@ -10,20 +10,20 @@ locals {
   ecs_cluster_2_arn = var.ecs_cluster_arns[1]
 }
 
-// Create ACL controller for cluster 1
-module "acl_controller_1" {
-  source = "../../../../../../modules/acl-controller"
+// Create ECS controller for cluster 1
+module "ecs_controller_1" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_1}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix_1}"
     }
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
+  consul_server_address             = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_1_arn
   region                            = var.region
   subnets                           = var.subnets
@@ -31,6 +31,14 @@ module "acl_controller_1" {
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
   consul_partition                  = var.client_partition
+
+  tls = true
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
 // Create services.
@@ -66,7 +74,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  retry_join = var.retry_join
+  consul_server_address = var.consul_server_address
   upstreams = [
     {
       destinationName      = "test_server_${var.suffix_2}"
@@ -85,33 +93,37 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = var.gossip_key_secret_arn
-  consul_http_addr          = var.consul_private_endpoint_url
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_partition          = var.client_partition
-  consul_namespace          = var.client_namespace
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_partition = var.client_partition
+  consul_namespace = var.client_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
-// Create ACL controller for cluster 2
-module "acl_controller_2" {
-  source = "../../../../../../modules/acl-controller"
+// Create ECS controller for cluster 2
+module "ecs_controller_2" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix_2}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix_2}"
     }
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
+  consul_server_address             = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_2_arn
   region                            = var.region
   subnets                           = var.subnets
@@ -119,6 +131,14 @@ module "acl_controller_2" {
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
   consul_partition                  = var.server_partition
+  tls                               = true
+
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
 // Create services.
@@ -144,8 +164,14 @@ module "test_server" {
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/health || exit 1"]
+      interval = 5
+      retries  = 5
+      timeout  = 10
+    }
   }]
-  retry_join = var.retry_join
+  consul_server_address = var.consul_server_address
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -154,29 +180,23 @@ module "test_server" {
       awslogs-stream-prefix = "test_server_${var.suffix_2}"
     }
   }
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "2s"
-    }
-  ]
   port = 9090
 
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = var.gossip_key_secret_arn
-  consul_http_addr          = var.consul_private_endpoint_url
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_partition          = var.server_partition
-  consul_namespace          = var.server_namespace
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_partition = var.server_partition
+  consul_namespace = var.server_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
 resource "aws_iam_policy" "execute_command" {

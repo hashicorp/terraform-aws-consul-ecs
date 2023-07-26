@@ -31,6 +31,12 @@ module "ecs_controller" {
   consul_partitions_enabled         = true
   consul_partition                  = "default"
   tls                               = true
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
 // Create client.
@@ -83,13 +89,19 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                       = true
-  acls                      = true
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_namespace          = "default"
-  consul_partition          = "default"
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_namespace = "default"
+  consul_partition = "default"
+
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
@@ -117,6 +129,12 @@ module "test_server" {
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/health || exit 1"]
+      interval = 5
+      retries  = 5
+      timeout  = 10
+    }
   }]
   consul_server_address = var.consul_server_address
   log_configuration = {
@@ -129,13 +147,18 @@ module "test_server" {
   }
   port = 9090
 
-  tls                       = true
-  acls                      = true
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_partition          = "default"
-  consul_namespace          = "default"
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_partition = "default"
+  consul_namespace = "default"
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
