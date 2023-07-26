@@ -155,7 +155,7 @@ variable "consul_ecs_image" {
 }
 
 variable "consul_dataplane_image" {
-  description = "consul-dataplane docker image."
+  description = "consul-dataplane Docker image."
   type        = string
   default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
 }
@@ -171,7 +171,7 @@ variable "envoy_public_listener_port" {
   }
 
   validation {
-    error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000, 10000."
+    error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
       8300,  // consul rpc port
       8301,  // consul lan serf
@@ -180,8 +180,8 @@ variable "envoy_public_listener_port" {
       8501,  // consul https
       8502,  // consul grpc
       8600,  // consul dns
-      19000, // envoy admin port
       10000, // consul-ecs-control-plane health check port
+      19000, // envoy admin port
     ], var.envoy_public_listener_port)
   }
 }
@@ -197,7 +197,7 @@ variable "envoy_readiness_port" {
   }
 
   validation {
-    error_message = "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 19000, 10000."
+    error_message = "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
       8300,  // consul rpc port
       8301,  // consul lan serf
@@ -206,8 +206,8 @@ variable "envoy_readiness_port" {
       8501,  // consul https
       8502,  // consul grpc
       8600,  // consul dns
-      19000, // envoy admin port
       10000, // consul-ecs-control-plane health check port
+      19000, // envoy admin port
     ], var.envoy_readiness_port)
   }
 }
