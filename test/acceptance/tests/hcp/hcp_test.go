@@ -596,67 +596,6 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 	return nil
 }
 
-// func TestAuditLogging(t *testing.T) {
-// 	cfg := parseHCPTestConfig(t)
-// 	// generate input variables to the test terraform using the config.
-// 	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
-// 	tfVars := TFVars(cfg, ignoreVars...)
-
-// 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
-// 	require.NoError(t, err)
-// 	t.Cleanup(func() {
-// 		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
-// 			logger.Log(t, "failed to restore Consul state:", err)
-// 		}
-// 	})
-
-// 	randomSuffix := strings.ToLower(random.UniqueId())
-
-// 	taskConfig := helpers.MeshTaskConfig{
-// 		Partition:    "default",
-// 		Namespace:    "default",
-// 		ConsulClient: consulClient,
-// 		Region:       cfg.Region,
-// 		ClusterARN:   cfg.ECSClusterARNs[0],
-// 	}
-
-// 	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
-// 	clientTask := helpers.NewMeshTask(t, taskConfig)
-
-// 	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
-// 	serverTask := helpers.NewMeshTask(t, taskConfig)
-
-// 	tfVars["suffix"] = randomSuffix
-// 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
-
-// 	// Enable audit logging
-// 	tfVars["audit_logging"] = true
-
-// 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
-// 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
-
-// 	// Wait for both tasks to be registered in Consul.
-// 	waitForTasks(t, clientTask, serverTask)
-
-// 	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-// 		taskARN, err := clientTask.TaskARN()
-// 		require.NoError(r, err)
-
-// 		arnParts := strings.Split(taskARN, "/")
-// 		clientTaskID := arnParts[len(arnParts)-1]
-
-// 		// Get CloudWatch logs and filter to only capture audit logs
-// 		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), taskConfig.ClusterARN, clientTaskID, "consul-client")
-// 		require.NoError(r, err)
-// 		auditLogs := appLogs.Filter(`"event_type":"audit"`)
-
-// 		// Check that audit logs were generated else fail
-// 		logger.Log(t, "Number of audit logs generated:", len(auditLogs))
-// 		require.True(r, len(auditLogs) > 0)
-// 	})
-// 	logger.Log(t, "Test successful!")
-// }
-
 func (c *HCPTestConfig) getServerAddress() string {
 	var retryJoinAddresses []string
 	retryJoinArr := c.RetryJoin.([]interface{})
