@@ -115,7 +115,7 @@ func TestBasic(t *testing.T) {
 				tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("consul_server_%s", randomSuffix))
 
 				r.Check(err)
-				require.NotNil(t, tasks)
+				require.NotNil(r, tasks)
 				require.Len(r, tasks.TaskARNs, 1)
 				consulServerTaskARN = tasks.TaskARNs[0]
 			})
@@ -126,7 +126,7 @@ func TestBasic(t *testing.T) {
 					tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("%s-consul-ecs-controller", randomSuffix))
 
 					r.Check(err)
-					require.NotNil(t, tasks)
+					require.NotNil(r, tasks)
 					require.Len(r, tasks.TaskARNs, 1)
 
 					controllerTaskID = helpers.GetTaskIDFromARN(tasks.TaskARNs[0])
