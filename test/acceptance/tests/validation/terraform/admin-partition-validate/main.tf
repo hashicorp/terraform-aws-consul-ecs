@@ -21,7 +21,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  outbound_only         = true
+  outbound_only       = true
   consul_server_hosts = "consul.dc1.host"
 
   consul_partition = var.partition

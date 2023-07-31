@@ -17,5 +17,5 @@ module "test_client" {
     name = "basic"
   }]
   consul_server_hosts = "consul.dc1"
-  outbound_only         = true
+  outbound_only       = true
 }

@@ -14,7 +14,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_hosts = "consul.dc1"
-  outbound_only         = true
-  envoy_readiness_port  = var.envoy_readiness_port
+  consul_server_hosts  = "consul.dc1"
+  outbound_only        = true
+  envoy_readiness_port = var.envoy_readiness_port
 }

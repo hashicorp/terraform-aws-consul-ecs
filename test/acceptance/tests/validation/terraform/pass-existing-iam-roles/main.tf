@@ -49,7 +49,7 @@ module "test_client_create_new_roles" {
   family                = local.create_roles_family
   log_configuration     = null
   container_definitions = local.container_definitions
-  consul_server_hosts = "consul.dc1"
+  consul_server_hosts   = "consul.dc1"
   outbound_only         = true
 
   // Roles are not passed. This tests the default values for create_task_role,
@@ -61,7 +61,7 @@ module "test_client_pass_existing_roles" {
   family                = local.pass_roles_family
   log_configuration     = null
   container_definitions = local.container_definitions
-  consul_server_hosts = "consul.dc1"
+  consul_server_hosts   = "consul.dc1"
   outbound_only         = true
 
   create_task_role      = false

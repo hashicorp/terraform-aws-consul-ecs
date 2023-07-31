@@ -16,6 +16,6 @@ module "test_client" {
     name = "basic"
   }]
   consul_server_hosts = "consul.dc1"
-  outbound_only         = true
-  upstreams             = jsondecode(file("${path.module}/${var.upstreams_file}"))
+  outbound_only       = true
+  upstreams           = jsondecode(file("${path.module}/${var.upstreams_file}"))
 }
