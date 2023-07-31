@@ -1,15 +1,12 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-// We test this with a Terraform plan only.
-
 provider "aws" {
   region = "us-west-2"
 }
 
-variable "application_shutdown_delay_seconds" {
-  type    = number
-  default = null
+variable "http_config_file" {
+  type = string
 }
 
 module "test_client" {
@@ -18,8 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address = "consul.dc1"
+  consul_server_hosts = "consul.dc1.host"
   outbound_only         = true
-
-  application_shutdown_delay_seconds = var.application_shutdown_delay_seconds
+  http_config       = jsondecode(file("${path.module}/${var.http_config_file}"))
 }

@@ -5,8 +5,14 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "iam_role_path" {
-  type = string
+variable "partition" {
+  type    = string
+  default = ""
+}
+
+variable "namespace" {
+  type    = string
+  default = ""
 }
 
 module "test_client" {
@@ -16,7 +22,8 @@ module "test_client" {
     name = "basic"
   }]
   outbound_only         = true
-  consul_server_address = "consul.dc1"
+  consul_server_hosts = "consul.dc1.host"
 
-  iam_role_path = var.iam_role_path
+  consul_partition = var.partition
+  consul_namespace = var.namespace
 }

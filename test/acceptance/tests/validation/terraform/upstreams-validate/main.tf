@@ -5,14 +5,8 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "partition" {
-  type    = string
-  default = ""
-}
-
-variable "namespace" {
-  type    = string
-  default = ""
+variable "upstreams_file" {
+  type = string
 }
 
 module "test_client" {
@@ -21,9 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
+  consul_server_hosts = "consul.dc1"
   outbound_only         = true
-  consul_server_address = "consul.dc1.host"
-
-  consul_partition = var.partition
-  consul_namespace = var.namespace
+  upstreams             = jsondecode(file("${path.module}/${var.upstreams_file}"))
 }

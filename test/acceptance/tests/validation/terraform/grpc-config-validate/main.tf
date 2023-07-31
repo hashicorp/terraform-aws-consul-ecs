@@ -5,7 +5,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "consul_service_name" {
+variable "grpc_config_file" {
   type = string
 }
 
@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address = "consul.dc1"
+  consul_server_hosts = "consul.dc1.host"
   outbound_only         = true
-  consul_service_name   = var.consul_service_name
+  grpc_config       = jsondecode(file("${path.module}/${var.grpc_config_file}"))
 }

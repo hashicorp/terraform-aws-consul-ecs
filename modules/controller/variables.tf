@@ -30,7 +30,7 @@ variable "launch_type" {
 }
 
 variable "consul_bootstrap_token_secret_arn" {
-  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least `acl:write` and `node:write` privileges in Consul."
+  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least `acl:write`, `node:write` and `operator:write`(in case of Consul Enterprise) privileges in Consul."
   type        = string
 }
 
@@ -47,12 +47,12 @@ variable "iam_role_path" {
 }
 
 variable "subnets" {
-  description = "Subnets where the controller task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
+  description = "Subnet IDs where the controller task should be deployed. If these are private subnets then there must be a NAT gateway for image pulls to work. If these are public subnets then you must also set assign_public_ip for image pulls to work."
   type        = list(string)
 }
 
-variable "consul_server_address" {
-  description = "Address of the consul server host"
+variable "consul_server_hosts" {
+  description = "Address of the Consul servers. This can be an IP address, a DNS name, or an `exec=` string specifying a script that outputs IP addresses. Refer to https://github.com/hashicorp/go-netaddrs#summary for details. This variable should not specify the port. Instead, use var.http_config.port and var.grpc_config.port to change the server HTTP and gRPC ports."
   type        = string
 }
 
@@ -67,20 +67,20 @@ variable "name_prefix" {
   type        = string
 }
 
-variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC and HTTP interfaces."
+variable "consul_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's gRPC and HTTP interfaces. This is the default CA certificate used if consul_grpc_ca_cert_arn or consul_https_ca_cert_arn is not set"
   type        = string
   default     = ""
 }
 
 variable "consul_grpc_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC. Overrides var.consul_server_ca_cert_arn"
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's gRPC. Overrides var.consul_ca_cert_arn"
   type        = string
   default     = ""
 }
 
 variable "consul_https_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_server_ca_cert_arn"
+  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_ca_cert_arn"
   type        = string
   default     = ""
 }
@@ -104,16 +104,7 @@ variable "tls" {
 }
 
 variable "tls_server_name" {
-  description = "The server name to use as the SNI host when connecting via TLS for Consul's HTTP and gRPC interfaces."
-  type        = string
-  default     = ""
-}
-
-variable "ca_cert_file" {
-  description = <<-EOT
-  The CA certificate file for Consul's internal HTTP and gRPC interfaces. `CONSUL_HTTPS_CACERT_PEM` and 
-  `CONSUL_GRPC_CACERT_PEM` takes a higher precedence when configuring TLS settings in the controller."
-  EOT
+  description = "The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces. This is the default value used when grpc_config.tlsServerName or http_config.tlsServerName is unset."
   type        = string
   default     = ""
 }
@@ -125,7 +116,7 @@ variable "consul_partition" {
 }
 
 variable "security_groups" {
-  description = "Configure the ECS service with security groups. If not specified, the default security group for the VPC is used."
+  description = "Configure the ECS service with security group IDs. If not specified, the default security group for the VPC is used."
   type        = list(string)
   default     = []
 }
@@ -141,7 +132,8 @@ variable "http_config" {
   default     = {}
   description = <<-EOT
   This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. 
+  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. The HTTP port defaults to 8500 if TLS is 
+  not enabled or 8501 if TLS is enabled.
   EOT
 
   validation {
@@ -158,7 +150,8 @@ variable "grpc_config" {
   default     = {}
   description = <<-EOT
   This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. 
+  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. The gRPC port defaults to 8502 if TLS is
+  not enabled or 8503 if TLS is enabled.
   EOT
 
   validation {

@@ -173,12 +173,6 @@ variable "envoy_public_listener_port" {
   validation {
     error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
-      8300,  // consul rpc port
-      8301,  // consul lan serf
-      8302,  // consul wan serf
-      8500,  // consul http
-      8501,  // consul https
-      8502,  // consul grpc
       8600,  // consul dns
       10000, // consul-ecs-control-plane health check port
       19000, // envoy admin port
@@ -199,12 +193,6 @@ variable "envoy_readiness_port" {
   validation {
     error_message = "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
-      8300,  // consul rpc port
-      8301,  // consul lan serf
-      8302,  // consul wan serf
-      8500,  // consul http
-      8501,  // consul https
-      8502,  // consul grpc
       8600,  // consul dns
       10000, // consul-ecs-control-plane health check port
       19000, // envoy admin port
@@ -224,8 +212,8 @@ variable "container_definitions" {
   type = any
 }
 
-variable "consul_server_address" {
-  description = "Address of the consul server host"
+variable "consul_server_hosts" {
+  description = "Address of the Consul servers. This can be an IP address, a DNS name, or an `exec=` string specifying a script that outputs IP addresses. Refer to https://github.com/hashicorp/go-netaddrs#summary for details. This variable should not specify the port. Instead, use var.http_config.port and var.grpc_config.port to change the server HTTP and gRPC ports."
   type        = string
 }
 
@@ -290,7 +278,7 @@ variable "tls" {
 }
 
 variable "tls_server_name" {
-  description = "The server name to use as the SNI host when connecting via TLS for Consul's HTTP and gRPC interfaces."
+  description = "The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces. This is the default value used when grpc_config.tlsServerName or http_config.tlsServerName is unset."
   type        = string
   default     = ""
 }
@@ -304,20 +292,20 @@ variable "ca_cert_file" {
   default     = ""
 }
 
-variable "consul_server_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC and HTTP interfaces."
+variable "consul_ca_cert_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC and HTTP interfaces."
   type        = string
   default     = ""
 }
 
 variable "consul_grpc_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal RPC. Overrides var.consul_server_ca_cert_arn"
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC communications. Overrides var.consul_ca_cert_arn"
   type        = string
   default     = ""
 }
 
 variable "consul_https_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_server_ca_cert_arn"
+  description = "The ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides var.consul_ca_cert_arn"
   type        = string
   default     = ""
 }
@@ -446,7 +434,8 @@ variable "http_config" {
   default     = {}
   description = <<-EOT
   This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. 
+  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. The HTTP port defaults to 8500 if TLS is 
+  not enabled or 8501 if TLS is enabled.
   EOT
 
   validation {
@@ -463,7 +452,8 @@ variable "grpc_config" {
   default     = {}
   description = <<-EOT
   This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If empty, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. 
+  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. The gRPC port defaults to 8502 if TLS is
+  not enabled or 8503 if TLS is enabled.
   EOT
 
   validation {

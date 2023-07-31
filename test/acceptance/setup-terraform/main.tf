@@ -5,6 +5,10 @@ provider "aws" {
   region = var.region
 }
 
+provider "hcp" {
+  project_id = "6a513c39-907d-4a92-9159-3b03bd00ecda"
+}
+
 locals {
   name   = "consul-ecs-${random_string.suffix.result}"
   suffix = random_string.suffix.result

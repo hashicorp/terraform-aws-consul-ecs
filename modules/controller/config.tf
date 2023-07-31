@@ -25,12 +25,11 @@ locals {
     }
     bootstrapDir = "/consul"
     consulServers = {
-      hosts           = var.consul_server_address
+      hosts           = var.consul_server_hosts
       skipServerWatch = var.skip_server_watch
       defaults = {
         tls           = var.tls
         tlsServerName = var.tls_server_name
-        caCertFile    = var.ca_cert_file
       }
       http = local.httpSettings
       grpc = local.grpcSettings

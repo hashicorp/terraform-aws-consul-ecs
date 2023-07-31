@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 locals {
-  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_server_ca_cert_arn
-  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_server_ca_cert_arn
+  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_ca_cert_arn
+  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_ca_cert_arn
 }
 
 resource "aws_ecs_service" "this" {
@@ -124,14 +124,14 @@ resource "aws_iam_policy" "this_execution" {
         "${var.consul_bootstrap_token_secret_arn}"
       ]
     },
-%{if var.consul_server_ca_cert_arn != ""~}
+%{if var.consul_ca_cert_arn != ""~}
     {
       "Effect": "Allow",
       "Action": [
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${var.consul_server_ca_cert_arn}"
+        "${var.consul_ca_cert_arn}"
       ]
     },
 %{endif~}

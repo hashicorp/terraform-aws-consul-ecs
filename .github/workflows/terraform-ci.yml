@@ -10,6 +10,7 @@ on:
   pull_request:
     branches:
       - 'main'
+      - 'ganeshrockz/dataplane-arch-changes' #TODO: Remove this when merging to main
       - 'release/**'
 env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}

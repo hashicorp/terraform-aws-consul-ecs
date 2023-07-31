@@ -1,12 +1,15 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+// We test this with a Terraform plan only.
+
 provider "aws" {
   region = "us-west-2"
 }
 
-variable "consul_ecs_config_file" {
-  type = string
+variable "application_shutdown_delay_seconds" {
+  type    = number
+  default = null
 }
 
 module "test_client" {
@@ -15,7 +18,8 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address = "consul.dc1.host"
+  consul_server_hosts = "consul.dc1"
   outbound_only         = true
-  consul_ecs_config     = jsondecode(file("${path.module}/${var.consul_ecs_config_file}"))
+
+  application_shutdown_delay_seconds = var.application_shutdown_delay_seconds
 }
