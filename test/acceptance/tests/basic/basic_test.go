@@ -302,7 +302,3 @@ func TestBasic(t *testing.T) {
 		})
 	}
 }
-
-type listTasksResponse struct {
-	TaskARNs []string `json:"taskArns"`
-}
