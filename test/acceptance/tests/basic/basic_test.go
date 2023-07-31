@@ -4,7 +4,6 @@
 package basic
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -12,9 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/helpers"
@@ -34,7 +31,7 @@ func TestBasic(t *testing.T) {
 	}{
 		{secure: false},
 		{secure: true},
-		//{secure: true, enterprise: true},
+		{secure: true, enterprise: true},
 	}
 
 	cfg := suite.Config()
@@ -115,54 +112,24 @@ func TestBasic(t *testing.T) {
 			// Wait for consul server to be up.
 			var consulServerTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				taskListOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"list-tasks",
-						"--region",
-						cfg.Region,
-						"--cluster",
-						c.ecsClusterARN,
-						"--family",
-						fmt.Sprintf("consul_server_%s", randomSuffix),
-					},
-				})
+				tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("consul_server_%s", randomSuffix))
+
 				r.Check(err)
-
-				var tasks listTasksResponse
-				r.Check(json.Unmarshal([]byte(taskListOut), &tasks))
-				if len(tasks.TaskARNs) != 1 {
-					r.Errorf("expected 1 task, got %d", len(tasks.TaskARNs))
-					return
-				}
-
+				require.NotNil(t, tasks)
+				require.Len(r, tasks.TaskARNs, 1)
 				consulServerTaskARN = tasks.TaskARNs[0]
 			})
 
 			var controllerTaskID string
 			if c.secure {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-					taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-						Command: "aws",
-						Args: []string{
-							"ecs",
-							"list-tasks",
-							"--region",
-							cfg.Region,
-							"--cluster",
-							c.ecsClusterARN,
-							"--family",
-							fmt.Sprintf("%s-consul-ecs-controller", randomSuffix),
-						},
-					})
+					tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("%s-consul-ecs-controller", randomSuffix))
 
-					var tasks listTasksResponse
-					require.NoError(r, json.Unmarshal([]byte(taskListOut), &tasks))
+					r.Check(err)
+					require.NotNil(t, tasks)
 					require.Len(r, tasks.TaskARNs, 1)
-					controllerTaskARN := tasks.TaskARNs[0]
-					arnParts := strings.Split(controllerTaskARN, "/")
-					controllerTaskID = arnParts[len(arnParts)-1]
+
+					controllerTaskID = helpers.GetTaskIDFromARN(tasks.TaskARNs[0])
 				})
 
 				// Check controller logs to see if the anonymous token gets configured. This should
@@ -225,26 +192,13 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Use aws exec to curl between the apps.
-			taskListOut := shell.RunCommandAndGetOutput(t, shell.Command{
-				Command: "aws",
-				Args: []string{
-					"ecs",
-					"list-tasks",
-					"--region",
-					cfg.Region,
-					"--cluster",
-					c.ecsClusterARN,
-					"--family",
-					fmt.Sprintf("Test_Client_%s", randomSuffix),
-				},
-			})
+			tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("Test_Client_%s", randomSuffix))
 
-			var tasks listTasksResponse
-			require.NoError(t, json.Unmarshal([]byte(taskListOut), &tasks))
+			require.NoError(t, err)
 			require.Len(t, tasks.TaskARNs, 1)
+
 			testClientTaskARN := tasks.TaskARNs[0]
-			arnParts := strings.Split(testClientTaskARN, "/")
-			testClientTaskID := arnParts[len(arnParts)-1]
+			testClientTaskID := helpers.GetTaskIDFromARN(tasks.TaskARNs[0])
 
 			// Create an intention.
 			if c.secure {
@@ -276,34 +230,14 @@ func TestBasic(t *testing.T) {
 			// * a custom entrypoint for the client app that keeps it running for 10s into Task shutdown, and
 			// * an additional "shutdown-monitor" container that makes requests to the client app
 			// Since this is timing dependent, we check logs after the fact to validate when the containers exited.
-			shell.RunCommandAndGetOutput(t, shell.Command{
-				Command: "aws",
-				Args: []string{
-					"ecs",
-					"stop-task",
-					"--region", cfg.Region,
-					"--cluster", c.ecsClusterARN,
-					"--task", testClientTaskARN,
-					"--reason", "Stopped to validate graceful shutdown in acceptance tests",
-				},
-			})
+			helpers.StopTask(t, c.ecsClusterARN, cfg.Region, testClientTaskARN, "Stopped to validate graceful shutdown in acceptance tests")
 
 			// Wait for the task to stop (~30 seconds)
 			retry.RunWith(&retry.Timer{Timeout: 1 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				describeTasksOut, err := shell.RunCommandAndGetOutputE(t, shell.Command{
-					Command: "aws",
-					Args: []string{
-						"ecs",
-						"describe-tasks",
-						"--region", cfg.Region,
-						"--cluster", c.ecsClusterARN,
-						"--task", testClientTaskARN,
-					},
-				})
-				r.Check(err)
+				describeTasks, err := helpers.DescribeTasks(t, c.ecsClusterARN, cfg.Region, testClientTaskARN)
 
-				var describeTasks ecs.DescribeTasksOutput
-				r.Check(json.Unmarshal([]byte(describeTasksOut), &describeTasks))
+				r.Check(err)
+				require.NotNil(r, describeTasks)
 				require.Len(r, describeTasks.Tasks, 1)
 				require.NotEqual(r, "RUNNING", describeTasks.Tasks[0].LastStatus)
 			})
