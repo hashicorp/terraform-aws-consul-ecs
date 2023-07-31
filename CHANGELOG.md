@@ -1,4 +1,4 @@
-## 0.6.1 (Jul 20, 2023)
+## 0.6.1 (Aug 1, 2023)
 
 IMPROVEMENTS
 * Bump Consul OSS image version to 1.15.4 and Consul enterprise version to 1.15.4-ent
