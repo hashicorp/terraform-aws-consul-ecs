@@ -30,7 +30,7 @@ variable "launch_type" {
 }
 
 variable "consul_bootstrap_token_secret_arn" {
-  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least `acl:write`, `node:write` and `operator:write`(in case of Consul Enterprise) privileges in Consul."
+  description = "The ARN of the AWS SecretsManager secret containing the token to be used by this controller. The token needs to have at least `acl:write`, `node:write` and `operator:write` (in case of Consul Enterprise) privileges in Consul."
   type        = string
 }
 
@@ -57,7 +57,7 @@ variable "consul_server_hosts" {
 }
 
 variable "skip_server_watch" {
-  description = "If true, setting this prevents the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  description = "Set this to true to prevent the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
   type        = bool
   default     = false
 }
@@ -74,7 +74,7 @@ variable "consul_ca_cert_arn" {
 }
 
 variable "consul_grpc_ca_cert_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's gRPC. Overrides var.consul_ca_cert_arn"
+  description = "The ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's gRPC interface. Overrides var.consul_ca_cert_arn"
   type        = string
   default     = ""
 }

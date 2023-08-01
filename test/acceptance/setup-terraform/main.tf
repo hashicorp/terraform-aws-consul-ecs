@@ -6,7 +6,7 @@ provider "aws" {
 }
 
 provider "hcp" {
-  project_id = "6a513c39-907d-4a92-9159-3b03bd00ecda"
+  project_id = var.hcp_project_id
 }
 
 locals {

@@ -125,7 +125,7 @@ variable "additional_execution_role_policies" {
 }
 
 variable "skip_server_watch" {
-  description = "If true, setting this prevents the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  description = "Set this to true to prevent the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
   type        = bool
   default     = false
 }
