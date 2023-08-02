@@ -137,7 +137,7 @@ module "test_server" {
       timeout  = 10
     }
   }]
-  consul_server_address = var.consul_server_address
+  consul_server_hosts = var.consul_server_address
   log_configuration = {
     logDriver = "awslogs"
     options = {
