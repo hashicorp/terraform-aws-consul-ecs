@@ -412,6 +412,8 @@ exec consul agent -server \
   -hcl='verify_incoming_rpc = true' \
   -hcl='verify_outgoing = true' \
   -hcl='verify_server_hostname = true' \
+%{else~}
+  -hcl='ports { grpc = 8502 }' \
 %{endif~}
 %{if var.acls~}
   -hcl='acl {enabled = true, default_policy = "deny", down_policy = "extend-cache", enable_token_persistence = true}' \

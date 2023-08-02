@@ -5,10 +5,9 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.6.0"
+  version_string = "1.0.0-dev"
 
-  gossip_encryption_enabled = var.gossip_key_secret_arn != ""
-  consul_data_volume_name   = "consul_data"
+  consul_data_volume_name = "consul_data"
   consul_data_mount = {
     sourceVolume  = local.consul_data_volume_name
     containerPath = "/consul"
@@ -36,7 +35,7 @@ locals {
   namespace_tag = var.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
-  // modified to add in dependencies on consul-ecs-mesh-init and sidecar-proxy.
+  // modified to add in dependencies on consul-ecs-control-plane and consul-dataplane.
   // We add these dependencies in so that the app containers don't start until the proxy
   // is ready to serve traffic.
   container_defs_with_depends_on = [for def in var.container_definitions :
@@ -48,11 +47,11 @@ locals {
             lookup(def, "dependsOn", []),
             [
               {
-                containerName = "consul-ecs-mesh-init"
-                condition     = "SUCCESS"
+                containerName = "consul-ecs-control-plane"
+                condition     = "HEALTHY"
               },
               {
-                containerName = "sidecar-proxy"
+                containerName = "consul-dataplane"
                 condition     = "HEALTHY"
               }
             ]
@@ -71,24 +70,11 @@ locals {
     )
   ]
 
-  defaulted_check_containers = length(var.checks) == 0 ? [for def in local.container_defs_with_depends_on : def.name
-  if contains(keys(def), "essential") && contains(keys(def), "healthCheck") && (try(def.healthCheck, null) != null)] : []
-  // health-sync is enabled if acls are enabled, in order to run 'consul logout' to cleanup tokens when the task stops
-  health_sync_enabled = length(local.defaulted_check_containers) > 0 || var.acls
+  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_ca_cert_arn
+  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_ca_cert_arn
 
-  consul_agent_defaults_hcl = templatefile(
-    "${path.module}/templates/consul_agent_defaults.hcl.tpl",
-    {
-      gossip_encryption_enabled = local.gossip_encryption_enabled
-      retry_join                = var.retry_join
-      tls                       = var.tls
-      acls                      = var.acls
-      partition                 = var.consul_partition
-      primary_datacenter        = var.consul_primary_datacenter
-      enable_token_replication  = var.enable_acl_token_replication
-      audit_logging             = var.audit_logging
-    }
-  )
+  defaulted_check_containers = [for def in local.container_defs_with_depends_on : def.name
+  if contains(keys(def), "essential") && contains(keys(def), "healthCheck") && (try(def.healthCheck, null) != null)]
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -189,11 +175,11 @@ resource "aws_ecs_task_definition" "this" {
         local.container_defs_with_depends_on,
         [
           {
-            name             = "consul-ecs-mesh-init"
+            name             = "consul-ecs-control-plane"
             image            = var.consul_ecs_image
             essential        = false
             logConfiguration = var.log_configuration
-            command          = ["mesh-init"]
+            command          = ["control-plane"]
             mountPoints = [
               local.consul_data_mount_read_write,
               {
@@ -213,88 +199,45 @@ resource "aws_ecs_task_definition" "this" {
             linuxParameters = {
               initProcessEnabled = true
             }
-          },
-          {
-            name             = "consul-client"
-            image            = var.consul_image
-            essential        = false
-            portMappings     = []
-            logConfiguration = var.log_configuration
-            entryPoint       = ["/bin/sh", "-ec"]
-            command = [replace(
-              templatefile(
-                "${path.module}/templates/consul_client_command.tpl",
-                {
-                  consul_agent_defaults_hcl      = local.consul_agent_defaults_hcl
-                  consul_agent_configuration_hcl = var.consul_agent_configuration
-                  tls                            = var.tls
-                  acls                           = var.acls
-                  consul_http_addr               = var.consul_http_addr
-                  https                          = var.consul_https_ca_cert_arn != ""
-                  client_token_auth_method_name  = var.client_token_auth_method_name
-                  consul_partition               = var.consul_partition
-                  region                         = data.aws_region.current.name
-                }
-              ), "\r", "")
-            ]
-            mountPoints = [
-              local.consul_data_mount_read_write,
-              {
-                sourceVolume  = local.consul_binary_volume_name
-                containerPath = "/bin/consul-inject"
-              }
-            ]
-            linuxParameters = {
-              initProcessEnabled = true
+            healthCheck = {
+              command  = ["CMD-SHELL", "curl localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
+              interval = 30
+              retries  = 10
+              timeout  = 5
             }
-            cpu         = 0
-            volumesFrom = []
-            environment = [
-              {
-                name  = "CONSUL_DATACENTER"
-                value = var.consul_datacenter
-              }
-            ]
             secrets = concat(
               var.tls ? [
                 {
-                  name      = "CONSUL_CACERT_PEM",
-                  valueFrom = var.consul_server_ca_cert_arn
-                }
-              ] : [],
-              var.consul_https_ca_cert_arn != "" ? [
+                  name      = "CONSUL_HTTPS_CACERT_PEM"
+                  valueFrom = local.https_ca_cert_arn
+                },
                 {
-                  name      = "CONSUL_HTTPS_CACERT_PEM",
-                  valueFrom = var.consul_https_ca_cert_arn
+                  name      = "CONSUL_GRPC_CACERT_PEM"
+                  valueFrom = local.grpc_ca_cert_arn
                 }
               ] : [],
-              local.gossip_encryption_enabled ? [
-                {
-                  name      = "CONSUL_GOSSIP_ENCRYPTION_KEY",
-                  valueFrom = var.gossip_key_secret_arn
-                }
-              ] : [],
+              []
             )
           },
           {
-            name             = "sidecar-proxy"
-            image            = var.envoy_image
+            name             = "consul-dataplane"
+            image            = var.consul_dataplane_image
             essential        = false
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
-            command          = ["envoy", "--config-path", "/consul/envoy-bootstrap.json"]
+            command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-control-plane dumps the dataplane's config into consul-dataplane.json
             portMappings     = []
             mountPoints = [
               local.consul_data_mount
             ]
             dependsOn = [
               {
-                containerName = "consul-ecs-mesh-init"
-                condition     = "SUCCESS"
+                containerName = "consul-ecs-control-plane"
+                condition     = "HEALTHY"
               },
             ]
             healthCheck = {
-              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", var.envoy_public_listener_port)]
+              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", var.envoy_readiness_port)]
               interval = 30
               retries  = 3
               timeout  = 5
@@ -312,34 +255,6 @@ resource "aws_ecs_task_definition" "this" {
             }]
           },
         ],
-        local.health_sync_enabled ? [{
-          name             = "consul-ecs-health-sync"
-          image            = var.consul_ecs_image
-          essential        = false
-          logConfiguration = var.log_configuration
-          command          = ["health-sync"]
-          cpu              = 0
-          volumesFrom      = []
-          environment = [
-            {
-              name  = "CONSUL_ECS_CONFIG_JSON",
-              value = local.encoded_config
-            }
-          ]
-          portMappings = []
-          mountPoints = [
-            local.consul_data_mount
-          ]
-          dependsOn = [
-            {
-              containerName = "consul-ecs-mesh-init"
-              condition     = "SUCCESS"
-            },
-          ]
-          linuxParameters = {
-            initProcessEnabled = true
-          }
-        }] : [],
       )
     )
   )
