@@ -43,8 +43,8 @@ locals {
     [aws_security_group.this[0].id]
   ) : var.security_groups
 
-  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_server_ca_cert_arn
-  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_server_ca_cert_arn
+  https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_ca_cert_arn
+  grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_ca_cert_arn
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -157,7 +157,7 @@ resource "aws_ecs_task_definition" "this" {
               },
             ]
             healthCheck = {
-              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", local.lan_port)]
+              command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", var.envoy_readiness_port)]
               interval = 30
               retries  = 3
               timeout  = 5

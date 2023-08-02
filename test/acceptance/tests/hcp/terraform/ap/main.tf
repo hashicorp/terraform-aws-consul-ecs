@@ -23,7 +23,7 @@ module "ecs_controller_1" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_address             = var.consul_server_address
+  consul_server_hosts             = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_1_arn
   region                            = var.region
   subnets                           = var.subnets
@@ -74,7 +74,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  consul_server_address = var.consul_server_address
+  consul_server_hosts = var.consul_server_address
   upstreams = [
     {
       destinationName      = "test_server_${var.suffix_2}"
@@ -123,7 +123,7 @@ module "ecs_controller_2" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_address             = var.consul_server_address
+  consul_server_hosts             = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_2_arn
   region                            = var.region
   subnets                           = var.subnets
@@ -171,7 +171,7 @@ module "test_server" {
       timeout  = 10
     }
   }]
-  consul_server_address = var.consul_server_address
+  consul_server_hosts = var.consul_server_address
   log_configuration = {
     logDriver = "awslogs"
     options = {

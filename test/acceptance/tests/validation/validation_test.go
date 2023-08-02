@@ -762,7 +762,6 @@ func TestValidation_RolePath(t *testing.T) {
 }
 
 func TestValidation_MeshGateway(t *testing.T) {
-	t.Skip("TODO(ganeshrockz): revisit this test when gateway modules are modified for the new architecture")
 	t.Parallel()
 
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{

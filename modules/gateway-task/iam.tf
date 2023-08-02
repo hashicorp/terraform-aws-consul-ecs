@@ -100,7 +100,7 @@ resource "aws_iam_policy" "execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${var.consul_server_ca_cert_arn}"
+        "${var.consul_ca_cert_arn}"
       ]
     },
 %{endif~}
