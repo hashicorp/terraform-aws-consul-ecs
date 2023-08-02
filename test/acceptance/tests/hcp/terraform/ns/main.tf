@@ -22,7 +22,7 @@ module "controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_hosts             = var.consul_server_address
+  consul_server_hosts               = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
