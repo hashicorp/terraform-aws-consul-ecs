@@ -51,7 +51,7 @@ locals {
     healthSyncContainers = local.defaulted_check_containers
     bootstrapDir         = local.consul_data_mount.containerPath
     consulServers = {
-      hosts           = var.consul_server_address
+      hosts           = var.consul_server_hosts
       skipServerWatch = var.skip_server_watch
       defaults = {
         tls           = var.tls

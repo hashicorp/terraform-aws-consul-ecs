@@ -5,8 +5,8 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "envoy_public_listener_port" {
-  type = number
+variable "consul_ecs_config_file" {
+  type = string
 }
 
 module "test_client" {
@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address      = "consul.dc1"
-  outbound_only              = true
-  envoy_public_listener_port = var.envoy_public_listener_port
+  consul_server_hosts = "consul.dc1.host"
+  outbound_only       = true
+  consul_ecs_config   = jsondecode(file("${path.module}/${var.consul_ecs_config_file}"))
 }

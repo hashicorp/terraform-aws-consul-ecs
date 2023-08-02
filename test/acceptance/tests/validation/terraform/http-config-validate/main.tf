@@ -1,11 +1,12 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
+
 provider "aws" {
   region = "us-west-2"
 }
 
-variable "envoy_readiness_port" {
-  type = number
+variable "http_config_file" {
+  type = string
 }
 
 module "test_client" {
@@ -14,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address = "consul.dc1"
-  outbound_only         = true
-  envoy_readiness_port  = var.envoy_readiness_port
+  consul_server_hosts = "consul.dc1.host"
+  outbound_only       = true
+  http_config         = jsondecode(file("${path.module}/${var.http_config_file}"))
 }

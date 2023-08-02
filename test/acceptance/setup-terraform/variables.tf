@@ -48,3 +48,8 @@ variable "consul_version" {
     error_message = "Must a valid MAJOR.MINOR.PATCH version string."
   }
 }
+
+variable "hcp_project_id" {
+  description = "ID of the HCP project where the Consul specific resources will be created."
+  type        = string
+}

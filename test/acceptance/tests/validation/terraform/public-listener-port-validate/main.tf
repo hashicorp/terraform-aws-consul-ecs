@@ -5,8 +5,8 @@ provider "aws" {
   region = "us-west-2"
 }
 
-variable "grpc_config_file" {
-  type = string
+variable "envoy_public_listener_port" {
+  type = number
 }
 
 module "test_client" {
@@ -15,7 +15,7 @@ module "test_client" {
   container_definitions = [{
     name = "basic"
   }]
-  consul_server_address = "consul.dc1.host"
-  outbound_only         = true
-  grpc_config       = jsondecode(file("${path.module}/${var.grpc_config_file}"))
+  consul_server_hosts        = "consul.dc1"
+  outbound_only              = true
+  envoy_public_listener_port = var.envoy_public_listener_port
 }

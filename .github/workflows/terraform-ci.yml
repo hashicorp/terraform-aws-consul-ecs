@@ -10,6 +10,7 @@ on:
   pull_request:
     branches:
       - 'main'
+      - 'ganeshrockz/dataplane-arch-changes' #TODO: Remove this when merging to main
       - 'release/**'
 env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
@@ -170,6 +171,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ matrix.launch-type }}'
         VARS+=' -var consul_version=${{ matrix.consul-version }}'
+        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
@@ -193,6 +195,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ matrix.launch-type }}'
         VARS+=' -var consul_version=${{ matrix.consul-version }}'
+        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
