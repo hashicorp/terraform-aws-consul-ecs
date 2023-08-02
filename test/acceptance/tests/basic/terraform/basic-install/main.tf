@@ -38,7 +38,7 @@ variable "tags" {
 }
 
 variable "secure" {
-  description = "Whether to create all resources in a secure installation (with TLS, ACLs and gossip encryption)."
+  description = "Whether to create all resources in a secure installation (with TLS and ACLs)."
   type        = bool
   default     = false
 }
