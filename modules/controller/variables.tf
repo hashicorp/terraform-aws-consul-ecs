@@ -132,15 +132,15 @@ variable "http_config" {
   default     = {}
   description = <<-EOT
   This accepts HTTP specific TLS configuration based on the `consulServers.http` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for HTTP. The HTTP port defaults to 8500 if TLS is 
+  If unset, values of `var.tls` and `var.tls_server_name` will be used to configure TLS settings for HTTP. The HTTP port defaults to 8500 if TLS is 
   not enabled or 8501 if TLS is enabled.
   EOT
 
   validation {
-    error_message = "Only the 'port', 'https', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in http_config."
+    error_message = "Only the 'port', 'https', 'tls' and 'tlsServerName' fields are allowed in http_config."
     condition = alltrue([
       for key in keys(var.http_config) :
-      contains(["port", "https", "tls", "tlsServerName", "caCertFile"], key)
+      contains(["port", "https", "tls", "tlsServerName"], key)
     ])
   }
 }
@@ -150,15 +150,15 @@ variable "grpc_config" {
   default     = {}
   description = <<-EOT
   This accepts gRPC specific TLS configuration based on the `consulServers.grpc` schema present in https://github.com/hashicorp/consul-ecs/blob/main/config/schema.json.
-  If unset, values of `var.tls`, `var.tls_server_name` and `var.ca_cert_file` will be used to configure TLS settings for gRPC. The gRPC port defaults to 8502 if TLS is
+  If unset, values of `var.tls` and `var.tls_server_name` will be used to configure TLS settings for gRPC. The gRPC port defaults to 8502 if TLS is
   not enabled or 8503 if TLS is enabled.
   EOT
 
   validation {
-    error_message = "Only the 'port', 'tls', 'tlsServerName' and 'caCertFile' fields are allowed in grpc_config."
+    error_message = "Only the 'port', 'tls' and 'tlsServerName' fields are allowed in grpc_config."
     condition = alltrue([
       for key in keys(var.grpc_config) :
-      contains(["port", "tls", "tlsServerName", "caCertFile"], key)
+      contains(["port", "tls", "tlsServerName"], key)
     ])
   }
 }

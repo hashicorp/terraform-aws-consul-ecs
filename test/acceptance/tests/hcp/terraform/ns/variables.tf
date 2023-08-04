@@ -61,31 +61,16 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "ganeshrockz/ecs"
 }
 
-variable "consul_public_endpoint_url" {
-  description = "URL of the public Consul endpoint."
+variable "consul_server_address" {
+  description = "Address of the consul server host"
   type        = string
-}
-
-variable "consul_private_endpoint_url" {
-  description = "URL of the private Consul endpoint."
-  type        = string
-}
-
-variable "retry_join" {
-  description = "Retry join string for the Consul client."
-  type        = list(string)
 }
 
 variable "bootstrap_token_secret_arn" {
   description = "ARN of the secret holding the Consul bootstrap token."
-  type        = string
-}
-
-variable "gossip_key_secret_arn" {
-  description = "ARN of the secret holding the Consul gossip encryption key."
   type        = string
 }
 
@@ -104,4 +89,16 @@ variable "server_namespace" {
   description = "The namespace that the server belongs to."
   type        = string
   default     = "ns2"
+}
+
+variable "http_port" {
+  description = "Port where the server's HTTP interface is exposed"
+  type        = number
+  default     = 443
+}
+
+variable "grpc_port" {
+  description = "Port where the server's gRPC interface is exposed"
+  type        = number
+  default     = 8502
 }

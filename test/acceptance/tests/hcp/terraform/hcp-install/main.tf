@@ -9,9 +9,9 @@ locals {
   ecs_cluster_arn = var.ecs_cluster_arns[0]
 }
 
-// Create ACL controller
-module "acl_controller" {
-  source = "../../../../../../modules/acl-controller"
+// Create ECS controller
+module "ecs_controller" {
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -22,7 +22,7 @@ module "acl_controller" {
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = var.bootstrap_token_secret_arn
-  consul_server_http_addr           = var.consul_private_endpoint_url
+  consul_server_hosts               = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
@@ -30,6 +30,13 @@ module "acl_controller" {
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
   consul_partition                  = "default"
+  tls                               = true
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 }
 
 // Create client.
@@ -65,7 +72,7 @@ module "test_client" {
       initProcessEnabled = true
     }
   }]
-  retry_join = var.retry_join
+  consul_server_hosts = var.consul_server_address
   upstreams = [
     {
       destinationName = "test_server_${var.suffix}"
@@ -82,16 +89,19 @@ module "test_client" {
   }
   outbound_only = true
 
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = var.gossip_key_secret_arn
-  consul_http_addr          = var.consul_private_endpoint_url
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_namespace          = "default"
-  consul_partition          = "default"
-  audit_logging             = var.audit_logging
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_namespace = "default"
+  consul_partition = "default"
+
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
@@ -119,8 +129,14 @@ module "test_server" {
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/health || exit 1"]
+      interval = 5
+      retries  = 5
+      timeout  = 10
+    }
   }]
-  retry_join = var.retry_join
+  consul_server_hosts = var.consul_server_address
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -129,27 +145,20 @@ module "test_server" {
       awslogs-stream-prefix = "test_server_${var.suffix}"
     }
   }
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "2s"
-    }
-  ]
   port = 9090
 
-  tls                       = true
-  acls                      = true
-  gossip_key_secret_arn     = var.gossip_key_secret_arn
-  consul_http_addr          = var.consul_private_endpoint_url
-  consul_server_ca_cert_arn = var.consul_ca_cert_secret_arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
-  consul_partition          = "default"
-  consul_namespace          = "default"
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_image     = var.consul_image
+  consul_partition = "default"
+  consul_namespace = "default"
+  http_config = {
+    port = var.http_port
+  }
+  grpc_config = {
+    port = var.grpc_port
+  }
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
