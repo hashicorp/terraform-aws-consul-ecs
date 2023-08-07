@@ -3,11 +3,9 @@
 
 locals {
   // Determine which secrets are provided and which ones need to be created.
-  generate_gossip_key      = var.gossip_encryption_enabled && var.generate_gossip_encryption_key
   generate_ca              = var.tls && var.generate_ca
   generate_bootstrap_token = var.acls && var.generate_bootstrap_token
 
-  gossip_key_arn      = local.generate_gossip_key ? aws_secretsmanager_secret.gossip_key[0].arn : var.gossip_key_secret_arn
   ca_cert_arn         = local.generate_ca ? aws_secretsmanager_secret.ca_cert[0].arn : var.ca_cert_arn
   ca_key_arn          = local.generate_ca ? aws_secretsmanager_secret.ca_key[0].arn : var.ca_key_arn
   bootstrap_token_arn = local.generate_bootstrap_token ? aws_secretsmanager_secret.bootstrap_token[0].arn : var.bootstrap_token_arn
@@ -94,23 +92,6 @@ resource "aws_secretsmanager_secret_version" "license" {
   secret_string = chomp(var.consul_license) // trim trailing newlines
 }
 
-resource "random_id" "gossip_key" {
-  count       = local.generate_gossip_key ? 1 : 0
-  byte_length = 32
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  count                   = local.generate_gossip_key ? 1 : 0
-  name                    = "${var.name}-gossip-key"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  count         = local.generate_gossip_key ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.gossip_key[count.index].id
-  secret_string = random_id.gossip_key[count.index].b64_std
-}
-
 resource "aws_ecs_service" "this" {
   name            = var.name
   cluster         = var.ecs_cluster_arn
@@ -190,12 +171,6 @@ resource "aws_ecs_task_definition" "this" {
           },
         ] : []
         secrets = concat(
-          var.gossip_encryption_enabled ? [
-            {
-              name      = "CONSUL_GOSSIP_ENCRYPTION_KEY"
-              valueFrom = local.gossip_key_arn
-            },
-          ] : [],
           var.acls ? [
             {
               name      = "CONSUL_HTTP_TOKEN"
@@ -253,17 +228,6 @@ resource "aws_iam_policy" "this_execution" {
       ],
       "Resource": [
         "${aws_secretsmanager_secret.license[0].arn}"
-      ]
-    },
-%{endif~}
-%{if var.gossip_encryption_enabled~}
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": [
-        "${local.gossip_key_arn}"
       ]
     },
 %{endif~}
@@ -392,9 +356,6 @@ exec consul agent -server \
   -advertise "$ECS_IPV4" \
   -client 0.0.0.0 \
   -data-dir /tmp/consul-data \
-%{if var.gossip_encryption_enabled~}
-  -encrypt "$CONSUL_GOSSIP_ENCRYPTION_KEY" \
-%{endif~}
   -hcl 'node_name = "${local.node_name}"' \
   -hcl='datacenter = "${var.datacenter}"' \
   -hcl 'connect { enabled = true }' \

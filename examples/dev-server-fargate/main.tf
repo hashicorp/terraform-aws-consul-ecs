@@ -93,7 +93,7 @@ module "example_client_app" {
       timeout  = 5
     }
   }]
-  retry_join = [module.dev_consul_server.server_dns]
+  consul_server_hosts = module.dev_consul_server.server_dns
 }
 
 # The server app is part of the service mesh. It's called
@@ -127,19 +127,15 @@ module "example_server_app" {
         value = "${var.name}-example-server-app"
       }
     ]
-  }]
-  # A Consul-native check, included in service registration.
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "5s"
+    # An ECS health check. This will be automatically synced into Consul.
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl -f http://localhost:9090/health"]
+      interval = 5
+      retries  = 3
+      timeout  = 10
     }
-  ]
-  retry_join = [module.dev_consul_server.server_dns]
+  }]
+  consul_server_hosts = module.dev_consul_server.server_dns
 }
 
 resource "aws_lb" "example_client_app" {

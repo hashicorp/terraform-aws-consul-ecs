@@ -61,7 +61,7 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.15.1"
+  default     = "public.ecr.aws/hashicorp/consul:1.16.0"
 }
 
 variable "consul_license" {
@@ -127,24 +127,6 @@ variable "ca_cert_arn" {
 
 variable "ca_key_arn" {
   description = "The Secrets Manager ARN of the Consul CA certificate key."
-  type        = string
-  default     = ""
-}
-
-variable "gossip_encryption_enabled" {
-  description = "Whether or not to enable gossip encryption."
-  type        = bool
-  default     = false
-}
-
-variable "generate_gossip_encryption_key" {
-  description = "Controls whether or not a gossip encryption key will automatically be created and stored in Secrets Manager. Default is true. Set this to false and set gossip_key_secret_arn to provide a pre-existing secret."
-  type        = bool
-  default     = true
-}
-
-variable "gossip_key_secret_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key. A gossip encryption key will automatically be created and stored in Secrets Manager if gossip encryption is enabled and this variable is not provided."
   type        = string
   default     = ""
 }
