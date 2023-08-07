@@ -41,7 +41,7 @@ module "ecs_controller_client" {
   }
 }
 
-# // Create services.
+// Create services.
 resource "aws_ecs_service" "example_client" {
   name            = "example_client_${local.client_suffix}"
   cluster         = aws_ecs_cluster.cluster_1.arn
