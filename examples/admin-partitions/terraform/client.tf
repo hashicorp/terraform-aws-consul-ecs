@@ -10,20 +10,20 @@ resource "random_string" "client_suffix" {
   special = false
 }
 
-// Create ACL controller
-module "acl_controller_client" {
-  source = "../../../modules/acl-controller"
+// Create ECS controller
+module "ecs_controller_client" {
+  source = "../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = aws_cloudwatch_log_group.log_group.name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${local.client_suffix}"
+      awslogs-stream-prefix = "consul-ecs-controller-${local.client_suffix}"
     }
   }
   launch_type                       = local.launch_type
   consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
-  consul_server_http_addr           = hcp_consul_cluster.this.consul_private_endpoint_url
+  consul_server_hosts               = local.server_host
   ecs_cluster_arn                   = aws_ecs_cluster.cluster_1.arn
   region                            = var.region
   subnets                           = module.vpc.private_subnets
@@ -31,9 +31,17 @@ module "acl_controller_client" {
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
   consul_partition                  = consul_admin_partition.part1.name
+
+  tls = true
+  http_config = {
+    port = 443
+  }
+  grpc_config = {
+    port = 8502
+  }
 }
 
-// Create services.
+# // Create services.
 resource "aws_ecs_service" "example_client" {
   name            = "example_client_${local.client_suffix}"
   cluster         = aws_ecs_cluster.cluster_1.arn
@@ -66,7 +74,7 @@ module "example_client" {
       initProcessEnabled = true
     }
   }]
-  retry_join = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"]
+  consul_server_hosts = local.server_host
   upstreams = [
     {
       destinationName      = "example_server_${local.server_suffix}"
@@ -85,15 +93,19 @@ module "example_client" {
   }
   outbound_only = true
 
-  tls                       = true
-  acls                      = true
-  consul_http_addr          = hcp_consul_cluster.this.consul_private_endpoint_url
-  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
-  consul_server_ca_cert_arn = aws_secretsmanager_secret.consul_ca_cert.arn
-  consul_ecs_image          = var.consul_ecs_image
-  consul_partition          = consul_admin_partition.part1.name
-  consul_namespace          = consul_namespace.ns1.name
-  consul_image              = var.consul_image
+  tls              = true
+  acls             = true
+  consul_ecs_image = var.consul_ecs_image
+  consul_partition = consul_admin_partition.part1.name
+  consul_namespace = consul_namespace.ns1.name
+  consul_image     = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  http_config = {
+    port = 443
+  }
+  grpc_config = {
+    port = 8502
+  }
 }
