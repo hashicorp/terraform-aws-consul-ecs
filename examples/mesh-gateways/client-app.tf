@@ -18,13 +18,13 @@ locals {
 
 
 module "example_client_app" {
-  source                    = "../../modules/mesh-task"
-  family                    = local.example_client_app_name
-  port                      = "9090"
-  acls                      = true
-  consul_server_hosts       = module.dc1.dev_consul_server.server_dns
-  tls                       = true
-  consul_ca_cert_arn        = aws_secretsmanager_secret.ca_cert.arn
+  source              = "../../modules/mesh-task"
+  family              = local.example_client_app_name
+  port                = "9090"
+  acls                = true
+  consul_server_hosts = module.dc1.dev_consul_server.server_dns
+  tls                 = true
+  consul_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
   upstreams = [
     {
       destinationName = "${var.name}-${local.secondary_datacenter}-example-server-app"

@@ -16,14 +16,14 @@ locals {
 }
 
 module "example_server_app" {
-  source                    = "../../modules/mesh-task"
-  family                    = local.example_server_app_name
-  port                      = "9090"
-  acls                      = true
-  consul_server_hosts       = module.dc2.dev_consul_server.server_dns
-  tls                       = true
-  consul_ca_cert_arn        = aws_secretsmanager_secret.ca_cert.arn
-  log_configuration         = local.example_server_app_log_config
+  source              = "../../modules/mesh-task"
+  family              = local.example_server_app_name
+  port                = "9090"
+  acls                = true
+  consul_server_hosts = module.dc2.dev_consul_server.server_dns
+  tls                 = true
+  consul_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
+  log_configuration   = local.example_server_app_log_config
   container_definitions = [{
     name             = "example-server-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
