@@ -73,11 +73,6 @@ variable "ca_key_arn" {
   type        = string
 }
 
-variable "gossip_key_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Consul gossip encryption key."
-  type        = string
-}
-
 variable "bootstrap_token" {
   description = "The Consul bootstrap token."
   type        = string

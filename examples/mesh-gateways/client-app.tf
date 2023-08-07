@@ -18,19 +18,13 @@ locals {
 
 
 module "example_client_app" {
-  source                       = "../../modules/mesh-task"
-  family                       = local.example_client_app_name
-  port                         = "9090"
-  consul_datacenter            = local.primary_datacenter
-  consul_primary_datacenter    = local.primary_datacenter
-  acls                         = true
-  enable_acl_token_replication = true
-  consul_http_addr             = "http://${module.dc1.dev_consul_server.server_dns}:8500"
-  consul_https_ca_cert_arn     = aws_secretsmanager_secret.ca_cert.arn
-  tls                          = true
-  consul_server_ca_cert_arn    = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_secret_arn        = aws_secretsmanager_secret.gossip_key.arn
-  retry_join                   = [module.dc1.dev_consul_server.server_dns]
+  source                    = "../../modules/mesh-task"
+  family                    = local.example_client_app_name
+  port                      = "9090"
+  acls                      = true
+  consul_server_hosts       = module.dc1.dev_consul_server.server_dns
+  tls                       = true
+  consul_ca_cert_arn        = aws_secretsmanager_secret.ca_cert.arn
   upstreams = [
     {
       destinationName = "${var.name}-${local.secondary_datacenter}-example-server-app"
