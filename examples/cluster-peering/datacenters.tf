@@ -143,13 +143,13 @@ EOT
 resource "consul_peering_token" "this" {
   depends_on = [null_resource.wait_for_mesh_gateway_dc1, null_resource.wait_for_mesh_gateway_dc2]
   provider   = consul.dc2-cluster
-  peer_name  = "dc1-cluster"
+  peer_name  = "${local.datacenter_1}-cluster"
 }
 
 resource "consul_peering" "dc1-dc2" {
   provider = consul.dc1-cluster
 
-  peer_name     = "${local.datacenter_1}-cluster"
+  peer_name     = "${local.datacenter_2}-cluster"
   peering_token = consul_peering_token.this.peering_token
 }
 
@@ -158,18 +158,18 @@ resource "consul_peering" "dc1-dc2" {
 resource "consul_config_entry" "export_peer_service" {
   depends_on = [consul_peering.dc1-dc2]
 
-  kind     = "exported-services"
-  name     = "default"
-  provider = consul.dc2-cluster
+  kind      = "exported-services"
+  name      = "default"
+  provider  = consul.dc2-cluster
 
   config_json = jsonencode({
     Name = "default"
     Services = [
       {
-        Name = local.example_server_app_name
+        Name      = local.example_server_app_name
         Consumers = [
           {
-            Peer = "${local.datacenter_2}-cluster"
+            Peer = "${local.datacenter_1}-cluster"
           }
         ]
       }
