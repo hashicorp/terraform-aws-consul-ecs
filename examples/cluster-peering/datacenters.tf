@@ -158,15 +158,15 @@ resource "consul_peering" "dc1-dc2" {
 resource "consul_config_entry" "export_peer_service" {
   depends_on = [consul_peering.dc1-dc2]
 
-  kind      = "exported-services"
-  name      = "default"
-  provider  = consul.dc2-cluster
+  kind     = "exported-services"
+  name     = "default"
+  provider = consul.dc2-cluster
 
   config_json = jsonencode({
     Name = "default"
     Services = [
       {
-        Name      = local.example_server_app_name
+        Name = local.example_server_app_name
         Consumers = [
           {
             Peer = "${local.datacenter_1}-cluster"
