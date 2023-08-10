@@ -41,7 +41,7 @@ module "ecs_controller_server" {
   }
 }
 
-# // Create services.
+// Create services.
 resource "aws_ecs_service" "example_server" {
   name            = "example_server_${local.server_suffix}"
   cluster         = aws_ecs_cluster.cluster_2.arn
@@ -82,12 +82,12 @@ module "example_server" {
   }
   port = 9090
 
-  tls              = true
-  acls             = true
-  consul_ecs_image = var.consul_ecs_image
-  consul_partition = consul_admin_partition.part2.name
-  consul_namespace = consul_namespace.ns2.name
-  consul_image     = var.consul_image
+  tls                    = true
+  acls                   = true
+  consul_ecs_image       = var.consul_ecs_image
+  consul_dataplane_image = var.consul_dataplane_image
+  consul_partition       = consul_admin_partition.part2.name
+  consul_namespace       = consul_namespace.ns2.name
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 

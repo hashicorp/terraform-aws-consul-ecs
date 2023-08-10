@@ -17,16 +17,16 @@ variable "tags" {
   description = "Tags to attach to the created resources."
 }
 
-variable "consul_image" {
-  description = "Consul Docker image."
-  type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.16.0-ent"
-}
-
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
   default     = "ganeshrockz/ecs"
+}
+
+variable "consul_dataplane_image" {
+  description = "consul-dataplane Docker image."
+  type        = string
+  default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
 }
 
 variable "client_partition" {

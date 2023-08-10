@@ -93,12 +93,12 @@ module "example_client" {
   }
   outbound_only = true
 
-  tls              = true
-  acls             = true
-  consul_ecs_image = var.consul_ecs_image
-  consul_partition = consul_admin_partition.part1.name
-  consul_namespace = consul_namespace.ns1.name
-  consul_image     = var.consul_image
+  tls                    = true
+  acls                   = true
+  consul_ecs_image       = var.consul_ecs_image
+  consul_dataplane_image = var.consul_dataplane_image
+  consul_partition       = consul_admin_partition.part1.name
+  consul_namespace       = consul_namespace.ns1.name
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
