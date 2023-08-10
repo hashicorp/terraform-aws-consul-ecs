@@ -45,8 +45,3 @@ output "bootstrap_token_id" {
   description = "The Consul secret ID of the bootstrap ACL token."
   value       = var.acls ? local.bootstrap_token : null
 }
-
-output "gossip_key_arn" {
-  description = "The Secrets Manager ARN of the gossip encryption key."
-  value       = local.gossip_key_arn != "" ? local.gossip_key_arn : null
-}
