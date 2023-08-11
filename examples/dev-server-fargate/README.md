@@ -6,7 +6,7 @@ a Consul dev server and two example service mesh tasks using Fargate.
 There are then instructions on how to interact with Consul and test out
 some service mesh features.
 
-![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/dev-server-fargate.png?raw=true)
+![Example architecture](../../_docs/dev-server-fargate.png?raw=true)
 
 ## Requirements
 
@@ -82,7 +82,7 @@ mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east
 If you click on the URL of the `consul_server_lb_address`, you should be able
 to view the Consul UI:
 
-![Consul UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/consul-ui.png?raw=true)
+![Consul UI](../../_docs/consul-ui.png?raw=true)
 
 ~> At first, if you click on the URL of the `mesh_client_lb_address` or `consul_server_lb_address`,
 the page might not load.
@@ -157,7 +157,7 @@ We can create a deny intention to deny this traffic through the UI:
 1. Click the **Deny** card.
 1. Click the **Save** button.
 
-![Intention UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/intentions.png?raw=true)
+![Intention UI](../../_docs/intentions.png?raw=true)
 
 Now, navigate to the UI of the example application. You should see something
 that looks like:

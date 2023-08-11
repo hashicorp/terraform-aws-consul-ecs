@@ -20,12 +20,10 @@ module "dc1" {
   // To enable WAN federation via mesh gateways both servers must be configured with:
   // - The same primary datacenter.
   // - The same CA private key and certificate.
-  // - The same gossip encryption key.
   // - The flag `enable_mesh_gateway_wan_federation` set to true. See https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#consul-server-options.
   primary_datacenter                 = local.primary_datacenter
   ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
   ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_federation = true
 
   bootstrap_token_arn = aws_secretsmanager_secret.bootstrap_token.arn
@@ -48,7 +46,6 @@ module "dc2" {
   primary_datacenter                 = local.primary_datacenter
   ca_cert_arn                        = aws_secretsmanager_secret.ca_cert.arn
   ca_key_arn                         = aws_secretsmanager_secret.ca_key.arn
-  gossip_key_arn                     = aws_secretsmanager_secret.gossip_key.arn
   enable_mesh_gateway_wan_federation = true
 
   // To enable WAN federation via mesh gateways all secondary datacenters must be
@@ -162,20 +159,6 @@ resource "aws_secretsmanager_secret" "ca_cert" {
 resource "aws_secretsmanager_secret_version" "ca_cert" {
   secret_id     = aws_secretsmanager_secret.ca_cert.id
   secret_string = tls_self_signed_cert.ca.cert_pem
-}
-
-resource "random_id" "gossip_key" {
-  byte_length = 32
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  name                    = "${var.name}-gossip-key-shared"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  secret_id     = aws_secretsmanager_secret.gossip_key.id
-  secret_string = random_id.gossip_key.b64_std
 }
 
 // Our app tasks need to allow ingress from the dev-server (in the relevant dc).
