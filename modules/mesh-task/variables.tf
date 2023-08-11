@@ -142,12 +142,6 @@ variable "outbound_only" {
   default     = false
 }
 
-variable "consul_image" {
-  description = "Consul Docker image."
-  type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.16.0"
-}
-
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string

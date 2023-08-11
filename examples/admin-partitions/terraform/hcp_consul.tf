@@ -1,6 +1,24 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+terraform {
+  required_providers {
+    hcp = {
+      source  = "hashicorp/hcp"
+      version = "~> 0.66.0"
+    }
+  }
+}
+
+// Configure the provider
+provider "hcp" {
+  project_id = var.hcp_project_id
+}
+
+locals {
+  server_host = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["retry_join"][0]
+}
+
 // Create HCP Consul resources.
 resource "hcp_hvn" "server" {
   hvn_id         = "hvn-${local.rand_suffix}"
@@ -49,7 +67,7 @@ resource "hcp_consul_cluster" "this" {
   hvn_id             = hcp_hvn.server.hvn_id
   tier               = "development"
   public_endpoint    = true
-  min_consul_version = "1.12.0"
+  min_consul_version = "1.16.0"
 }
 
 // Configure Consul resources to allow cross-partition and cross-namespace communication.
@@ -131,15 +149,6 @@ resource "aws_secretsmanager_secret" "bootstrap_token" {
 resource "aws_secretsmanager_secret_version" "bootstrap_token" {
   secret_id     = aws_secretsmanager_secret.bootstrap_token.id
   secret_string = hcp_consul_cluster.this.consul_root_token_secret_id
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  name = "${local.rand_suffix}-gossip-key"
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  secret_id     = aws_secretsmanager_secret.gossip_key.id
-  secret_string = jsondecode(base64decode(hcp_consul_cluster.this.consul_config_file))["encrypt"]
 }
 
 resource "aws_secretsmanager_secret" "consul_ca_cert" {
