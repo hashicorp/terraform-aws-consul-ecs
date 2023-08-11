@@ -30,6 +30,8 @@ module "dev_consul_server" {
     }
   }
   launch_type = "FARGATE"
+
+  consul_server_startup_timeout = var.consul_server_startup_timeout
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {

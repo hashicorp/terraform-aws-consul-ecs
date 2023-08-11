@@ -17,7 +17,8 @@ module "dc1" {
   region          = var.region
   vpc             = module.dc1_vpc
 
-  consul_ecs_image = var.consul_ecs_image
+  consul_ecs_image              = var.consul_ecs_image
+  consul_server_startup_timeout = var.consul_server_startup_timeout
 }
 
 module "dc2" {
@@ -31,51 +32,12 @@ module "dc2" {
   region          = var.region
   vpc             = module.dc2_vpc
 
-  consul_ecs_image = var.consul_ecs_image
-}
-
-// Create a null_resource that will wait for the Consul server to be available via its ALB.
-// This allows us to wait until the Consul server is reachable before trying to create
-// Consul resources like config entries. If we don't wait, Terraform will fail to create
-// the necessary Consul resources.
-resource "null_resource" "wait_for_dc1_consul_server" {
-  depends_on = [module.dc1]
-  triggers = {
-    // Trigger update when Consul server ALB DNS name changes.
-    consul_server_lb_dns_name = "${module.dc1.dev_consul_server.lb_dns_name}"
-  }
-  provisioner "local-exec" {
-    command = <<EOT
-stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
-while [ $(date +%s) -lt $stopTime ] ; do \
-  sleep 10 ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${module.dc1.dev_consul_server.lb_dns_name}:8500/v1/catalog/services)
-  [ $statusCode -eq 200 ] && break; \
-done
-EOT
-  }
-}
-
-resource "null_resource" "wait_for_dc2_consul_server" {
-  depends_on = [module.dc2]
-  triggers = {
-    // Trigger update when Consul server ALB DNS name changes.
-    consul_server_lb_dns_name = "${module.dc2.dev_consul_server.lb_dns_name}"
-  }
-  provisioner "local-exec" {
-    command = <<EOT
-stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
-while [ $(date +%s) -lt $stopTime ] ; do \
-  sleep 10 ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${module.dc2.dev_consul_server.lb_dns_name}:8500/v1/catalog/services)
-  [ $statusCode -eq 200 ] && break; \
-done
-EOT
-  }
+  consul_ecs_image              = var.consul_ecs_image
+  consul_server_startup_timeout = var.consul_server_startup_timeout
 }
 
 resource "consul_config_entry" "mesh_dc1" {
-  depends_on = [null_resource.wait_for_dc1_consul_server]
+  depends_on = [module.dc1]
 
   kind     = "mesh"
   name     = "mesh"
@@ -89,7 +51,7 @@ resource "consul_config_entry" "mesh_dc1" {
 }
 
 resource "consul_config_entry" "mesh_dc2" {
-  depends_on = [null_resource.wait_for_dc2_consul_server]
+  depends_on = [module.dc2]
 
   kind     = "mesh"
   name     = "mesh"
@@ -109,7 +71,7 @@ resource "consul_config_entry" "mesh_dc2" {
 # any race conditions that might prevent traffic from flowing through
 # the gateways.
 resource "null_resource" "wait_for_mesh_gateway_dc1" {
-  depends_on = [null_resource.wait_for_dc1_consul_server]
+  depends_on = [module.dc1]
 
   provisioner "local-exec" {
     command = <<EOT
@@ -125,7 +87,7 @@ EOT
 }
 
 resource "null_resource" "wait_for_mesh_gateway_dc2" {
-  depends_on = [null_resource.wait_for_dc2_consul_server]
+  depends_on = [module.dc2]
 
   provisioner "local-exec" {
     command = <<EOT
@@ -195,7 +157,7 @@ resource "consul_config_entry" "service_intention" {
       }
     ]
   })
-  depends_on = [null_resource.wait_for_dc2_consul_server]
+  depends_on = [module.dc2]
 }
 
 // Our app tasks need to allow ingress from the dev-server (in the relevant dc).
