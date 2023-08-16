@@ -35,6 +35,7 @@ module "dev_consul_server" {
   launch_type = "FARGATE"
 
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
+  consul_server_startup_timeout      = var.consul_server_startup_timeout
 }
 
 resource "aws_security_group_rule" "consul_server_ingress" {
