@@ -240,6 +240,7 @@ variable "upstreams" {
             "destinationNamespace",
             "destinationPartition",
             "destinationName",
+            "destinationPeer",
             "datacenter",
             "localBindAddress",
             "localBindPort",

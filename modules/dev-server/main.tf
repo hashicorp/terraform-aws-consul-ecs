@@ -563,3 +563,24 @@ resource "aws_security_group_rule" "egress_from_service" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.ecs_service.id
 }
+
+// Create a null_resource that will wait for the Consul server to be available via its ALB.
+// This allows us to wait until the Consul server is reachable so that callers can always
+// create Consul resources like config entries via Terraform without failures. 
+resource "null_resource" "wait_for_consul_server" {
+  count = var.lb_enabled ? 1 : 0
+  triggers = {
+    // Trigger update when Consul server ALB DNS name changes.
+    consul_server_lb_dns_name = "${aws_lb.this[0].dns_name}"
+  }
+  provisioner "local-exec" {
+    command = <<EOT
+stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
+while [ $(date +%s) -lt $stopTime ] ; do \
+  sleep 10 ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services)
+  [ $statusCode -eq 200 ] && break; \
+done
+EOT
+  }
+}
