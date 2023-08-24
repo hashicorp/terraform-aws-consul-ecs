@@ -96,6 +96,12 @@ BREAKING CHANGES
 IMPROVEMENTS
 * examples/cluster-peering: Add example terraform to illustrate Consul's cluster peering usecase on ECS. [[GH-194]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/194)
 
+## 0.6.1 (Jul 20, 2023)
+
+IMPROVEMENTS
+* Bump Consul OSS image version to 1.15.4 and Consul enterprise version to 1.15.4-ent
+* Bump envoy image to 1.23.10
+
 ## 0.6.0 (Mar 15, 2023)
 
 FEATURES
