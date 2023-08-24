@@ -111,22 +111,22 @@ jobs:
           - acceptance-1.16-EC2
         include:
           - name: acceptance-1.16-FARGATE-HCP
-            consul-version: '1.16.0'
+            consul-version: '1.16.1'
             enable-hcp: true
             launch-type: FARGATE
 
           - name: acceptance-1.16-EC2-HCP
-            consul-version: '1.16.0'
+            consul-version: '1.16.1'
             enable-hcp: true
             launch-type: EC2
 
           - name: acceptance-1.16-FARGATE
-            consul-version: '1.16.0'
+            consul-version: '1.16.1'
             enable-hcp: false
             launch-type: FARGATE
 
           - name: acceptance-1.16-EC2
-            consul-version: '1.16.0'
+            consul-version: '1.16.1'
             enable-hcp: false
             launch-type: EC2
 

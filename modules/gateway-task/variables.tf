@@ -85,7 +85,7 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.16.0"
+  default     = "public.ecr.aws/hashicorp/consul:1.16.1"
 }
 
 variable "consul_server_hosts" {
