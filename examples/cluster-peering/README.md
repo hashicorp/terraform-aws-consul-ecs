@@ -4,7 +4,7 @@ This example demonstrates peering of two Consul clusters using mesh gateways on 
 
 There are instructions below on how to interact with Consul and test out some service mesh features.
 
-![Example architecture](../../_docs/peering-arch.png?raw=true)
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-arch.png?raw=true)
 
 ## Requirements
 
@@ -104,29 +104,29 @@ e2cb39e2-b9fd-18af-025f-86f6da6889a7
 If you click on the URL of the `dc1_server_url`, you should be able
 to view the Consul UI and log in using the `dc1_server_bootstrap_token` above:
 
-![Consul dc1 UI](../../_docs/peering-dc1-ui.png?raw=true)
+![Consul dc1 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-dc1-ui.png?raw=true)
 
 If you click on the URL of the `dc2_server_url`, you should be able
 to view the Consul UI and log in using the `dc2_server_bootstrap_token` above:
 
-![Consul dc2 UI](../../_docs/peering-dc2-ui.png?raw=true)
+![Consul dc2 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-dc2-ui.png?raw=true)
 
 If you click on the Peers subsection in the left pane in `dc1_server_url` you should see that
 a successful peering connection has been established with the `dc2` cluster.
 
-![Consul dc2 peering](../../_docs/peering-established.png?raw=true)
+![Consul dc2 peering](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-established.png?raw=true)
 
 Similarly you should be able to see that `dc1-cluster` is a peer for `dc2` from `dc2_server_url`. You should also see that the example server app is exported to `dc1` via the peering connection. This can be seen by clicking on the peer name in `dc2_server_url` under the `Peers` subsection.
 
-![Consul dc2 exported service](../../_docs/peering-exported-service.png?raw=true)
+![Consul dc2 exported service](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-exported-service.png?raw=true)
 
 You should see an intention configured for the example server app service in `dc2` for allowing calls from the client app present in the peer `dc1-cluster`.
 
-![Consul peering intention](../../_docs/peering-intention.png?raw=true)
+![Consul peering intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-intention.png?raw=true)
 
 If you browse to the URL of the `client_lb_address`, the example application UI should be displayed:
 
-![Example App UI](../../_docs/peering-successful.png?raw=true)
+![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/peering-successful.png?raw=true)
 
 If you navigate to the same URL without `/ui`, the raw output is printed:
 
