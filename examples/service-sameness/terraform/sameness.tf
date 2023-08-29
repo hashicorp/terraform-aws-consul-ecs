@@ -94,15 +94,15 @@ resource "consul_config_entry" "export_dc1_default_server_app" {
             SamenessGroup = "${local.datacenter_1}-default-sameness-group"
           }
         ]
+      },
+      {
+        Name = module.dc1_gateway_default_partition.name
+        Consumers = [
+          {
+            SamenessGroup = "${local.datacenter_1}-default-sameness-group"
+          }
+        ]
       }
-      # {
-      #   Name = module.dc1_gateway_default_partition.name
-      #   Consumers = [
-      #     {
-      #       SamenessGroup = "${local.datacenter_1}-default-sameness-group"
-      #     }
-      #   ]
-      # }
     ]
   })
 }
@@ -126,15 +126,15 @@ resource "consul_config_entry" "export_dc1_part1_server_app" {
             SamenessGroup = "${local.datacenter_1}-${var.dc1_consul_admin_partition}-sameness-group"
           }
         ]
+      },
+      {
+        Name = module.dc1_gateway_part1_partition.name
+        Consumers = [
+          {
+            SamenessGroup = "${local.datacenter_1}-${var.dc1_consul_admin_partition}-sameness-group"
+          }
+        ]
       }
-      # {
-      #   Name = module.dc1_gateway_part1_partition.name
-      #   Consumers = [
-      #     {
-      #       SamenessGroup = "${local.datacenter_1}-${var.dc1_consul_admin_partition}-sameness-group"
-      #     }
-      #   ]
-      # }
     ]
   })
 }
