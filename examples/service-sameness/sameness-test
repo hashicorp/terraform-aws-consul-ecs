@@ -1,0 +1,193 @@
+#!/bin/bash
+
+wait_for_registration() {
+  echo ""
+  echo -n "Waiting for ${3}/default/${4} to be registered in Consul"
+  local count=0
+  while [[ $count -le 30 ]]; do
+    echo -n "."
+    resp=$(curl -sS -X GET -H "Authorization: Bearer ${2}" "${1}/v1/health/checks/${4}?partition=${3}" | jq -r '.[0].Status')
+    [[ $resp == "passing" ]] && echo "" && return
+    
+    sleep 10
+    ((count++))
+  done
+  echo ""
+  echo "timeout waiting for ${3}/default/${4}" to be deregistered
+}
+
+wait_for_deregistration() {
+  echo ""
+  echo -n "Waiting for ${3}/default/${4} to be deregistered from Consul"
+  local count=0
+  while [[ $count -le 30 ]]; do
+    echo -n "."
+    resp=$(curl -sS -X GET -H "Authorization: Bearer ${2}" "${1}/v1/catalog/service/${4}?partition=${3}")
+    [[ $resp == "[]" ]] && echo "" && return
+    
+    sleep 10
+    ((count++))
+  done
+  echo ""
+  echo "timeout waiting for ${3}/default/${4}" to be deregistered
+}
+
+print_row() {
+    printf "%-35s | %-35s \n" "$1" "$2"
+}
+
+call_upstream() {
+    count=0
+    while [[ $count -le 10 ]]; do
+    response=$(curl --silent http://${1}:${2})
+    if echo "$response" | grep -q 'Hello World'; then
+        upstream=$(echo "$response" | jq -r '.upstream_calls["http://localhost:1234"].name')
+        print_row ${3} ${upstream}
+        break
+    fi
+    sleep 20
+    ((count++))
+    done
+    echo ""
+}
+
+call_upstreams() {
+    echo "----------------------------------------------------------------------------------"
+    print_row "DOWNSTREAM" "UPSTREAM"
+    echo "----------------------------------------------------------------------------------"
+    call_upstream ${DC1_CLIENT_LB_DNS_NAME} ${DC1_CLIENT_PORT} ${DC1_DEFAULT_CLIENT_NAME}
+    echo "----------------------------------------------------------------------------------"
+    call_upstream ${DC1_PART1_CLIENT_LB_DNS_NAME} ${DC1_PART1_CLIENT_PORT} ${DC1_PART1_CLIENT_NAME}
+    echo "----------------------------------------------------------------------------------"
+    call_upstream ${DC2_CLIENT_LB_DNS_NAME} ${DC2_CLIENT_PORT} ${DC2_DEFAULT_CLIENT_NAME}
+    echo "----------------------------------------------------------------------------------"
+}
+
+scale_up_ecs_service() {
+    echo ""
+    echo "Scaling up the ${1} ECS service to run a single task."
+
+    aws ecs update-service --region ${AWS_REGION} --cluster ${2} --service ${1} --desired-count 1 > /dev/null
+
+    # Wait for registration in Consul before calling upstreams
+    wait_for_registration ${3} ${4} ${5} ${6} 
+}
+
+scale_down_ecs_service() {
+    echo ""
+    echo "Scaling down the ${1} ECS service to run 0 tasks."
+
+    aws ecs update-service --region ${AWS_REGION} --cluster ${2} --service ${1} --desired-count 0 > /dev/null
+
+    # Wait for deregistration in Consul before calling upstreams
+    wait_for_deregistration ${3} ${4} ${5} ${6} 
+}
+
+# get Terraform outputs and initialize required variables.
+echo "loading Terraform outputs"
+tfOutputs=$(cd terraform; terraform output -json)
+
+# DC1 server configuration
+CONSUL_DC1_SERVER_URL=$(echo "$tfOutputs" | jq -rc '.dc1_server_url.value')
+CONSUL_DC1_SERVER_HTTP_TOKEN=$(echo "$tfOutputs" | jq -rc '.dc1_server_bootstrap_token.value')
+CONSUL_DC1_DEFAULT_PARTITION=default
+CONSUL_DC1_PARTITION=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.partition')
+
+# DC2 server configuration
+CONSUL_DC2_SERVER_URL=$(echo "$tfOutputs" | jq -rc '.dc2_server_url.value')
+CONSUL_DC2_SERVER_HTTP_TOKEN=$(echo "$tfOutputs" | jq -rc '.dc2_server_bootstrap_token.value')
+CONSUL_DC2_DEFAULT_PARTITION=default
+
+AWS_REGION=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.region')
+
+# ARNs for all the ECS clusters
+DC1_DEFAULT_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.ecs_cluster_arn')
+DC1_PART1_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.ecs_cluster_arn')
+DC2_DEFAULT_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.ecs_cluster_arn')
+
+# ECS names of all the client apps
+DC1_DEFAULT_CLIENT_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.client.name')
+DC1_PART1_CLIENT_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.client.name')
+DC2_DEFAULT_CLIENT_NAME=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.client.name')
+
+# ECS names of all the server apps
+DC1_DEFAULT_SERVER_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.server.name')
+DC1_PART1_SERVER_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.server.name')
+DC2_DEFAULT_SERVER_NAME=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.server.name')
+
+# Loadbalancer DNS names of all the client apps
+DC1_CLIENT_LB_DNS_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.client.lb_dns_name')
+DC1_PART1_CLIENT_LB_DNS_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.client.lb_dns_name')
+DC2_CLIENT_LB_DNS_NAME=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.client.lb_dns_name')
+
+# Ports where each client app listens to.
+DC1_CLIENT_PORT=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.client.port')
+DC1_PART1_CLIENT_PORT=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.client.port')
+DC2_CLIENT_PORT=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.client.port')
+
+# Consul service names for all the server apps
+DC1_DEFAULT_SERVER_CONSUL_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.server.consul_service_name')
+DC1_PART1_SERVER_CONSUL_NAME=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.server.consul_service_name')
+DC2_DEFAULT_SERVER_CONSUL_NAME=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.server.consul_service_name')
+
+
+echo "Calling upstreams from individual client tasks. Calls are expected to hit the local server instances in the same namespace as the client"
+
+call_upstreams ${DC1_CLIENT_LB_DNS_NAME} ${DC1_CLIENT_PORT} ${DC1_DEFAULT_CLIENT_NAME} ${DC1_PART1_CLIENT_LB_DNS_NAME} ${DC1_PART1_CLIENT_PORT} ${DC1_PART1_CLIENT_NAME} ${DC2_CLIENT_LB_DNS_NAME} ${DC2_CLIENT_PORT} ${DC2_DEFAULT_CLIENT_NAME}
+
+# Scaling down server app present in the default partition in DC1. After this, requests from
+# the client app in the default partition will failover to the server app present in
+# the part1 partition in DC1.
+scale_down_ecs_service ${DC1_DEFAULT_SERVER_NAME} ${DC1_DEFAULT_PARTITION_CLUSTER_ARN} ${CONSUL_DC1_SERVER_URL} ${CONSUL_DC1_SERVER_HTTP_TOKEN} ${CONSUL_DC1_DEFAULT_PARTITION} ${DC1_DEFAULT_SERVER_CONSUL_NAME}
+
+echo "Scale down complete. Calling upstreams for individual client tasks."
+
+call_upstreams
+
+# Scaling down server app present in the part1 partition in DC1. After this,
+# the client apps present in the default and part1 partition will hit the server app present in
+# the default partition in DC2.
+scale_down_ecs_service ${DC1_PART1_SERVER_NAME} ${DC1_PART1_PARTITION_CLUSTER_ARN} ${CONSUL_DC1_SERVER_URL} ${CONSUL_DC1_SERVER_HTTP_TOKEN} ${CONSUL_DC1_PARTITION} ${DC1_PART1_SERVER_CONSUL_NAME}
+
+echo "Scale down complete. Calling upstreams for individual client tasks."
+
+call_upstreams
+
+# Scaling up server app present in the default partition in DC1. After this,
+# the client app in the default partition will hit the server app present in
+# the default partition in DC1. The client app in the part1 partition will also
+# hit the server app present in the default partition in DC1.
+scale_up_ecs_service ${DC1_DEFAULT_SERVER_NAME} ${DC1_DEFAULT_PARTITION_CLUSTER_ARN} ${CONSUL_DC1_SERVER_URL} ${CONSUL_DC1_SERVER_HTTP_TOKEN} ${CONSUL_DC1_DEFAULT_PARTITION} ${DC1_DEFAULT_SERVER_CONSUL_NAME}
+
+echo "Scale up complete. Calling upstreams for individual client tasks."
+
+call_upstreams
+
+# Scaling down server app present in the default partition in DC2. After this,
+# the client app present in the default partition in DC2 will hit the server app present in
+# the default partition in DC1. The client app in the part1 partition should continue to
+# hit the server app present in the default partition in DC1.
+scale_down_ecs_service ${DC2_DEFAULT_SERVER_NAME} ${DC2_DEFAULT_PARTITION_CLUSTER_ARN} ${CONSUL_DC2_SERVER_URL} ${CONSUL_DC2_SERVER_HTTP_TOKEN} ${CONSUL_DC2_DEFAULT_PARTITION} ${DC2_DEFAULT_SERVER_CONSUL_NAME}
+
+echo "Scale down complete. Calling upstreams for individual client tasks."
+
+call_upstreams
+
+# Scaling up server app present in the part1 partition in DC1. After this,
+# the client app in the part1 partition will hit the server app present in
+# the part1 partition in DC1. The client app in the default partition will continue to
+# hit the server app present in the default partition in DC1.
+scale_up_ecs_service ${DC1_PART1_SERVER_NAME} ${DC1_PART1_PARTITION_CLUSTER_ARN} ${CONSUL_DC1_SERVER_URL} ${CONSUL_DC1_SERVER_HTTP_TOKEN} ${CONSUL_DC1_PARTITION} ${DC1_PART1_SERVER_CONSUL_NAME}
+
+echo "Scale up complete. Calling upstreams for individual client tasks."
+
+call_upstreams
+
+# Scaling up server app present in the default partition in DC2. After this,
+# the client app present in the default partition in DC2 will hit the server app present in
+# the default partition in DC2. All the other client apps should hit their local server apps
+scale_up_ecs_service ${DC2_DEFAULT_SERVER_NAME} ${DC2_DEFAULT_PARTITION_CLUSTER_ARN} ${CONSUL_DC2_SERVER_URL} ${CONSUL_DC2_SERVER_HTTP_TOKEN} ${CONSUL_DC2_DEFAULT_PARTITION} ${DC2_DEFAULT_SERVER_CONSUL_NAME}
+
+echo "Scale up complete. Calling upstreams for individual client tasks."
+
+call_upstreams
