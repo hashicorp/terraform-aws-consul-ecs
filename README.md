@@ -9,7 +9,7 @@ See https://developer.hashicorp.com/consul/docs/ecs for full documentation.
 
 ## Architecture
 
-![Architecture](./_docs/architecture.png?raw=true)
+![Architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/architecture.png?raw=true)
 
 Each task is created via the `mesh-task` module. This module adds
 additional containers known as sidecar containers to your task definition.
@@ -27,7 +27,7 @@ Specifically, it adds the following containers:
   the [Consul dataplane](https://github.com/hashicorp/consul-dataplane) that configures and starts the Envoy proxy, which controls all the service mesh traffic. All requests to and from the application run through
   the proxy.
 
-The `ecs-controller` module runs a controller that automatically provisions ACL tokens
+The `controller` module runs a controller that automatically provisions ACL tokens
 for tasks on the mesh. It also deregisters service instances from Consul for missing/finished tasks in ECS.
 
 The `dev-server` module runs a development/testing-only Consul server as an
@@ -47,7 +47,7 @@ See https://www.consul.io/docs/ecs.
 * [dev-server](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
   for development/testing purposes. The server does not have persistent storage and so is not suitable for production deployments.
 
-* [ecs-controller](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/ecs-controller): This modules deploys a controller that automatically provisions ACL tokens
+* [controller](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/controller): This modules deploys a controller that automatically provisions ACL tokens
   for services on the Consul service mesh. It also keeps an eye on the tasks and deregisters the service instances of those tasks that go missing or get finished.
 
 ## Roadmap

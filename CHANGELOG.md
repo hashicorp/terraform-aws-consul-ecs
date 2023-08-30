@@ -1,7 +1,7 @@
 ## Unreleased
 
 BREAKING CHANGES
-* Changes are added to adopt the new architecture described in [Simplified Service Mesh with Consul Dataplane](https://developer.hashicorp.com/consul/docs/connect/dataplane) for ECS.[[GH-199]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/199)
+* Adopt the architecture described in [Simplified Service Mesh with Consul Dataplane](https://developer.hashicorp.com/consul/docs/connect/dataplane) for ECS.[[GH-199]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/199)
 * Following changes are made to the `mesh-task` submodule: [[GH-188]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/188)
   - Remove `consul-client` container definition from the ECS task definition.
   - Rename `mesh-init` container to `consul-ecs-control-plane` and the `mesh-init` command to `control-plane`.
@@ -21,7 +21,7 @@ BREAKING CHANGES
     - `consul_primary_datacenter`
   - Add the following input variables
     - `skip_server_watch`: To prevent the consul-dataplane and consul-ecs-control-plane containers from watching the Consul servers for changes. Useful for situations where Consul servers are behind a load balancer.
-    - `consul-dataplane-image`: Consul Dataplane's Docker image.
+    - `consul_dataplane_image`: Consul Dataplane's Docker image.
     - `envoy_readiness_port`: Port that is exposed by Envoy which can be hit to determine its readiness.
     - `consul_server_hosts`: Address of Consul servers. Can be an IP, DNS name or an `exec=` string specifying the script that outputs IP address(es).
     - `tls_server_name`: The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces.
