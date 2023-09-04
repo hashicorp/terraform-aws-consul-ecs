@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 module "ecs_controller" {
-  source = "../../../../modules/controller"
+  source = "../../../modules/controller"
 
   name_prefix         = var.name
   ecs_cluster_arn     = var.ecs_cluster_arn

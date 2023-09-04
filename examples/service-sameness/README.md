@@ -1,4 +1,4 @@
-# Peering of Consul clusters via Mesh gateways on ECS.
+# Service sameness using mesh gateways on ECS.
 
 This example demonstrates Consul's service sameness usecase using mesh gateways on ECS. This feature only works with a Consul enterprise installation.
 
@@ -11,6 +11,7 @@ This example demonstrates Consul's service sameness usecase using mesh gateways 
 * `terraform`
 * `aws` CLI
 * AWS credentials
+* Consul enterprise license
 
 ## Usage
 
@@ -27,15 +28,14 @@ $ cd terraform-aws-consul-ecs/examples/service-sameness
 This module contains everything needed to spin up the example. The only
 requirements are:
 - You need to pass in the `name` variable. This value will be used as a unique identifier
-  for all resources created by the example. The examples below use the name `con`.
+  for all resources created by the example. The examples below use the name `ecs`. Make sure to choose a 3 lettered string as name for this example to work.
 - You need to pass in the IP address of your workstation via the `lb_ingress_ip`
   variable. This is used for the security groups on the elastic load balancers to ensure
   only you have access to them.
-- Couple of Consul Enterprise licenses that needs to be passed to the `dc1_consul_license` and `dc2_consul_license` variables. One way to pass these licenses would be add them to a `.tfvars` file and pass it as an argument to the `terraform apply` command. Example `input.tfvars`
+- Consul Enterprise license that needs to be passed to the `consul_license` variable. This license will be used to run the enterprise version of Consul for both the datacenters in this example. One way to pass these licenses would be add them to a `.tfvars` file and pass it as an argument to the `terraform apply` command. Example `input.tfvars`
 
 ```
-dc1_consul_license = "<license_1>"
-dc2_consul_license = "<license_2>"
+consul_license = "<license>"
 ```
 
 Determine your public IP. You can use a site like https://ifconfig.me/:
@@ -89,7 +89,7 @@ dc1_default_partition_apps = {
     "name" = "ecs-default-dc1-client-app"
     "port" = 9090
   }
-  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:462181688919:cluster/ecs-dc1-default"
+  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:xxxxxxxxxxx:cluster/ecs-dc1-default"
   "namespace" = "default"
   "partition" = "default"
   "region" = "us-west-2"
@@ -106,7 +106,7 @@ dc1_part1_partition_apps = {
     "name" = "ecs-part-1-dc1-client-app"
     "port" = 9090
   }
-  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:462181688919:cluster/ecs-dc1-part-1"
+  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:xxxxxxxxxxx:cluster/ecs-dc1-part-1"
   "namespace" = "default"
   "partition" = "part-1"
   "region" = "us-west-2"
@@ -125,7 +125,7 @@ dc2_default_partition_apps = {
     "name" = "ecs-default-dc2-client-app"
     "port" = 9090
   }
-  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:462181688919:cluster/ecs-dc2-default"
+  "ecs_cluster_arn" = "arn:aws:ecs:us-west-2:xxxxxxxxxxx:cluster/ecs-dc2-default"
   "namespace" = "default"
   "partition" = "default"
   "region" = "us-west-2"
@@ -147,7 +147,7 @@ $ terraform output -json | jq -r .dc1_server_bootstrap_token.value
 e2cb39e2-b9fd-18af-025f-86f6da6889a7
 
 $ terraform output -json | jq -r .dc2_server_bootstrap_token.value
-e2cb39e2-b9fd-18af-025f-6f63da6882a7
+ce5f3dd4-133e-f794-51e9-b53a6e7304b3
 ```
 
 If you click on the URL of the `dc1_server_url`, you should be able
@@ -183,13 +183,22 @@ You should notice that all the client apps at this point will dial the server ap
 
 We will now manually scaledown some of these server apps and visualize the changes to illustrate the failover usecases with Consul's service sameness groups. You can either try this manually by following the upcoming sections or run the `sameness-test` script to automate it.
 
+Make sure to set the following environment variables before starting with the failover usecases.
+
+```console
+export AWS_REGION=us-west-2
+DC1_DEFAULT_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc1_default_partition_apps.value.ecs_cluster_arn')
+DC1_PART1_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc1_part1_partition_apps.value.ecs_cluster_arn')
+DC2_DEFAULT_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc2_default_partition_apps.value.ecs_cluster_arn')
+```
+
 With all the server apps functioning as expected, the calls from client apps should reach the server apps present in their local partition.
 
 ![Sameness Demo 1](../../_docs/sameness-demo-1.png?raw=true)
 
 ### Step 1
 
-Manually scale down the server app present in DC1's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale down the server app present in DC1's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance should be deregistered from Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_DEFAULT_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc1-example-server-app --desired-count 0
@@ -201,7 +210,7 @@ With the server app in the default partition scaled down to 0 tasks, the calls f
 
 ### Step 2
 
-Manually scale down the server app present in DC1's `part-1` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale down the server app present in DC1's `part-1` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance should be deregistered from Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_PART1_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc1-part-1-example-server-app --desired-count 0
@@ -213,7 +222,7 @@ With the server app in the `part-1` partition also scaled down to 0 tasks, the c
 
 ### Step 3
 
-Manually scale up the server app present in DC1's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale up the server app present in DC1's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance in the `default` partition should be registered to Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_DEFAULT_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc1-example-server-app --desired-count 1
@@ -225,7 +234,7 @@ With the server app in DC1's `default` partition scaled up to run a single task,
 
 ### Step 4
 
-Manually scale down the server app present in DC2's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale down the server app present in DC2's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance should be deregistered from Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC2_DEFAULT_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc2-example-server-app --desired-count 0
@@ -237,7 +246,7 @@ With the server app in the `default` partition of DC2 scaled down to 0 tasks, th
 
 ### Step 5
 
-Manually scale up the server app present in DC1's `part-1` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale up the server app present in DC1's `part-1` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance should be registered in the `part-1` partition of Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_PART1_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc1-part-1-example-server-app --desired-count 1
@@ -249,7 +258,7 @@ With the server app in DC1's `part-1` partition also scaled up to run a single t
 
 ### Step 6
 
-Manually scale up the server app present in DC2's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul
+Manually scale up the server app present in DC2's `default` partition with the following command and wait for a few seconds for the change to propagate to Consul. The equivalent service instance should be registered in Consul's catalog.
 
 ```console
 aws ecs update-service --region ${AWS_REGION} --cluster ${DC2_DEFAULT_PARTITION_ECS_CLUSTER_ARN} --service ecs-dc2-example-server-app --desired-count 1
@@ -272,5 +281,5 @@ $ terraform destroy \
 
 ## Next Steps
 
-Next, see our [full documentation](https://www.consul.io/docs/ecs) when you're
+Next, see our [full documentation](https://www.developer.hashicorp.com/consul/docs/ecs) when you're
 ready to deploy your own applications into the service mesh.

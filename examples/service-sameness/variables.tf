@@ -17,14 +17,8 @@ variable "datacenter_names" {
   }
 }
 
-variable "dc1_consul_license" {
+variable "consul_license" {
   description = "A Consul Enterprise license key for datacenter one."
-  type        = string
-  sensitive   = true
-}
-
-variable "dc2_consul_license" {
-  description = "A Consul Enterprise license key for datacenter two."
   type        = string
   sensitive   = true
 }

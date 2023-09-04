@@ -14,7 +14,7 @@ locals {
 }
 
 module "example_server_app" {
-  source              = "../../../../modules/mesh-task"
+  source              = "../../../modules/mesh-task"
   family              = local.example_server_app_name
   consul_service_name = "${var.name}-example-server-app"
   port                = var.port

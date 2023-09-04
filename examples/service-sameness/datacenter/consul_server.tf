@@ -4,7 +4,7 @@
 # Run the Consul dev server as an ECS task.
 module "dev_consul_server" {
   name                        = "${var.name}-consul-server"
-  source                      = "../../../../modules/dev-server"
+  source                      = "../../../modules/dev-server"
   datacenter                  = var.datacenter
   consul_image                = var.consul_image
   consul_license              = var.consul_license

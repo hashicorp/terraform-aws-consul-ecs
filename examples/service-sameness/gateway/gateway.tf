@@ -13,7 +13,7 @@ locals {
 }
 
 module "mesh_gateway" {
-  source                        = "../../../../modules/gateway-task"
+  source                        = "../../../modules/gateway-task"
   family                        = var.name
   ecs_cluster_arn               = var.cluster
   subnets                       = var.private_subnets

@@ -85,7 +85,7 @@ scale_down_ecs_service() {
 
 # get Terraform outputs and initialize required variables.
 echo "loading Terraform outputs"
-tfOutputs=$(cd terraform; terraform output -json)
+tfOutputs=$(terraform output -json)
 
 # DC1 server configuration
 CONSUL_DC1_SERVER_URL=$(echo "$tfOutputs" | jq -rc '.dc1_server_url.value')

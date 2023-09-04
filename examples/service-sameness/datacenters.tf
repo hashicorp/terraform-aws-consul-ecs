@@ -19,7 +19,7 @@ module "dc1" {
   vpc             = module.dc1_vpc
   log_group_name  = module.cluster1.log_group.name
 
-  consul_license = var.dc1_consul_license
+  consul_license = var.consul_license
 
   consul_server_startup_timeout = var.consul_server_startup_timeout
 }
@@ -37,7 +37,7 @@ module "dc2" {
   vpc             = module.dc2_vpc
   log_group_name  = module.cluster3.log_group.name
 
-  consul_license = var.dc2_consul_license
+  consul_license = var.consul_license
 
   consul_server_startup_timeout = var.consul_server_startup_timeout
 }
