@@ -93,7 +93,6 @@ module "test_client" {
   tls              = true
   acls             = true
   consul_ecs_image = var.consul_ecs_image
-  consul_image     = var.consul_image
   consul_namespace = var.client_namespace
   consul_partition = "default"
 
@@ -151,7 +150,6 @@ module "test_server" {
   tls              = true
   acls             = true
   consul_ecs_image = var.consul_ecs_image
-  consul_image     = var.consul_image
   consul_partition = "default"
   consul_namespace = var.server_namespace
 

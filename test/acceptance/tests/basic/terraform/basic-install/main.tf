@@ -241,7 +241,6 @@ EOT
   consul_grpc_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
   acls                    = var.secure
   consul_ecs_image        = var.consul_ecs_image
-  consul_image            = var.consul_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
@@ -283,7 +282,6 @@ module "test_server" {
   consul_grpc_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
   acls                    = var.secure
   consul_ecs_image        = var.consul_ecs_image
-  consul_image            = var.consul_image
 
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
 
