@@ -57,10 +57,8 @@ type HCPTestConfig struct {
 	EnableHCP               bool        `json:"enable_hcp"`
 	ConsulAddr              string      `json:"consul_public_endpoint_url"`
 	ConsulToken             string      `json:"token"`
-	ConsulPrivateAddr       string      `json:"consul_private_endpoint_url"`
 	RetryJoin               interface{} `json:"retry_join"`
 	BootstrapTokenSecretARN string      `json:"bootstrap_token_secret_arn"`
-	GossipKeySecretARN      string      `json:"gossip_key_secret_arn"`
 	ConsulCASecretARN       string      `json:"consul_ca_cert_secret_arn"`
 }
 
@@ -83,7 +81,7 @@ func TestHCP(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -112,6 +110,9 @@ func TestHCP(t *testing.T) {
 
 	tfVars["suffix"] = randomSuffix
 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+
+	tfVars["consul_server_address"] = cfg.getServerAddress()
+
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
 
@@ -130,37 +131,30 @@ func TestHCP(t *testing.T) {
 	logger.Log(t, "checking that the connection succeeds with an intention")
 	expectCurlOutput(t, clientTask, `"code": 200`)
 
-	// TODO: The token deletion check is disabled due to a race condition.
-	// If the service still exists in Consul after a Task stops, the controller skips
-	// token deletion. This avoids removing tokens that are still in use, but it means it
-	// may never delete a token depending on the timing of consul-client shutting down and
-	// the polling interval of the controller.
-	//
 	// Check that the ACL tokens for services are deleted
 	// when services are destroyed.
-	//if secure {
-	//	// First, destroy just the service mesh services.
-	//	tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-	//		TerraformDir: "./terraform/basic-install",
-	//		Vars:         tfVars,
-	//		NoColor:      true,
-	//		Targets: []string{
-	//			"aws_ecs_service.test_server",
-	//			"aws_ecs_service.test_client",
-	//			"module.test_server",
-	//			"module.test_client",
-	//		},
-	//	})
-	//	terraform.Destroy(t, tfOptions)
-	//
-	//	// Check that the ACL tokens are deleted from Consul.
-	//	retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
-	//		out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
-	//		require.NoError(r, err)
-	//		require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
-	//		require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
-	//	})
-	//}
+
+	// First, destroy just the service mesh services.
+	// tfOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+	// 	TerraformDir: "./terraform/basic-install",
+	// 	Vars:         tfVars,
+	// 	NoColor:      true,
+	// 	Targets: []string{
+	// 		"aws_ecs_service.test_server",
+	// 		"aws_ecs_service.test_client",
+	// 		"module.test_server",
+	// 		"module.test_client",
+	// 	},
+	// })
+	// terraform.Destroy(t, tfOptions)
+
+	// // Check that the ACL tokens are deleted from Consul.
+	// retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+	// 	out, err := executeRemoteCommand(t, consulServerTaskARN, "consul-server", `/bin/sh -c "consul acl token list"`)
+	// 	require.NoError(r, err)
+	// 	require.NotContains(r, out, fmt.Sprintf("test_client_%s", randomSuffix))
+	// 	require.NotContains(r, out, fmt.Sprintf("test_server_%s", randomSuffix))
+	// })
 
 	logger.Log(t, "Test successful!")
 }
@@ -171,7 +165,7 @@ func TestNamespaces(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
+	ignoreVars := []string{"token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -203,6 +197,7 @@ func TestNamespaces(t *testing.T) {
 	tfVars["client_namespace"] = clientTask.Namespace
 	tfVars["server_namespace"] = serverTask.Namespace
 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["consul_server_address"] = cfg.getServerAddress()
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ns", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
@@ -231,7 +226,7 @@ func TestAdminPartitions(t *testing.T) {
 	cfg := parseHCPTestConfig(t)
 
 	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp", "consul_version"}
+	ignoreVars := []string{"ecs_cluster_arn", "token", "enable_hcp", "consul_version", "retry_join", "consul_public_endpoint_url"}
 	tfVars := TFVars(cfg, ignoreVars...)
 
 	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
@@ -269,6 +264,7 @@ func TestAdminPartitions(t *testing.T) {
 	tfVars["server_partition"] = serverTask.Partition
 	tfVars["server_namespace"] = serverTask.Namespace
 	tfVars["consul_image"] = cfg.ConsulImageURI(true)
+	tfVars["consul_server_address"] = cfg.getServerAddress()
 
 	terraformOptions, _ := terraformInitAndApply(t, "./terraform/ap", tfVars)
 	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
@@ -600,63 +596,12 @@ func restoreConsulState(t *testing.T, consul *api.Client, state ConsulState) err
 	return nil
 }
 
-func TestAuditLogging(t *testing.T) {
-	cfg := parseHCPTestConfig(t)
-	// generate input variables to the test terraform using the config.
-	ignoreVars := []string{"token", "enable_hcp", "consul_version"}
-	tfVars := TFVars(cfg, ignoreVars...)
-
-	consulClient, initialConsulState, err := consulClient(t, cfg.ConsulAddr, cfg.ConsulToken)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := restoreConsulState(t, consulClient, initialConsulState); err != nil {
-			logger.Log(t, "failed to restore Consul state:", err)
-		}
-	})
-
-	randomSuffix := strings.ToLower(random.UniqueId())
-
-	taskConfig := helpers.MeshTaskConfig{
-		Partition:    "default",
-		Namespace:    "default",
-		ConsulClient: consulClient,
-		Region:       cfg.Region,
-		ClusterARN:   cfg.ECSClusterARNs[0],
+func (c *HCPTestConfig) getServerAddress() string {
+	var retryJoinAddresses []string
+	retryJoinArr := c.RetryJoin.([]interface{})
+	for _, v := range retryJoinArr {
+		retryJoinAddresses = append(retryJoinAddresses, v.(string))
 	}
 
-	taskConfig.Name = fmt.Sprintf("test_client_%s", randomSuffix)
-	clientTask := helpers.NewMeshTask(t, taskConfig)
-
-	taskConfig.Name = fmt.Sprintf("test_server_%s", randomSuffix)
-	serverTask := helpers.NewMeshTask(t, taskConfig)
-
-	tfVars["suffix"] = randomSuffix
-	tfVars["consul_image"] = cfg.ConsulImageURI(true)
-
-	// Enable audit logging
-	tfVars["audit_logging"] = true
-
-	terraformOptions, _ := terraformInitAndApply(t, "./terraform/hcp-install", tfVars)
-	t.Cleanup(func() { terraformDestroy(t, terraformOptions, suite.Config().NoCleanupOnFailure) })
-
-	// Wait for both tasks to be registered in Consul.
-	waitForTasks(t, clientTask, serverTask)
-
-	retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
-		taskARN, err := clientTask.TaskARN()
-		require.NoError(r, err)
-
-		arnParts := strings.Split(taskARN, "/")
-		clientTaskID := arnParts[len(arnParts)-1]
-
-		// Get CloudWatch logs and filter to only capture audit logs
-		appLogs, err := helpers.GetCloudWatchLogEvents(t, suite.Config(), taskConfig.ClusterARN, clientTaskID, "consul-client")
-		require.NoError(r, err)
-		auditLogs := appLogs.Filter(`"event_type":"audit"`)
-
-		// Check that audit logs were generated else fail
-		logger.Log(t, "Number of audit logs generated:", len(auditLogs))
-		require.True(r, len(auditLogs) > 0)
-	})
-	logger.Log(t, "Test successful!")
+	return retryJoinAddresses[0]
 }

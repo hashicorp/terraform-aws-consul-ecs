@@ -105,41 +105,29 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.15-FARGATE-HCP
-          - acceptance-1.14-FARGATE-HCP
-          - acceptance-1.13-FARGATE
-          - acceptance-1.15-EC2
-          - acceptance-1.14-EC2
-          - acceptance-1.13-EC2-HCP
+          - acceptance-1.16-FARGATE-HCP
+          - acceptance-1.16-EC2-HCP
+          - acceptance-1.16-FARGATE
+          - acceptance-1.16-EC2
         include:
-          - name: acceptance-1.15-FARGATE-HCP
-            consul-version: '1.15.4'
+          - name: acceptance-1.16-FARGATE-HCP
+            consul-version: '1.16.1'
             enable-hcp: true
             launch-type: FARGATE
 
-          - name: acceptance-1.14-FARGATE-HCP
-            consul-version: '1.14.7'
+          - name: acceptance-1.16-EC2-HCP
+            consul-version: '1.16.1'
             enable-hcp: true
-            launch-type: FARGATE
-
-          - name: acceptance-1.13-FARGATE
-            consul-version: '1.13.9'
-            enable-hcp: false
-            launch-type: FARGATE
-
-          - name: acceptance-1.15-EC2
-            consul-version: '1.15.4'
-            enable-hcp: false
             launch-type: EC2
 
-          - name: acceptance-1.14-EC2
-            consul-version: '1.14.8'
+          - name: acceptance-1.16-FARGATE
+            consul-version: '1.16.1'
             enable-hcp: false
-            launch-type: EC2
+            launch-type: FARGATE
 
-          - name: acceptance-1.13-EC2-HCP
-            consul-version: '1.13.8'
-            enable-hcp: true
+          - name: acceptance-1.16-EC2
+            consul-version: '1.16.1'
+            enable-hcp: false
             launch-type: EC2
 
     steps:
@@ -171,10 +159,10 @@ jobs:
     - name: Assume AWS IAM Role
       uses: aws-actions/configure-aws-credentials@04b98b3f9e85f563fb061be8751a0352327246b0 # v3.0.1
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ${{ secrets.AWS_REGION }}
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_ECS_REGION }}
+        aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 3600
     - name: terraform init & apply
       run: |
@@ -182,6 +170,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ matrix.launch-type }}'
         VARS+=' -var consul_version=${{ matrix.consul-version }}'
+        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
@@ -205,6 +194,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ matrix.launch-type }}'
         VARS+=' -var consul_version=${{ matrix.consul-version }}'
+        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;

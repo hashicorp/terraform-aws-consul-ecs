@@ -38,7 +38,7 @@ variable "tags" {
 }
 
 variable "secure" {
-  description = "Whether to create all resources in a secure installation (with TLS, ACLs and gossip encryption)."
+  description = "Whether to create all resources in a secure installation (with TLS and ACLs)."
   type        = bool
   default     = false
 }
@@ -64,7 +64,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorpdev/consul-ecs:latest"
+  default     = "hashicorpdev/consul-ecs:latest"
 }
 
 variable "server_service_name" {
@@ -83,24 +83,6 @@ provider "aws" {
 
 locals {
   enterprise_enabled = var.consul_license != ""
-}
-
-// Generate a gossip encryption key if a secure installation.
-resource "random_id" "gossip_encryption_key" {
-  count       = var.secure ? 1 : 0
-  byte_length = 32
-}
-
-resource "aws_secretsmanager_secret" "gossip_key" {
-  count = var.secure ? 1 : 0
-  // Only 'consul_server*' secrets are allowed by the IAM role used by Circle CI
-  name = "consul_server_${var.suffix}-gossip-encryption-key"
-}
-
-resource "aws_secretsmanager_secret_version" "gossip_key" {
-  count         = var.secure ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.gossip_key[0].id
-  secret_string = random_id.gossip_encryption_key[0].b64_std
 }
 
 module "consul_server" {
@@ -122,11 +104,8 @@ module "consul_server" {
 
   tags = var.tags
 
-  tls                            = var.secure
-  gossip_encryption_enabled      = var.secure
-  generate_gossip_encryption_key = false
-  gossip_key_secret_arn          = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                           = var.secure
+  tls  = var.secure
+  acls = var.secure
 
   service_discovery_namespace = var.consul_datacenter
   datacenter                  = var.consul_datacenter
@@ -153,27 +132,29 @@ resource "aws_security_group_rule" "consul_server_ingress" {
   security_group_id        = module.consul_server.security_group_id
 }
 
-module "acl_controller" {
+module "ecs_controller" {
   count  = var.secure ? 1 : 0
-  source = "../../../../../../modules/acl-controller"
+  source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller"
+      awslogs-stream-prefix = "consul-ecs-controller"
     }
   }
   launch_type                       = var.launch_type
   consul_bootstrap_token_secret_arn = module.consul_server.bootstrap_token_secret_arn
-  consul_server_http_addr           = "https://${module.consul_server.server_dns}:8501"
-  consul_server_ca_cert_arn         = module.consul_server.ca_cert_arn
+  consul_server_hosts               = module.consul_server.server_dns
+  consul_grpc_ca_cert_arn           = module.consul_server.ca_cert_arn
+  consul_https_ca_cert_arn          = module.consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
   subnets                           = var.subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = local.enterprise_enabled
+  tls                               = var.secure
 }
 
 resource "aws_ecs_service" "test_client" {
@@ -242,7 +223,7 @@ EOT
       ]
     }
   ]
-  retry_join = [module.consul_server.server_dns]
+  consul_server_hosts = module.consul_server.server_dns
   upstreams = [
     {
       destinationName = "${var.server_service_name}_${var.suffix}"
@@ -256,25 +237,16 @@ EOT
   // Test with a port other than the default of 20000.
   envoy_public_listener_port = 21000
 
-  tls                       = var.secure
-  consul_server_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                      = var.secure
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
+  tls                     = var.secure
+  consul_grpc_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
+  acls                    = var.secure
+  consul_ecs_image        = var.consul_ecs_image
 
   additional_task_role_policies = [aws_iam_policy.execute-command.arn]
 
-  consul_http_addr = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
-  # For dev-server, the server_ca_cert (internal rpc) and the https ca cert are the same.
+  # For dev-server, the grpc_ca_cert (internal rpc) and the https ca cert are the same.
   # But, they are different in HCP.
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-
-  consul_agent_configuration = <<-EOT
-  log_level = "debug"
-  EOT
-
-  consul_datacenter = var.consul_datacenter
 }
 
 resource "aws_ecs_service" "test_server" {
@@ -302,28 +274,15 @@ module "test_server" {
     essential        = true
     logConfiguration = local.test_server_log_configuration
   }]
-  retry_join        = [module.consul_server.server_dns]
-  log_configuration = local.test_server_log_configuration
-  checks = [
-    {
-      checkId  = "server-http"
-      name     = "HTTP health check on port 9090"
-      http     = "http://localhost:9090/health"
-      method   = "GET"
-      timeout  = "10s"
-      interval = "2s"
-    }
-  ]
-  port = 9090
+  consul_server_hosts = module.consul_server.server_dns
+  log_configuration   = local.test_server_log_configuration
+  port                = 9090
 
-  tls                       = var.secure
-  consul_server_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
-  gossip_key_secret_arn     = var.secure ? aws_secretsmanager_secret.gossip_key[0].arn : ""
-  acls                      = var.secure
-  consul_ecs_image          = var.consul_ecs_image
-  consul_image              = var.consul_image
+  tls                     = var.secure
+  consul_grpc_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
+  acls                    = var.secure
+  consul_ecs_image        = var.consul_ecs_image
 
-  consul_http_addr         = var.secure ? "https://${module.consul_server.server_dns}:8501" : ""
   consul_https_ca_cert_arn = var.secure ? module.consul_server.ca_cert_arn : ""
 
   // Test passing in roles. This requires users to correctly configure the roles outside mesh-task.
@@ -331,8 +290,6 @@ module "test_server" {
   create_execution_role = false
   task_role             = aws_iam_role.task
   execution_role        = aws_iam_role.execution
-
-  consul_datacenter = var.consul_datacenter
 }
 
 // Configure a task role for passing in to mesh-task.
@@ -454,8 +411,7 @@ resource "aws_iam_role" "execution" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "${module.consul_server.ca_cert_arn}",
-        "${aws_secretsmanager_secret.gossip_key[0].arn}"
+        "${module.consul_server.ca_cert_arn}"
       ]
     },
 %{endif~}

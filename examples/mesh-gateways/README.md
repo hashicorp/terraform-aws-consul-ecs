@@ -4,7 +4,7 @@ This example demonstrates Consul cross datacenter WAN federation using mesh gate
 
 There are instructions below on how to interact with Consul and test out some service mesh features.
 
-![Example architecture](../../_docs/mesh-gateways.png?raw=true)
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mesh-gateways.png?raw=true)
 
 ## Requirements
 
@@ -97,7 +97,7 @@ abcd1234-abcd-1234-abcd-123456789abcd
 If you click on the URL of the `dc1_server_url`, you should be able
 to view the Consul UI and log in using the `bootstrap_token` above:
 
-![Consul dc1 UI](../../_docs/mgw-dc1-consul-ui.png?raw=true)
+![Consul dc1 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-dc1-consul-ui.png?raw=true)
 
 ~> At first, if you click on the URL of the `client_lb_address` or `dc1_server_url`,
 the page might not load.
@@ -108,11 +108,11 @@ Because the two Consul datacenters are WAN-federated via mesh gateways, you can 
 catalog for `dc2` from the Consul UI in `dc1`. Select the dropdown list beside `dc1`
 and select `dc2`. The Consul UI displays the service catalog for `dc2`.
 
-![Consul dc2 UI](../../_docs/mgw-dc2-consul-ui.png?raw=true)
+![Consul dc2 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-dc2-consul-ui.png?raw=true)
 
 If you browse to the URL of the `client_lb_address`, the example application UI should be displayed:
 
-![Example App UI](../../_docs/mgw-example-app.png?raw=true)
+![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-example-app.png?raw=true)
 
 The `ecs-dc1-example-client-app` in `dc1` calls the `ecs-dc2-example-server-app` in `dc2` over the
 WAN-federated Consul service mesh and shows the request path in the UI.
@@ -178,12 +178,12 @@ We can change the intention to deny this traffic through the UI:
 1. Click the **Deny** card.
 1. Click the **Save** button.
 
-![Intention UI](../../_docs/mgw-intentions.png?raw=true)
+![Intention UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-intentions.png?raw=true)
 
 Now, navigate to the UI of the example application. You should see something
 that looks like:
 
-![UI After Intention](../../_docs/mgw-ui-after-intention.png?raw=true)
+![UI After Intention](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-ui-after-intention.png?raw=true)
 
 The connection is red because the service mesh is no longer allowing `ecs-dc1-example-client-app` to 
 make requests to `ecs-dc2-example-server-app`.

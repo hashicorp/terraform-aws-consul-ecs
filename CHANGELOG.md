@@ -1,3 +1,103 @@
+## Unreleased
+
+BREAKING CHANGES
+* Adopt the architecture described in [Simplified Service Mesh with Consul Dataplane](https://developer.hashicorp.com/consul/docs/connect/dataplane) for ECS.[[GH-199]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/199)
+* Following changes are made to the `mesh-task` submodule: [[GH-188]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/188)
+  - Remove `consul-client` container definition from the ECS task definition.
+  - Rename `mesh-init` container to `consul-ecs-control-plane` and the `mesh-init` command to `control-plane`.
+  - Remove the `sidecar-proxy` container and replace it with the `consul-dataplane` container.
+  - Remove the `consul-ecs-health-sync` container definition.
+  - Remove the following input variables
+    - `envoy_image`
+    - `checks`
+    - `retry_join`
+    - `consul_http_addr`
+    - `client_token_auth_method_name`
+    - `gossip_key_secret_arn`
+    - `consul_server_ca_cert_arn`
+    - `consul_agent_configuration`
+    - `enable_acl_token_replication`
+    - `consul_datacenter`
+    - `consul_primary_datacenter`
+  - Add the following input variables
+    - `skip_server_watch`: To prevent the consul-dataplane and consul-ecs-control-plane containers from watching the Consul servers for changes. Useful for situations where Consul servers are behind a load balancer.
+    - `consul_dataplane_image`: Consul Dataplane's Docker image.
+    - `envoy_readiness_port`: Port that is exposed by Envoy which can be hit to determine its readiness.
+    - `consul_server_hosts`: Address of Consul servers. Can be an IP, DNS name or an `exec=` string specifying the script that outputs IP address(es).
+    - `tls_server_name`: The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces.
+    - `ca_cert_file`: Path of the CA certificate file for Consul's internal HTTP and gRPC interfaces.
+    - `consul_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC and HTTP interfaces.
+    - `consul_grpc_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC communications. Overrides `var.consul_ca_cert_arn`.
+    - `consul_https_ca_cert_arn`: ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides `var.consul_ca_cert_arn`.
+    - `http_config`: Contains HTTP specific TLS settings.
+    - `grpc_config`: Contains gRPC specific TLS settings.
+  - Add IAM policies to fetch `consul_ca_cert_arn`, `consul_grpc_ca_cert_arn` and `consul_https_ca_cert_arn` from Secrets manager.
+  - Add `consulServers` field to `local.config` which gets passed to the `control-plane` container.
+* Rename `acl-controller` submodule to `controller`. Following are the changes made to the same: [[GH-188]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/188)
+  - Rename `consul-acl-controller` container to `consul-ecs-controller`.
+  - Pass the `CONSUL_ECS_CONFIG_JSON`(which contains the configuration for configuring Consul on ECS) to the `consul-ecs-controller` container similar to how it is being done in the `mesh-task` submodule.
+  - Remove the following CLI flags that were getting passed to the existing command
+    - `-iam-role-path`
+    - `-partitions-enabled`
+    - `-partition`
+  - Remove the following variables
+    - `consul_server_http_addr`
+    - `consul_server_ca_cert_arn`
+  - Add the following variables
+    - `consul_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC and HTTP interfaces.
+    - `consul_grpc_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC communications. Overrides `var.consul_ca_cert_arn`.
+    - `consul_https_ca_cert_arn`: ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides `var.consul_ca_cert_arn`.
+    - `consul_server_hosts`: Address of Consul servers. Can be an IP, DNS name or an `exec=` string specifying the script that outputs IP address(es).
+    - `tls`: Whether to enable TLS for the controller to Consul server traffic.
+    - `tls_server_name`: The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces.
+    - `http_config`: Contains HTTP specific TLS settings for controller to Control plane traffic.
+    - `grpc_config`: Contains gRPC specific TLS settings for controller to Control plane traffic.
+  - Add IAM policies to fetch `consul_ca_cert_arn`, `consul_grpc_ca_cert_arn` and `consul_https_ca_cert_arn` from Secrets manager.
+* Following changes are made to the `gateway-task` submodule: [[GH-189]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/189)
+  - Remove `consul-client` container definition from the ECS task definition.
+  - Rename `mesh-init` container to `consul-ecs-control-plane` and the `mesh-init` command to `control-plane`.
+  - Remove the `sidecar-proxy` container and replace it with the `consul-dataplane` container.
+  - Remove the `consul-ecs-health-sync` container definition.
+  - Remove the following input variables
+    - `envoy_image`
+    - `retry_join`
+    - `consul_http_addr`
+    - `client_token_auth_method_name`
+    - `gossip_key_secret_arn`
+    - `consul_server_ca_cert_arn`
+    - `consul_agent_configuration`
+    - `enable_acl_token_replication`
+    - `consul_datacenter`
+    - `consul_primary_datacenter`
+    - `audit_logging`
+  - Add the following input variables
+    - `skip_server_watch`: To prevent the consul-dataplane and consul-ecs-control-plane containers from watching the Consul servers for changes. Useful for situations where Consul servers are behind a load balancer.
+    - `consul-dataplane-image`: Consul Dataplane's Docker image.
+    - `envoy_readiness_port`: Port that is exposed by Envoy which can be hit to determine its readiness.
+    - `consul_server_hosts`: Address of Consul servers. Can be an IP, DNS name or an `exec=` string specifying the script that outputs IP address(es).
+    - `tls_server_name`: The server name to use as the SNI host when connecting via TLS to Consul's HTTP and gRPC interfaces.
+    - `consul_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC and HTTP interfaces.
+    - `consul_grpc_ca_cert_arn`: ARN of the Secrets Manager secret containing the Consul server CA certificate for Consul's internal gRPC communications. Overrides `var.consul_ca_cert_arn`.
+    - `consul_https_ca_cert_arn`: ARN of the Secrets Manager secret containing the CA certificate for Consul server's HTTP interface. Overrides `var.consul_ca_cert_arn`.
+    - `http_config`: Contains HTTP specific TLS settings for the consul-ecs-control-plane to Consul server traffic.
+    - `grpc_config`: Contains gRPC specific TLS settings for the consul-ecs-control-plane to Consul server traffic.
+  - Add IAM policies to fetch `consul_ca_cert_arn`, `consul_grpc_ca_cert_arn` and `consul_https_ca_cert_arn` from Secrets manager.
+  - Add `consulServers` field to `local.config` which gets passed to the `control-plane` container.
+* Following are the changes made to `dev-server` submodule: [[GH-191]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/191)
+  - Remove the following variables:
+    - `gossip_encryption_enabled`
+    - `generate_gossip_encryption_key`
+    - `gossip_key_secret_arn`
+* Add changes to the `dev-server-ec2` and `dev-server-fargate` examples to adopt the changes made to `mesh-task` submodule. [[GH-191]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/191)
+* Add changes to the `mesh-gateways` example to adopt the Consul Dataplane based architeture on ECS. [[GH-192]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/192)
+* Add changes to the `admin-partitions` example to adopt the Consul Dataplane based architeture on ECS. [[GH-193]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/193)
+
+
+IMPROVEMENTS
+* examples/cluster-peering: Add example terraform to illustrate Consul's cluster peering usecase on ECS. [[GH-194]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/194)
+* examples/service-sameness: Add example terraform to illustrate Consul's service sameness group usecase on ECS. [[GH-202]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/202)
+
+
 ## 0.6.1 (Jul 20, 2023)
 
 IMPROVEMENTS

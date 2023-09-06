@@ -1,0 +1,7 @@
+{
+    "port": 8501,
+    "https": true,
+    "tls": true,
+    "tlsServerName": "consul.dc1.name",
+    "caCertFile": "cert.pem"
+}

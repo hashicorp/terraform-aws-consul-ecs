@@ -5,7 +5,7 @@ AWS ECS (Elastic Container Service).
 
 ## Documentation
 
-See https://www.consul.io/docs/ecs for full documentation.
+See https://developer.hashicorp.com/consul/docs/ecs for full documentation.
 
 ## Architecture
 
@@ -16,19 +16,19 @@ additional containers known as sidecar containers to your task definition.
 
 Specifically, it adds the following containers:
 
-* `consul-ecs-mesh-init` – Runs at startup to set up initial configuration for Consul and Envoy.
-* `consul-client` – Runs for the full lifecycle of the task. This container runs a
-  [Consul client](https://www.consul.io/docs/architecture) that connects with
-  Consul servers and configures the sidecar proxy.
-* `sidecar-proxy` – Runs for the full lifecycle of the task. This container runs
-  [Envoy](https://www.envoyproxy.io/) which is used to proxy and control
-  service mesh traffic. All requests to and from the application run through
-  the sidecar proxy.
-* `health-sync` - Runs for the full lifecycle of the task. This container
-  syncs health check statuses from ECS into Consul.
+* `consul-ecs-control-plane` – Runs for the full lifecycle of the task.
+  * At startup it connects to the available Consul servers and performs a login with the configured IAM Auth method to obtain an ACL token with appropriate privileges.
+  * Using the token, it registers the service and proxy entities to Consul's catalog.
+  * It then bootstraps the configuration JSON required by the Consul dataplane container and writes it to a shared volume.
+  * After this, the container enters into its reconciliation loop where it periodically syncs the health of ECS containers into Consul.
+  * Upon receiving SIGTERM, it marks the corresponding service instance in Consul as unhealthy and waits for the dataplane container to shutdown.
+  * Finally, it deregisters the service and proxy entities from Consul's catalog and performs a Consul logout.
+* `consul-dataplane` – Runs for the full lifecycle of the task. This container runs
+  the [Consul dataplane](https://github.com/hashicorp/consul-dataplane) that configures and starts the Envoy proxy, which controls all the service mesh traffic. All requests to and from the application run through
+  the proxy.
 
-The `acl-controller` module runs a controller that automatically provisions ACL tokens
-for tasks on the mesh.
+The `controller` module runs a controller that automatically provisions ACL tokens
+for tasks on the mesh. It also deregisters service instances from Consul for missing/finished tasks in ECS.
 
 The `dev-server` module runs a development/testing-only Consul server as an
 ECS task.
@@ -47,8 +47,8 @@ See https://www.consul.io/docs/ecs.
 * [dev-server](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/dev-server) [**For Development/Testing Only**]: This module deploys a Consul server onto your ECS Cluster
   for development/testing purposes. The server does not have persistent storage and so is not suitable for production deployments.
 
-* [acl-controller](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/acl-controller): This modules deploys a controller that automatically provisions ACL tokens
-  for services on the Consul service mesh.
+* [controller](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/modules/controller): This modules deploys a controller that automatically provisions ACL tokens
+  for services on the Consul service mesh. It also keeps an eye on the tasks and deregisters the service instances of those tasks that go missing or get finished.
 
 ## Roadmap
 

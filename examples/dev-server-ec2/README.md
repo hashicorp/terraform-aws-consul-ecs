@@ -3,6 +3,8 @@
 This example module deploys a new VPC and ECS cluster and then provisions
 a Consul dev server and two example service mesh tasks using the EC2 launch type.
 
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/dev-server-ec2.png?raw=true)
+
 ## Requirements
 
 * Terraform >= 0.14.0

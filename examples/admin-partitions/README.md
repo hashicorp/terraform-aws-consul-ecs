@@ -9,7 +9,7 @@ The [Terraform code](./terraform/) in this example manages the following infrast
 - A client [`mesh-task`](../../modules/mesh-task/) running in an ECS cluster scoped to a Consul Admin Partition and Namespace.
 - A server [`mesh-task`](../../modules/mesh-task/) running in a separate ECS cluster scoped to a different Consul Admin Partition and Namespace.
 
-![Admin Partitions Example](../../_docs/ap-example.png)
+![Admin Partitions Example](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/ap-example.png)
 
 To enable cross-partition communication the following conditions must be met:
 - Both ECS clusters must be in the same region and VPC. This is performed by the Terraform setup.

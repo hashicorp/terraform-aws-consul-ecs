@@ -12,17 +12,29 @@ locals {
     method  = var.service_token_auth_method_name
   } : null
 
+  httpSettings = merge(
+    {
+      port  = var.tls ? 8501 : 8500
+      https = var.tls
+    },
+    var.http_config
+  )
+
+  grpcSettings = merge(
+    {
+      port = var.tls ? 8503 : 8502
+    },
+    var.grpc_config
+  )
+
   config = {
-    consulHTTPAddr   = var.consul_http_addr
-    consulCACertFile = var.consul_https_ca_cert_arn != "" ? "/consul/consul-https-ca-cert.pem" : ""
-    consulLogin      = merge(local.consulLogin, local.loginExtra)
+    consulLogin = merge(local.consulLogin, local.loginExtra)
     service = merge(
       {
         name      = local.service_name
         tags      = var.consul_service_tags
         port      = var.port
         meta      = var.consul_service_meta
-        checks    = var.checks
         namespace = var.consul_namespace
         partition = var.consul_partition
       },
@@ -32,11 +44,23 @@ locals {
       {
         publicListenerPort = var.envoy_public_listener_port
         upstreams          = var.upstreams
+        healthCheckPort    = var.envoy_readiness_port
       },
       local.proxyExtra
     )
     healthSyncContainers = local.defaulted_check_containers
     bootstrapDir         = local.consul_data_mount.containerPath
+    consulServers = {
+      hosts           = var.consul_server_hosts
+      skipServerWatch = var.skip_server_watch
+      defaults = {
+        tls           = var.tls
+        tlsServerName = var.tls_server_name
+        caCertFile    = var.ca_cert_file
+      }
+      http = local.httpSettings
+      grpc = local.grpcSettings
+    }
   }
 
   encoded_config = jsonencode(local.config)
