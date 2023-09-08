@@ -150,6 +150,20 @@ resource "aws_iam_policy" "execution" {
         "logs:PutLogEvents"
       ],
       "Resource": "*"
+    },
+    {
+        "Action": [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetAuthorizationToken",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
     }
   ]
 }

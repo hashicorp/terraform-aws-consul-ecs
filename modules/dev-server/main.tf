@@ -360,6 +360,7 @@ exec consul agent -server \
   -hcl='datacenter = "${var.datacenter}"' \
   -hcl 'connect { enabled = true }' \
   -hcl 'enable_central_service_config = true' \
+  -hcl 'limits { http_max_conns_per_client = 1000 }' \
 %{if var.tls~}
   -hcl='ca_file = "/consul/consul-agent-ca.pem"' \
   -hcl='cert_file = "/consul/${var.datacenter}-server-consul-0.pem"' \

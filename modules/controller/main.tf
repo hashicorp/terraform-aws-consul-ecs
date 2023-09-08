@@ -64,6 +64,30 @@ resource "aws_ecs_task_definition" "this" {
       ]
       readonlyRootFilesystem = true
     },
+    {
+      name = "datadog-agent",
+      image = "datadog/agent:latest"
+      essential = true
+      logConfiguration = var.log_configuration,
+      environment = [
+        {
+          name = "DD_API_KEY",
+          value = var.datadog_api_key
+        },
+        {
+          name = "ECS_FARGATE",
+          value = "true"
+        },
+        {
+          name = "DD_APM_ENABLED",
+          value = "true"
+        },
+        {
+          name = "DD_SITE",
+          value = "us5.datadoghq.com"
+        }
+      ]
+    },
   ])
 }
 
@@ -164,6 +188,20 @@ resource "aws_iam_policy" "this_execution" {
         "logs:PutLogEvents"
       ],
       "Resource": "*"
+    },
+    {
+        "Action": [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetAuthorizationToken",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
     }
   ]
 }
