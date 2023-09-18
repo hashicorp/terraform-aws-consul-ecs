@@ -132,6 +132,8 @@ locals {
     )
   }
 
+  # Additional user attribute that needs to be added to run the control-plane
+  # container with root access.
   additional_user_attr                         = var.enable_transparent_proxy ? { user = "0" } : {}
   finalized_control_plane_container_definition = merge(local.control_plane_container_definition, local.additional_user_attr)
 }
