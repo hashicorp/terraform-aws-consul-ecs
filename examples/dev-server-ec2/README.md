@@ -108,6 +108,10 @@ ssh -J 'ec2-user@1.2.3.4' 'ec2-user@10.0.1.2'
 
 To explore Consul and the sample application, see the [Fargate Example README](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/examples/dev-server-fargate/README.md#explore).
 
+### Transparent proxy
+
+ECS on EC2 now supports deploying tasks in the [transparent proxy](https://developer.hashicorp.com/consul/docs/k8s/connect/transparent-proxy) mode where you no longer need to explicitly add the sidecar proxy's local listener as an upstream for the client application. By default, `enable_transparent_proxy` variable defaults to `true`. You need to manually disable this for Fargate based deployments.
+
 ## Cleanup
 
 Once you've done testing, be sure to clean up the resources you've created:
