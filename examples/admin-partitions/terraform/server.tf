@@ -71,7 +71,8 @@ module "example_server" {
       timeout  = 10
     }
   }]
-  consul_server_hosts = local.server_host
+  consul_server_hosts      = local.server_host
+  enable_transparent_proxy = false
   log_configuration = {
     logDriver = "awslogs"
     options = {

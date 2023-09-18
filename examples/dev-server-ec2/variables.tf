@@ -23,3 +23,9 @@ variable "public_ssh_key" {
   type        = string
   default     = null
 }
+
+variable "enable_transparent_proxy" {
+  description = "Whether to enable transparent proxy for the services(tasks) deployed in EC2 instances"
+  type        = bool
+  default     = true
+}
