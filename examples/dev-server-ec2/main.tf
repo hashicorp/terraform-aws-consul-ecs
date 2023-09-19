@@ -54,7 +54,7 @@ module "example_client_app" {
   family                   = "${var.name}-example-client-app"
   requires_compatibilities = ["EC2"]
   memory                   = 256
-  port                     = "9090"
+  port                     = 9090
   enable_transparent_proxy = var.enable_transparent_proxy
   enable_consul_dns        = var.enable_transparent_proxy
   exclude_inbound_ports    = var.enable_transparent_proxy ? [9090] : []
@@ -88,7 +88,7 @@ module "example_client_app" {
   }]
   consul_server_hosts = module.dev_consul_server.server_dns
 
-  consul_ecs_config = var.enable_transparent_proxy ? local.client_ecs_config : null
+  consul_ecs_config = local.client_ecs_config
 }
 
 # The server app is part of the service mesh. It's called
@@ -111,7 +111,7 @@ module "example_server_app" {
   family                   = "${var.name}-example-server-app"
   requires_compatibilities = ["EC2"]
   memory                   = 256
-  port                     = "9090"
+  port                     = 9090
   log_configuration        = local.example_server_app_log_config
   enable_transparent_proxy = var.enable_transparent_proxy
   container_definitions = [{
@@ -237,7 +237,7 @@ locals {
 
   # Proxy config needed to expose health endpoints of the client application
   # when traffic redirection rules get applied with transparent proxy.
-  client_ecs_config = {
+  client_ecs_config = var.enable_transparent_proxy ? {
     proxy = {
       expose = {
         paths = [
@@ -250,5 +250,5 @@ locals {
         ]
       }
     }
-  }
+  } : null
 }
