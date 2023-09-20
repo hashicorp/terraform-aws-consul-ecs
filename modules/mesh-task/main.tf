@@ -75,6 +75,67 @@ locals {
 
   defaulted_check_containers = [for def in local.container_defs_with_depends_on : def.name
   if contains(keys(def), "essential") && contains(keys(def), "healthCheck") && (try(def.healthCheck, null) != null)]
+
+  control_plane_container_definition = {
+    name             = "consul-ecs-control-plane"
+    image            = var.consul_ecs_image
+    essential        = false
+    logConfiguration = var.log_configuration
+    command          = ["control-plane"]
+    mountPoints = [
+      local.consul_data_mount_read_write,
+      {
+        sourceVolume  = local.consul_binary_volume_name
+        containerPath = "/bin/consul-inject"
+        readOnly      = true
+      }
+    ]
+    cpu         = 0
+    volumesFrom = []
+    environment = [
+      {
+        name  = "CONSUL_ECS_CONFIG_JSON",
+        value = local.encoded_config
+      }
+    ]
+    linuxParameters = {
+      initProcessEnabled = true
+      capabilities       = var.enable_transparent_proxy ? { add = ["NET_ADMIN"] } : {}
+    }
+    healthCheck = {
+      command  = ["CMD-SHELL", "curl localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
+      interval = 30
+      retries  = 10
+      timeout  = 5
+    }
+    secrets = flatten(
+      concat(
+        var.tls ? [
+          concat(
+            local.https_ca_cert_arn != "" ? [
+              {
+                name      = "CONSUL_HTTPS_CACERT_PEM"
+                valueFrom = local.https_ca_cert_arn
+              },
+            ] : [],
+            local.grpc_ca_cert_arn != "" ? [
+              {
+                name      = "CONSUL_GRPC_CACERT_PEM"
+                valueFrom = local.grpc_ca_cert_arn
+              }
+            ] : [],
+            []
+          )
+        ] : [],
+        []
+      )
+    )
+  }
+
+  # Additional user attribute that needs to be added to run the control-plane
+  # container with root access.
+  additional_user_attr                         = var.enable_transparent_proxy ? { user = "0" } : {}
+  finalized_control_plane_container_definition = merge(local.control_plane_container_definition, local.additional_user_attr)
 }
 
 resource "aws_ecs_task_definition" "this" {
@@ -174,64 +235,12 @@ resource "aws_ecs_task_definition" "this" {
       concat(
         local.container_defs_with_depends_on,
         [
-          {
-            name             = "consul-ecs-control-plane"
-            image            = var.consul_ecs_image
-            essential        = false
-            logConfiguration = var.log_configuration
-            command          = ["control-plane"]
-            mountPoints = [
-              local.consul_data_mount_read_write,
-              {
-                sourceVolume  = local.consul_binary_volume_name
-                containerPath = "/bin/consul-inject"
-                readOnly      = true
-              }
-            ]
-            cpu         = 0
-            volumesFrom = []
-            environment = [
-              {
-                name  = "CONSUL_ECS_CONFIG_JSON",
-                value = local.encoded_config
-              }
-            ]
-            linuxParameters = {
-              initProcessEnabled = true
-            }
-            healthCheck = {
-              command  = ["CMD-SHELL", "curl localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
-              interval = 30
-              retries  = 10
-              timeout  = 5
-            }
-            secrets = flatten(
-              concat(
-                var.tls ? [
-                  concat(
-                    local.https_ca_cert_arn != "" ? [
-                      {
-                        name      = "CONSUL_HTTPS_CACERT_PEM"
-                        valueFrom = local.https_ca_cert_arn
-                      },
-                    ] : [],
-                    local.grpc_ca_cert_arn != "" ? [
-                      {
-                        name      = "CONSUL_GRPC_CACERT_PEM"
-                        valueFrom = local.grpc_ca_cert_arn
-                      }
-                    ] : [],
-                    []
-                  )
-                ] : [],
-                []
-              )
-            )
-          },
+          local.finalized_control_plane_container_definition,
           {
             name             = "consul-dataplane"
             image            = var.consul_dataplane_image
             essential        = false
+            user             = "5995"
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
             command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-control-plane dumps the dataplane's config into consul-dataplane.json

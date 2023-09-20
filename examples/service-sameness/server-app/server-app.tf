@@ -36,9 +36,10 @@ module "example_server_app" {
     ]
   }]
 
-  consul_ecs_image = var.consul_ecs_image
-  consul_partition = var.consul_partition
-  consul_namespace = "default"
+  enable_transparent_proxy = false
+  consul_ecs_image         = var.consul_ecs_image
+  consul_partition         = var.consul_partition
+  consul_namespace         = "default"
 }
 
 resource "aws_ecs_service" "example_server_app" {

@@ -903,3 +903,54 @@ func TestValidation_MeshGateway(t *testing.T) {
 		})
 	}
 }
+
+func TestValidation_TProxyEC2(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		requiresCompatibilities []string
+		error                   bool
+	}{
+		"only EC2": {
+			requiresCompatibilities: []string{"EC2"},
+		},
+		"only Fargate": {
+			requiresCompatibilities: []string{"FARGATE"},
+			error:                   true,
+		},
+		"both Fargate and EC2": {
+			requiresCompatibilities: []string{"FARGATE", "EC2"},
+			error:                   true,
+		},
+	}
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "./terraform/tproxy-ec2-validate",
+		NoColor:      true,
+	}
+	terraform.Init(t, terraformOptions)
+
+	for name, c := range cases {
+		c := c
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      true,
+				Vars: map[string]interface{}{
+					"requires_compatibilities": c.requiresCompatibilities,
+				},
+			})
+
+			if c.error {
+				require.Error(t, err)
+				require.Regexp(t, "transparent proxy is supported only in ECS EC2 mode.", out)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+
+}
