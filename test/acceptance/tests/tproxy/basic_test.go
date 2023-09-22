@@ -36,7 +36,10 @@ func TestTransparentProxy(t *testing.T) {
 
 	cfg := suite.Config()
 
-	require.Equal(t, "EC2", cfg.LaunchType, "TestTransparentProxy requires EC2 launch type for ECS.")
+	if cfg.LaunchType != "EC2" {
+		t.Skip("TestTransparentProxy requires EC2 launch type for ECS.")
+	}
+
 	require.GreaterOrEqual(t, len(cfg.ECSClusterARNs), len(cases),
 		"TestBasic requires %d ECS clusters. Update setup-terraform and re-run.", len(cases),
 	)

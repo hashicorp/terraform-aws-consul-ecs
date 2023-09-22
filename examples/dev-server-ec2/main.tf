@@ -87,8 +87,6 @@ module "example_client_app" {
     volumesFrom = []
   }]
   consul_server_hosts = module.dev_consul_server.server_dns
-
-  consul_ecs_config = local.client_ecs_config
 }
 
 # The server app is part of the service mesh. It's called
@@ -234,21 +232,4 @@ locals {
 
   # Assign the consul DNS name of the server app when transparent proxy is enabled.
   server_upstream_uri = var.enable_transparent_proxy ? "http://${var.name}-example-server-app.service.consul" : "http://localhost:1234"
-
-  # Proxy config needed to expose health endpoints of the client application
-  # when traffic redirection rules get applied with transparent proxy.
-  client_ecs_config = var.enable_transparent_proxy ? {
-    proxy = {
-      expose = {
-        paths = [
-          {
-            listenerPort  = 20300
-            path          = "/health"
-            localPathPort = 9090
-            protocol      = "http"
-          }
-        ]
-      }
-    }
-  } : null
 }
