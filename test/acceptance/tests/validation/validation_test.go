@@ -786,7 +786,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 		lbModifySecGroup        bool
 		lbModifySecGroupID      string
 		expError                string
-		gatewayCount           int
+		gatewayCount            int
 	}{
 		"kind is required": {
 			kind:                    "",
@@ -824,7 +824,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			kind:      "mesh-gateway",
 			lbEnabled: true,
 			lbSubnets: []string{"subnet"},
-			lbVpcID:   "vpc",		},
+			lbVpcID:   "vpc"},
 		"lb_enabled and no lb subnets": {
 			kind:      "mesh-gateway",
 			lbEnabled: true,
@@ -869,10 +869,10 @@ func TestValidation_MeshGateway(t *testing.T) {
 			lbModifySecGroupID: "mod-sg",
 		},
 		"multiple gateways": {
-			kind:      "mesh-gateway",
-			lbEnabled: true,
-			lbSubnets: []string{"subnet"},
-			lbVpcID:   "vpc",
+			kind:         "mesh-gateway",
+			lbEnabled:    true,
+			lbSubnets:    []string{"subnet"},
+			lbVpcID:      "vpc",
 			gatewayCount: 2,
 		},
 	}
