@@ -892,7 +892,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 				"lb_create_security_group":           c.lbCreateSecGroup,
 				"lb_modify_security_group":           c.lbModifySecGroup,
 				"lb_modify_security_group_id":        c.lbModifySecGroupID,
-				"multiple_gateways":                  c.gatewayCount,
+				"gateway_count":                      c.gatewayCount,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
