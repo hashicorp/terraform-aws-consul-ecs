@@ -72,7 +72,7 @@ module "test_gateway" {
   subnets                            = ["subnets"]
   security_groups                    = var.security_groups
   kind                               = var.kind
-  gateway_count                      = var.gateway_count 
+  gateway_count                      = var.gateway_count
   consul_server_hosts                = "localhost:8500"
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
   tls                                = var.tls
