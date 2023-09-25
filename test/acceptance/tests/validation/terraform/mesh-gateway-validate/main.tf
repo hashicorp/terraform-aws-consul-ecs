@@ -60,6 +60,10 @@ variable "lb_modify_security_group_id" {
   default = ""
 }
 
+variable "gateway_count" {
+  type    = number
+  default = 1
+}
 
 module "test_gateway" {
   source                             = "../../../../../../modules/gateway-task"
@@ -68,6 +72,7 @@ module "test_gateway" {
   subnets                            = ["subnets"]
   security_groups                    = var.security_groups
   kind                               = var.kind
+  gateway_count                      = var.gateway_count 
   consul_server_hosts                = "localhost:8500"
   enable_mesh_gateway_wan_federation = var.enable_mesh_gateway_wan_federation
   tls                                = var.tls
