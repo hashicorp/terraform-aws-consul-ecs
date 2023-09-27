@@ -824,7 +824,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			kind:      "mesh-gateway",
 			lbEnabled: true,
 			lbSubnets: []string{"subnet"},
-			lbVpcID:   "vpc"
+			lbVpcID:   "vpc",
 		},
 		"lb_enabled and no lb subnets": {
 			kind:      "mesh-gateway",
