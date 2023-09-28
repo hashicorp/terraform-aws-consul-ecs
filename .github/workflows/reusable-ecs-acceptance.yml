@@ -35,11 +35,20 @@ on:
         required: true
       hcp-project-id:
         required: true
+      consul-license:
+        required: true
+      hcp-client-id:
+        required: true
+      hcp-client-secret:
+        required: true
 
 
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.0
+  CONSUL_LICENSE: ${{ secrets.consul-license }}
+  HCP_CLIENT_ID: ${{ secrets.hcp-client-id }}
+  HCP_CLIENT_SECRET: ${{ secrets.hcp-client-secret }}
 
 jobs:
   acceptance-tests:

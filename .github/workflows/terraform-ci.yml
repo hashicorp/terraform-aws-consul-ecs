@@ -11,10 +11,7 @@ on:
     branches:
       - 'main'
       - 'release/**'
-env:
-  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-  HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+
 permissions: {}
 jobs:
   action-lint:
@@ -119,6 +116,9 @@ jobs:
       aws-ecs-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
       aws-ecs-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
       hcp-project-id: ${{ secrets.HCP_PROJECT_ID }}
+      consul-license: ${{ secrets.CONSUL_LICENSE }}
+      hcp-client-id: ${{ secrets.HCP_CLIENT_ID }}
+      hcp-client-secret: ${{ secrets.HCP_CLIENT_SECRET }}
   acceptance-ec2:
     needs:
       - get-go-version
@@ -151,3 +151,6 @@ jobs:
       aws-ecs-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
       aws-ecs-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
       hcp-project-id: ${{ secrets.HCP_PROJECT_ID }}
+      consul-license: ${{ secrets.CONSUL_LICENSE }}
+      hcp-client-id: ${{ secrets.HCP_CLIENT_ID }}
+      hcp-client-secret: ${{ secrets.HCP_CLIENT_SECRET }}
