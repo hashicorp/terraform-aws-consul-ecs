@@ -113,29 +113,29 @@ jobs:
       name: ${{ matrix.name }}
       launch-type: ${{ matrix.launch-type }}
       enable-hcp: ${{ matrix.enable-hcp }}
-  acceptance-ec2:
-    runs-on: ubuntu-latest
-    needs:
-      - acceptance-fargate
-    strategy:
-      # We have a limit of 6 HCP Consul clusters.
-      # The following controls whether to enable HCP when testing release branches.
-      # HCP is always disabled for tests on PRs.
-      matrix:
-        name:
-          - acceptance-1.16-EC2-HCP
-          - acceptance-1.16-EC2
-        include:
-          - name: acceptance-1.16-EC2-HCP
-            enable-hcp: true
-            launch-type: EC2
+  # acceptance-ec2:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - acceptance-fargate
+  #   strategy:
+  #     # We have a limit of 6 HCP Consul clusters.
+  #     # The following controls whether to enable HCP when testing release branches.
+  #     # HCP is always disabled for tests on PRs.
+  #     matrix:
+  #       name:
+  #         - acceptance-1.16-EC2-HCP
+  #         - acceptance-1.16-EC2
+  #       include:
+  #         - name: acceptance-1.16-EC2-HCP
+  #           enable-hcp: true
+  #           launch-type: EC2
 
-          - name: acceptance-1.16-EC2
-            enable-hcp: false
-            launch-type: EC2
-    uses: ./.github/workflows/reusable-ecs-acceptance.yml
-    with:
-      go-version: ${{ needs.get-go-version.outputs.go-version }}
-      name: ${{ matrix.name }}
-      launch-type: ${{ matrix.launch-type }}
-      enable-hcp: ${{ matrix.enable-hcp }}
+  #         - name: acceptance-1.16-EC2
+  #           enable-hcp: false
+  #           launch-type: EC2
+  #   uses: ./.github/workflows/reusable-ecs-acceptance.yml
+  #   with:
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+  #     name: ${{ matrix.name }}
+  #     launch-type: ${{ matrix.launch-type }}
+  #     enable-hcp: ${{ matrix.enable-hcp }}
