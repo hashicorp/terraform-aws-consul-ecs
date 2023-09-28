@@ -115,6 +115,7 @@ jobs:
       enable-hcp: ${{ matrix.enable-hcp }}
   acceptance-ec2:
     needs:
+      - get-go-version
       - acceptance-fargate
     strategy:
       # We have a limit of 6 HCP Consul clusters.
