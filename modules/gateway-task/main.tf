@@ -184,7 +184,7 @@ resource "aws_ecs_service" "this" {
   name            = local.service_name
   cluster         = var.ecs_cluster_arn
   task_definition = aws_ecs_task_definition.this.arn
-  desired_count   = 1
+  desired_count   = var.gateway_count
   network_configuration {
     subnets          = var.subnets
     security_groups  = local.security_groups

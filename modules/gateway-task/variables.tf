@@ -6,6 +6,12 @@ variable "family" {
   type        = string
 }
 
+variable "gateway_count" {
+  description = "Number of gateways to deploy to ECS."
+  type        = number
+  default     = 1
+}
+
 variable "ecs_cluster_arn" {
   description = "The ARN of the ECS cluster where the gateway will be running."
   type        = string
