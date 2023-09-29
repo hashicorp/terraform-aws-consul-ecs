@@ -11,10 +11,7 @@ on:
     branches:
       - 'main'
       - 'release/**'
-env:
-  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-  HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+
 permissions: {}
 jobs:
   action-lint:
@@ -86,19 +83,11 @@ jobs:
         terraform_version: 1.4.2
     - name: Validate
       run: terraform fmt -check -recursive .
-  acceptance:
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    env:
-      TEST_RESULTS: /tmp/test-results
-      GOTESTSUM_VERSION: 1.8.0
+  acceptance-fargate:
     needs:
       - get-go-version
       - terraform-fmt
       - go-fmt-and-lint-acceptance
-    defaults:
-      run:
-        working-directory: ./test/acceptance
     strategy:
       # We have a limit of 6 HCP Consul clusters.
       # The following controls whether to enable HCP when testing release branches.
@@ -106,97 +95,48 @@ jobs:
       matrix:
         name:
           - acceptance-1.16-FARGATE-HCP
-          - acceptance-1.16-EC2-HCP
           - acceptance-1.16-FARGATE
-          - acceptance-1.16-EC2
         include:
           - name: acceptance-1.16-FARGATE-HCP
-            consul-version: '1.16.1'
             enable-hcp: true
             launch-type: FARGATE
-
-          - name: acceptance-1.16-EC2-HCP
-            consul-version: '1.16.1'
-            enable-hcp: true
-            launch-type: EC2
 
           - name: acceptance-1.16-FARGATE
-            consul-version: '1.16.1'
             enable-hcp: false
             launch-type: FARGATE
-
-          - name: acceptance-1.16-EC2
-            consul-version: '1.16.1'
-            enable-hcp: false
+      fail-fast: false
+    uses: ./.github/workflows/reusable-ecs-acceptance.yml
+    with:
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+      name: ${{ matrix.name }}
+      launch-type: ${{ matrix.launch-type }}
+      enable-hcp: ${{ matrix.enable-hcp }}
+    secrets: inherit
+  acceptance-ec2:
+    needs:
+      - get-go-version
+      - acceptance-fargate
+    strategy:
+      # We have a limit of 6 HCP Consul clusters.
+      # The following controls whether to enable HCP when testing release branches.
+      # HCP is always disabled for tests on PRs.
+      matrix:
+        name:
+          - acceptance-1.16-EC2-HCP
+          - acceptance-1.16-EC2
+        include:
+          - name: acceptance-1.16-EC2-HCP
+            enable-hcp: true
             launch-type: EC2
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-    - name: Setup Go
-      uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
-      with:
-        go-version: ${{ needs.get-go-version.outputs.go-version }}
-        cache-dependency-path: ./test/acceptance/go.sum
-    - name: Install base apps
-      run: |
-        sudo apt-get install -y expect openssl jq
-    - name: Install gotestsum
-      run: |
-        curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
-        tar -xz --overwrite -C /usr/local/bin gotestsum
-    - name: Install AWS CLI
-      run: |
-        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
-        sudo dpkg -i session-manager-plugin.deb
-        aws --version
-        echo session-manager-plugin version "$(session-manager-plugin --version)"
-    - name: Install AWS ECS CLI
-      run: |
-        curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
-        chmod +x /usr/local/bin/ecs-cli
-        ecs-cli --version
-    - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@8c3f20df09ac63af7b3ae3d7c91f105f857d8497 # v4.0.0
-      with:
-        role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
-        aws-region: ${{ secrets.AWS_ECS_REGION }}
-        aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
-        role-duration-seconds: 3600
-    - name: terraform init & apply
-      run: |
-        cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ matrix.launch-type }}'
-        VARS+=' -var consul_version=${{ matrix.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
-        esac
-        terraform init
-        terraform apply -auto-approve $VARS
-    - name: Acceptance tests
-      run: |
-        mkdir -p "$TEST_RESULTS"
-        cd tests/
-        gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
-      if: always()
-      with:
-        name: acceptance-test-results
-        path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
-    - name: terraform destroy
-      if: always()
-      run: |
-        cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ matrix.launch-type }}'
-        VARS+=' -var consul_version=${{ matrix.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ matrix.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
-        esac
-        terraform destroy -auto-approve $VARS
+          - name: acceptance-1.16-EC2
+            enable-hcp: false
+            launch-type: EC2
+      fail-fast: false
+    uses: ./.github/workflows/reusable-ecs-acceptance.yml
+    with:
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+      name: ${{ matrix.name }}
+      launch-type: ${{ matrix.launch-type }}
+      enable-hcp: ${{ matrix.enable-hcp }}
+    secrets: inherit
