@@ -104,6 +104,7 @@ jobs:
           - name: acceptance-1.16-FARGATE
             enable-hcp: false
             launch-type: FARGATE
+      fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
@@ -131,6 +132,7 @@ jobs:
           - name: acceptance-1.16-EC2
             enable-hcp: false
             launch-type: EC2
+      fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
