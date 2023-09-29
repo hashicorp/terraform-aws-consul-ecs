@@ -786,6 +786,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 		lbModifySecGroup        bool
 		lbModifySecGroupID      string
 		expError                string
+		gatewayCount            int
 	}{
 		"kind is required": {
 			kind:                    "",
@@ -868,6 +869,13 @@ func TestValidation_MeshGateway(t *testing.T) {
 			lbModifySecGroup:   true,
 			lbModifySecGroupID: "mod-sg",
 		},
+		"multiple gateways": {
+			kind:         "mesh-gateway",
+			lbEnabled:    true,
+			lbSubnets:    []string{"subnet"},
+			lbVpcID:      "vpc",
+			gatewayCount: 2,
+		},
 	}
 	for name, c := range cases {
 		c := c
@@ -885,6 +893,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 				"lb_create_security_group":           c.lbCreateSecGroup,
 				"lb_modify_security_group":           c.lbModifySecGroup,
 				"lb_modify_security_group_id":        c.lbModifySecGroupID,
+				"gateway_count":                      c.gatewayCount,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
