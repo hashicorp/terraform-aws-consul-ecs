@@ -96,6 +96,7 @@ BREAKING CHANGES
 IMPROVEMENTS
 * examples/cluster-peering: Add example terraform to illustrate Consul's cluster peering usecase on ECS. [[GH-194]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/194)
 * examples/service-sameness: Add example terraform to illustrate Consul's service sameness group usecase on ECS. [[GH-202]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/202)
+* examples/locality-aware-routing: Add example terraform to demonstrate Consul's locality aware routing feature between ECS tasks [[GH-219]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/219)
 
 
 ## 0.6.1 (Jul 20, 2023)
