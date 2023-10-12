@@ -19,7 +19,7 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.16.2"
+        default: "1.17.0-rc1"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
