@@ -1,4 +1,4 @@
-## Unreleased
+## 0.7.0-rc1 (Oct 16, 2023)
 
 BREAKING CHANGES
 * Adopt the architecture described in [Simplified Service Mesh with Consul Dataplane](https://developer.hashicorp.com/consul/docs/connect/dataplane) for ECS.[[GH-199]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/199)
