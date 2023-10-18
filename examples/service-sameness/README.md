@@ -2,7 +2,7 @@
 
 This example demonstrates Consul's service sameness usecase using mesh gateways on ECS. This feature only works with a Consul enterprise installation.
 
-![Example architecture](../../_docs/sameness-arch.png?raw=true)
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-arch.png?raw=true)
 
 ## Requirements
 
@@ -153,29 +153,29 @@ ce5f3dd4-133e-f794-51e9-b53a6e7304b3
 If you click on the URL of the `dc1_server_url`, you should be able
 to view the Consul UI and log in using the `dc1_server_bootstrap_token` above:
 
-![Consul dc1 UI](../../_docs/sameness-dc1-ui.png?raw=true)
+![Consul dc1 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-dc1-ui.png?raw=true)
 
 If you click on the `part-1` partition under the partitions dropdown, you should see the following UI:
 
-![Consul dc1 part1 UI](../../_docs/sameness-dc1-part1-ui.png?raw=true)
+![Consul dc1 part1 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-dc1-part1-ui.png?raw=true)
 
 If you click on the URL of the `dc2_server_url`, you should be able
 to view the Consul UI and log in using the `dc2_server_bootstrap_token` above:
 
-![Consul dc2 UI](../../_docs/sameness-dc2-ui.png?raw=true)
+![Consul dc2 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-dc2-ui.png?raw=true)
 
 If you click on the Peers subsection in the left pane in `dc2_server_url` you should see that
 a successful peering connection has been established with both the `default` and `part-1` partitions of the `dc1` cluster.
 
-![Consul dc2 peering](../../_docs/sameness-peering-dc2.png?raw=true)
+![Consul dc2 peering](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-peering-dc2.png?raw=true)
 
 Similarly you should be able to see that `dc2-cluster` is a peer for `dc1`'s default and `part-1` partition from `dc1_server_url`. You should also see that the example server app in `dc2` is exported to both the partitions of `dc1` via the peering connection. This can be seen by clicking on the peer name in `dc1_server_url` under the `Peers` subsection.
 
-![Consul dc1 exported service](../../_docs/sameness-exported-service-dc1.png?raw=true)
+![Consul dc1 exported service](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-exported-service-dc1.png?raw=true)
 
 If you browse to the URL of the `client.lb_address` of the apps present in the terraform output, the example application UI should be displayed:
 
-![Example App UI](../../_docs/sameness-client-ui.png?raw=true)
+![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-client-ui.png?raw=true)
 
 You should notice that all the client apps at this point will dial the server apps present in the same partition via their envoy sidecar. 
 
@@ -194,7 +194,7 @@ DC2_DEFAULT_PARTITION_CLUSTER_ARN=$(echo "$tfOutputs" | jq -rc '.dc2_default_par
 
 With all the server apps functioning as expected, the calls from client apps should reach the server apps present in their local partition.
 
-![Sameness Demo 1](../../_docs/sameness-demo-1.png?raw=true)
+![Sameness Demo 1](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-1.png?raw=true)
 
 ### Step 1
 
@@ -206,7 +206,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_DEFAULT_PARTITION_
 
 With the server app in the default partition scaled down to 0 tasks, the calls from the client app present in the DC1's default partition should failover to the server app present in DC1's `part-1` partition.
 
-![Sameness Demo 2](../../_docs/sameness-demo-2.png?raw=true)
+![Sameness Demo 2](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-2.png?raw=true)
 
 ### Step 2
 
@@ -218,7 +218,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_PART1_PARTITION_EC
 
 With the server app in the `part-1` partition also scaled down to 0 tasks, the calls from the client app present in the DC1's `default` and `part-1` partition should failover to the server app present in DC2's `default` partition.
 
-![Sameness Demo 3](../../_docs/sameness-demo-3.png?raw=true)
+![Sameness Demo 3](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-3.png?raw=true)
 
 ### Step 3
 
@@ -230,7 +230,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_DEFAULT_PARTITION_
 
 With the server app in DC1's `default` partition scaled up to run a single task, the calls from the client app present in the DC1's `default` partition should hit to the server app present in the local partition. Calls from the client app present in DC1's `part-1` partition should failover now to the server app present in DC1's `default` partition because failover happens in which the sameness group members are defined in the config entry for a single partition.
 
-![Sameness Demo 4](../../_docs/sameness-demo-4.png?raw=true)
+![Sameness Demo 4](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-4.png?raw=true)
 
 ### Step 4
 
@@ -242,7 +242,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC2_DEFAULT_PARTITION_
 
 With the server app in the `default` partition of DC2 scaled down to 0 tasks, the calls from the client app present in the DC2's `default` partition should failover to the server app present in DC1's `default` partition.
 
-![Sameness Demo 5](../../_docs/sameness-demo-5.png?raw=true)
+![Sameness Demo 5](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-5.png?raw=true)
 
 ### Step 5
 
@@ -254,7 +254,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC1_PART1_PARTITION_EC
 
 With the server app in DC1's `part-1` partition also scaled up to run a single task, the calls from the client app present in the DC1's `part-1` partition should hit to the server app present in the local (`part-1`) partition. Calls from the client app present in DC2's `default` partition should continue to failover to the server app present in DC1's `default` partition.
 
-![Sameness Demo 6](../../_docs/sameness-demo-6.png?raw=true)
+![Sameness Demo 6](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-6.png?raw=true)
 
 ### Step 6
 
@@ -266,7 +266,7 @@ aws ecs update-service --region ${AWS_REGION} --cluster ${DC2_DEFAULT_PARTITION_
 
 Since all the partitions should have healthy instances of server apps running, the client apps should failover to hit the server apps present in their local partitions.
 
-![Sameness Demo 7](../../_docs/sameness-demo-1.png?raw=true)
+![Sameness Demo 7](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/sameness-demo-1.png?raw=true)
 
 ## Cleanup
 
