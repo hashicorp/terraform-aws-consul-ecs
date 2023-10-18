@@ -6,7 +6,11 @@ This example demonstrates how Consul routes traffic based on the locality where 
 
 ![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/locality-aware-routing-arch.png?raw=true)
 
-This terraform example deploys a client application and two server application tasks spread across available within the same AWS region. The consul server is also deployed as an ECS task along with an ECS controller.
+This terraform example does the following
+
+1. Create an ECS service with a single task that runs the client application's container.
+2. Create another ECS service with two tasks spread across available zones within the same AWS region. These tasks host the server application's container.
+3. The consul server is also deployed as an ECS task along with an ECS controller.
 
 ## Requirements
 
@@ -113,7 +117,7 @@ If you browse to the URL of the `client_lb_address`, the example application UI 
 
 ![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/locality-aware-dc1-ui.png?raw=true)
 
-Notice the IP of the upstream server application's task. Because of the locality parameters added during the service registration, Consul takes care of routing traffic from the client application to the server application task within the same availability zone.
+Notice the IP of the upstream server application's task. Because of the locality parameters added during the service registration, Consul takes care of routing traffic from the client application to the server application task within the same availability zone. You can read more about the locality aware routing feature [here](https://developer.hashicorp.com/consul/docs/v1.17.x/connect/manage-traffic/route-to-local-upstreams?ajs_aid=54615e8b-87b1-40fa-aecc-3e16280d6a88&product_intent=consul)
 
 #### Testing failover
 
