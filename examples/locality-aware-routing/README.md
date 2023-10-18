@@ -2,7 +2,7 @@
 
 This example demonstrates how Consul routes traffic based on the locality where the ECS tasks are deployed. As of 1.17, Consul only supports locality aware routing within a single partition. Support for multiple partitions and multiple cluster peers will soon be added in the upcoming releases.
 
-**Note**: This feature only works for a Consul enterprise installation setup.
+**Note**: The locality aware routing feature requires Consul Enterprise.
 
 ![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/locality-aware-routing-arch.png?raw=true)
 
