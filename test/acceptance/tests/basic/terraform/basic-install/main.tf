@@ -64,7 +64,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorpdev/consul-ecs:latest"
+  default     = "ganeshrockz/ecs-tproxy:latest"
 }
 
 variable "server_service_name" {
@@ -175,7 +175,8 @@ resource "aws_ecs_service" "test_client" {
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
-  family = "Test_Client_${var.suffix}"
+  family                   = "Test_Client_${var.suffix}"
+  enable_transparent_proxy = false
   container_definitions = [
     {
       name             = "basic"
@@ -265,9 +266,10 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  source              = "../../../../../../modules/mesh-task"
-  family              = "test_server_${var.suffix}"
-  consul_service_name = "${var.server_service_name}_${var.suffix}"
+  source                   = "../../../../../../modules/mesh-task"
+  family                   = "test_server_${var.suffix}"
+  consul_service_name      = "${var.server_service_name}_${var.suffix}"
+  enable_transparent_proxy = false
   container_definitions = [{
     name             = "basic"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

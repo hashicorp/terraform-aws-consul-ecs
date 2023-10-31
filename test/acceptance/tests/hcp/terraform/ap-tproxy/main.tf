@@ -60,30 +60,23 @@ resource "aws_ecs_service" "test_client" {
 module "test_client" {
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_client_${var.suffix_1}"
-  enable_transparent_proxy = false
+  requires_compatibilities = ["EC2"]
   container_definitions = [{
     name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+    image     = "docker.mirror.hashicorp.services/buildpack-deps:jammy-curl"
     essential = true
-    environment = [
-      {
-        name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
-      }
-    ]
+    command   = ["/bin/sh", "-c", "--", "while true; do sleep 100000; done;"]
+    healthCheck = {
+      command  = ["CMD-SHELL", "echo 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
     linuxParameters = {
       initProcessEnabled = true
     }
   }]
   consul_server_hosts = var.consul_server_address
-  upstreams = [
-    {
-      destinationName      = "test_server_${var.suffix_2}"
-      destinationPartition = var.server_partition
-      destinationNamespace = var.server_namespace
-      localBindPort        = 1234
-    }
-  ]
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -101,6 +94,9 @@ module "test_client" {
   consul_namespace = var.client_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  enable_transparent_proxy = true
+  enable_consul_dns        = true
 
   http_config = {
     port = var.http_port
@@ -160,7 +156,7 @@ resource "aws_ecs_service" "test_server" {
 module "test_server" {
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix_2}"
-  enable_transparent_proxy = false
+  requires_compatibilities = ["EC2"]
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -190,6 +186,9 @@ module "test_server" {
   consul_namespace = var.server_namespace
 
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
+  enable_transparent_proxy = true
+  enable_consul_dns        = true
 
   http_config = {
     port = var.http_port
