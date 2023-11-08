@@ -67,7 +67,7 @@ resource "hcp_consul_cluster" "this" {
   hvn_id             = hcp_hvn.server.hvn_id
   tier               = "development"
   public_endpoint    = true
-  min_consul_version = "1.16.1"
+  min_consul_version = "1.16.2"
 }
 
 // Configure Consul resources to allow cross-partition and cross-namespace communication.
