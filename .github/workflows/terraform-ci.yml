@@ -113,6 +113,7 @@ jobs:
       name: ${{ matrix.name }}
       launch-type: ${{ matrix.launch-type }}
       enable-hcp: ${{ matrix.enable-hcp }}
+      consul-version: ${{ matrix.consul-version }}
     secrets: inherit
   acceptance-ec2:
     needs:
