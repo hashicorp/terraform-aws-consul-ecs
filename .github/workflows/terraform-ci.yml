@@ -94,16 +94,18 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.17-FARGATE-HCP
+          - acceptance-1.16-FARGATE-HCP
           - acceptance-1.17-FARGATE
         include:
-          - name: acceptance-1.17-FARGATE-HCP
+          - name: acceptance-1.16-FARGATE-HCP
             enable-hcp: true
             launch-type: FARGATE
+            consul-version: 1.16.2
 
           - name: acceptance-1.17-FARGATE
             enable-hcp: false
             launch-type: FARGATE
+            consul-version: 1.17.0
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
@@ -122,16 +124,18 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.17-EC2-HCP
+          - acceptance-1.16-EC2-HCP
           - acceptance-1.17-EC2
         include:
-          - name: acceptance-1.17-EC2-HCP
+          - name: acceptance-1.16-EC2-HCP
             enable-hcp: true
             launch-type: EC2
+            consul-version: 1.16.2
 
           - name: acceptance-1.17-EC2
             enable-hcp: false
             launch-type: EC2
+            consul-version: 1.17.0
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
@@ -139,4 +143,5 @@ jobs:
       name: ${{ matrix.name }}
       launch-type: ${{ matrix.launch-type }}
       enable-hcp: ${{ matrix.enable-hcp }}
+      consul-version: ${{ matrix.consul-version }}
     secrets: inherit
