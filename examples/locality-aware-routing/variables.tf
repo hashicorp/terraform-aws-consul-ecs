@@ -6,19 +6,8 @@ variable "name" {
   type        = string
 }
 
-variable "datacenter_names" {
-  description = "Names of Consul datacenters to use."
-  type        = list(string)
-  default     = ["dc1", "dc2"]
-
-  validation {
-    error_message = "Exactly two datacenter names are required."
-    condition     = length(var.datacenter_names) == 2
-  }
-}
-
 variable "consul_license" {
-  description = "A Consul Enterprise license key for datacenter one."
+  description = "A Consul Enterprise license key."
   type        = string
   sensitive   = true
 }
@@ -46,14 +35,8 @@ variable "consul_server_startup_timeout" {
   default     = 300
 }
 
-variable "mesh_gateway_readiness_timeout" {
-  description = "The number of seconds to wait for the Mesh gateway's service instance to become healthy in Consul, so that peering via the gateway can happen successfully. The default is 300s (5m), which should be enough in most cases."
-  type        = number
-  default     = 300
-}
-
-variable "dc1_consul_admin_partition" {
-  description = "The name of the admin partition that will be created in datacenter one's Consul server"
+variable "consul_image" {
+  description = "Consul Docker image."
   type        = string
-  default     = "part-1"
+  default     = "hashicorp/consul-enterprise:1.17.0-rc1-ent"
 }

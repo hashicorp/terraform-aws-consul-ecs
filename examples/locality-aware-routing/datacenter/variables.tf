@@ -49,7 +49,7 @@ variable "consul_server_startup_timeout" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-enterprise:1.17.0-rc1-ent"
+  default     = "hashicorppreview/consul-enterprise:1.17-dev"
 }
 
 variable "consul_license" {

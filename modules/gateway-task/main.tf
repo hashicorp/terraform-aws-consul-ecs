@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.7.0-dev"
+  version_string = "0.7.0-rc1"
 
   consul_data_volume_name = "consul_data"
   consul_data_mount = {
@@ -184,7 +184,7 @@ resource "aws_ecs_service" "this" {
   name            = local.service_name
   cluster         = var.ecs_cluster_arn
   task_definition = aws_ecs_task_definition.this.arn
-  desired_count   = 1
+  desired_count   = var.gateway_count
   network_configuration {
     subnets          = var.subnets
     security_groups  = local.security_groups

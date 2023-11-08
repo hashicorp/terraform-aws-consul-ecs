@@ -6,6 +6,12 @@ variable "family" {
   type        = string
 }
 
+variable "gateway_count" {
+  description = "Number of gateways to deploy to ECS."
+  type        = number
+  default     = 1
+}
+
 variable "ecs_cluster_arn" {
   description = "The ARN of the ECS cluster where the gateway will be running."
   type        = string
@@ -85,7 +91,7 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul:1.16.1"
+  default     = "hashicorp/consul:1.17.0-rc1"
 }
 
 variable "consul_server_hosts" {
@@ -102,13 +108,13 @@ variable "skip_server_watch" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorpdev/consul-ecs:latest"
+  default     = "hashicorp/consul-ecs:0.7.0-rc1"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
+  default     = "hashicorp/consul-dataplane:1.3.0-rc1"
 }
 
 variable "envoy_readiness_port" {
