@@ -93,7 +93,7 @@ resource "aws_iam_policy" "execution" {
 {
   "Version": "2012-10-17",
   "Statement": [
-%{if var.tls~}
+%{if var.consul_ca_cert_arn != ""~}
     {
       "Effect": "Allow",
       "Action": [
