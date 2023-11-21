@@ -4,7 +4,7 @@
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.0-rc1"
+  default     = "hashicorppreview/consul-ecs:0.8.0-dev"
 }
 
 variable "ecs_cluster_arn" {
