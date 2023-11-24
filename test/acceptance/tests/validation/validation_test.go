@@ -796,7 +796,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 		"kind must be mesh-gateway": {
 			kind:                    "not-mesh-gateway",
 			enableMeshGatewayWANFed: false,
-			expError:                `Gateway kind must be 'mesh-gateway'`,
+			expError:                `Gateway kind must be one of 'mesh-gateway' or 'api-gateway'.`,
 		},
 		"no WAN federation": {
 			kind:                    "mesh-gateway",
@@ -897,6 +897,116 @@ func TestValidation_MeshGateway(t *testing.T) {
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
+			}
+			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      terraformOptions.NoColor,
+				Vars:         tfVars,
+			})
+			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
+
+			_, err := terraform.PlanE(t, applyOpts)
+			if len(c.expError) > 0 {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), c.expError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidation_APIGateway(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/api-gateway-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		kind           string
+		lbEnabled      bool
+		lbVpcID        string
+		lbSubnets      []string
+		expError       string
+		customLBConfig []map[string]interface{}
+		gatewayCount   int
+	}{
+		"kind is required": {
+			kind:     "",
+			expError: `variable "kind" is not set`,
+		},
+		"kind must be api-gateway": {
+			kind:     "not-api-gateway",
+			expError: `Gateway kind must be one of 'mesh-gateway' or 'api-gateway'.`,
+		},
+		"lb_enabled": {
+			kind:      "api-gateway",
+			lbEnabled: true,
+			lbVpcID:   "test-lb-vpc-id",
+			lbSubnets: []string{"subnet-1"},
+		},
+		"custom_lb_config passed with lb_enabled as true": {
+			kind:      "api-gateway",
+			lbEnabled: true,
+			lbVpcID:   "test-lb-vpc-id",
+			lbSubnets: []string{"subnet-1"},
+			customLBConfig: []map[string]interface{}{
+				{
+					"target_group_arn": "test-arn-1",
+					"container_name":   "test-container-1",
+					"container_port":   9090,
+				},
+				{
+					"target_group_arn": "test-arn-2",
+					"container_name":   "test-container-2",
+					"container_port":   9090,
+				},
+			},
+			expError: "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false",
+		},
+		"custom_lb_config passed with lb_enabled as false": {
+			kind:      "api-gateway",
+			lbEnabled: false,
+			customLBConfig: []map[string]interface{}{
+				{
+					"target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/consul-ecs-api-gateway/3c01bdfe223245c9",
+					"container_name":   "test-container-1",
+					"container_port":   9090,
+				},
+				{
+					"target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/consul-ecs-api-gateway/3c01bdfe223245r4",
+					"container_name":   "test-container-2",
+					"container_port":   9090,
+				},
+			},
+		},
+		"multiple api gateways": {
+			kind:         "api-gateway",
+			lbEnabled:    true,
+			lbVpcID:      "test-lb-vpc-id",
+			lbSubnets:    []string{"subnet-1"},
+			gatewayCount: 2,
+		},
+	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tfVars := map[string]interface{}{
+				"lb_enabled":    c.lbEnabled,
+				"gateway_count": c.gatewayCount,
+				"lb_vpc_id":     c.lbVpcID,
+				"lb_subnets":    c.lbSubnets,
+			}
+			if len(c.kind) > 0 {
+				tfVars["kind"] = c.kind
+			}
+			if c.customLBConfig != nil {
+				tfVars["custom_lb_config"] = c.customLBConfig
 			}
 			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,

@@ -114,7 +114,7 @@ variable "consul_ecs_image" {
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:1.4.0-dev"
+  default     = "hashicorppreview/consul-dataplane:1.4.0-dev"
 }
 
 variable "envoy_readiness_port" {
@@ -196,8 +196,8 @@ variable "kind" {
   type        = string
 
   validation {
-    error_message = "Gateway kind must be 'mesh-gateway'."
-    condition     = contains(["mesh-gateway"], var.kind)
+    error_message = "Gateway kind must be one of 'mesh-gateway' or 'api-gateway'."
+    condition     = contains(["mesh-gateway", "api-gateway"], var.kind)
   }
 }
 
@@ -288,6 +288,22 @@ variable "lb_modify_security_group_id" {
   description = "The ID of the security group to modify with an ingress rule for the gateway task. Required when lb_modify_security_group is true."
   type        = string
   default     = ""
+}
+
+variable "custom_load_balancer_config" {
+  description = <<-EOT
+  Load balancer config that will applied to the ECS service backing the gateway task.
+  The gateway submodule by default creates an NLB with backing listeners that attach the LB
+  to the gateway ECS task. When configuring API gateways, users might need to deploy an ALB
+  and add listeners that target the API gateway's ECS task. This field can be used to supply
+  target group related configuration for such use cases.
+  EOT
+  type = list(object({
+    target_group_arn = string
+    container_name   = string
+    container_port   = number
+  }))
+  default = []
 }
 
 variable "consul_ecs_config" {
