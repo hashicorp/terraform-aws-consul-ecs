@@ -8,3 +8,11 @@ output "consul_server_lb_address" {
 output "mesh_client_lb_address" {
   value = "http://${aws_lb.example_client_app.dns_name}:9090/ui"
 }
+
+output "client_app_consul_service_name" {
+  value = "${var.name}-example-client-app"
+}
+
+output "server_app_consul_service_name" {
+  value = "${var.name}-example-server-app"
+}

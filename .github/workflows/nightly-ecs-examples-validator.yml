@@ -1,0 +1,34 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Nighly ECS example validator
+on:
+  # schedule:
+  #   - cron: '0 0 * * *' # Runs every day at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  validator:
+    strategy:
+      matrix:
+        name:
+          - Consul ECS on Fargate
+          - Consul ECS on EC2
+        include:
+          - name: Consul ECS on Fargate
+            region: us-east-1
+            working-directory: examples/dev-server-fargate
+            variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
+
+          - name: Consul ECS on EC2
+            region: us-east-2
+            working-directory: examples/dev-server-ec2
+            variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
+      fail-fast: false
+    uses: ./.github/workflows/reusable-ecs-example-validator.yaml
+    with:
+      name: ${{ matrix.name }}
+      region: ${{ matrix.region }}
+      working-directory: ${{ matrix.working-directory }}
+      variables: ${{ matrix.variables }}
+    secrets: inherit
