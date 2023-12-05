@@ -43,7 +43,7 @@ jobs:
         role-duration-seconds: 7200
     - name: terraform init & apply
       run: |
-        VVARS_JSON="${{ inputs.variables }}"
+        VARS_JSON="${{ inputs.variables }}"
         VARS=" -var region=${{ inputs.region }}"
 
         for key in $(echo "$VARS_JSON" | jq -r 'keys_unsorted[]'); do
