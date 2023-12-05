@@ -41,6 +41,10 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
+    - name: Print IP
+      run: |
+        echo "Printing"
+        curl ifconfig.me
     - name: terraform init & apply
       run: |
         VARS_JSON="${{ inputs.variables }}"
@@ -81,8 +85,6 @@ jobs:
 
             VARS+=" -var $key=$value"
         done
-
-        echo $VARS
         
         terraform init
         terraform destroy -auto-approve $VARS
