@@ -36,7 +36,7 @@ locals {
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-dataplane"
     container_port   = local.lan_port
-  }] : []
+  }] : var.custom_load_balancer_config
 
   security_groups = var.lb_create_security_group ? concat(
     var.security_groups,

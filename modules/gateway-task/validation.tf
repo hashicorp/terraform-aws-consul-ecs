@@ -9,4 +9,6 @@ locals {
 
   create_xor_modify_security_group = var.lb_create_security_group && var.lb_modify_security_group ? file("ERROR: Only one of lb_create_security_group or lb_modify_security_group may be true") : null
   require_sg_id_for_modify         = var.lb_modify_security_group && var.lb_modify_security_group_id == "" ? file("ERROR: lb_modify_security_group_id is required when lb_modify_security_group is true") : null
+
+  custom_lb_config_check = var.lb_enabled && length(var.custom_load_balancer_config) > 0 ? file("ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false") : null
 }

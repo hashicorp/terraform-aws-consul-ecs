@@ -1,3 +1,12 @@
+## Unreleased
+
+FEATURES
+* Add support for provisioning API gateways as ECS tasks [[GH-234](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/234)]
+  - Add `api-gateway` as an acceptable `kind` input.
+  - Add `custom_load_balancer_config` input variable which can be used to feed in custom load balancer target group config that can be attached to the gateway's ECS task.
+  - Add `consul.hashicorp.com.gateway-kind` as a tag to the gateway task's IAM Role. This field will hold the type of the gateway that is getting deployed to the ECS task and will be used by the configured IAM auth method to mint tokens
+  with appropriate permissions when individual tasks perform a Consul login.
+
 ## 0.7.0 (Nov 8, 2023)
 
 BREAKING CHANGES
