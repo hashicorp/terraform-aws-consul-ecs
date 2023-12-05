@@ -81,6 +81,8 @@ jobs:
 
             VARS+=" -var $key=$value"
         done
+
+        echo $VARS
         
         terraform init
         terraform destroy -auto-approve $VARS
