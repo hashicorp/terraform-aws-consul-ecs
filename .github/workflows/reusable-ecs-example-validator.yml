@@ -18,7 +18,7 @@ on:
       working-directory:
         description: "Directory where the terraform for the example is present"
         required: true
-        type: boolean
+        type: string
 
 env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
