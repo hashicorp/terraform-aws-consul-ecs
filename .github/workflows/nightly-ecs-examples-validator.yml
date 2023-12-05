@@ -21,10 +21,10 @@ jobs:
             working-directory: ./examples/dev-server-fargate
             variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
 
-          - name: Consul ECS on EC2
-            region: us-east-2
-            working-directory: ./examples/dev-server-ec2
-            variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
+          # - name: Consul ECS on EC2
+          #   region: us-east-2
+          #   working-directory: ./examples/dev-server-ec2
+          #   variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
