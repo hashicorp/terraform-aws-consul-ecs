@@ -26,7 +26,7 @@ jobs:
             working-directory: examples/dev-server-ec2
             variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
       fail-fast: false
-    uses: ./.github/workflows/reusable-ecs-example-validator.yaml
+    uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
       name: ${{ matrix.name }}
       region: ${{ matrix.region }}
