@@ -9,7 +9,6 @@ waitfor() {
   while [[ $count -le 30 ]]; do
     echo -n "."
     echo $(curl -sS -X GET \
-      -H "Authorization: Bearer ${CONSUL_HTTP_TOKEN}"\
       "${CONSUL_HTTP_ADDR}/v1/catalog/services") \
       | grep -q "${1}" && return
     sleep 10
