@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script that validates if the setup works E2E on ECS.
-set -x
+set -e
 
 waitfor() {
   echo -n "waiting for ${1} to be registered in Consul"
