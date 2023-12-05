@@ -2,15 +2,20 @@
 
 # Script that validates if the setup works E2E on ECS.
 set -e
+set -x
 
 waitfor() {
   echo -n "waiting for ${1} to be registered in Consul"
   local count=0
   while [[ $count -le 30 ]]; do
     echo -n "."
-    echo $(curl -sS -X GET \
-      "${CONSUL_HTTP_ADDR}/v1/catalog/services") \
-      | grep -q "${1}" && return
+    response=$(curl -sS -X GET "${CONSUL_HTTP_ADDR}/v1/catalog/services")
+    if [ $? -ne 0 ]; then
+        echo "Error: curl command failed"
+        ((count++))
+        continue
+    fi
+    echo $response | grep -q "${1}" && return
     sleep 10
     ((count++))
   done
