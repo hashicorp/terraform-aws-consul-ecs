@@ -19,7 +19,7 @@ jobs:
           - name: Consul ECS on Fargate
             region: us-east-1
             working-directory: ./examples/dev-server-fargate
-            variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
+            variables: "{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\"}"
 
           # - name: Consul ECS on EC2
           #   region: us-east-2
