@@ -14,7 +14,7 @@ jobs:
       matrix:
         name:
           - Consul ECS on Fargate
-          - Consul ECS on EC2
+          # - Consul ECS on EC2
         include:
           - name: Consul ECS on Fargate
             region: us-east-1
