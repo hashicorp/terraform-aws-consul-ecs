@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Script that validates if the setup works E2E on ECS.
-set -e
 set -x
 
 waitfor() {
