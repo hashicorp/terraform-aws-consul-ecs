@@ -56,6 +56,7 @@ jobs:
             # Sometimes value field could be a bash statement. We want
             # to evaluate it before assigning to terraform
             if [[ "$value" == "eval"* ]]; then
+                echo $value
                 value=$(value)
             fi
 
