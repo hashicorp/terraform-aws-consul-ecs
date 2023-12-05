@@ -41,23 +41,18 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
-    - name: Print IP
-      run: |
-        echo "Printing"
-        curl ifconfig.me
     - name: terraform init & apply
       run: |
         VARS_JSON="${{ inputs.variables }}"
         VARS=" -var region=${{ inputs.region }}"
 
         for key in $(echo "$VARS_JSON" | jq -r 'keys_unsorted[]'); do
-            value=$(echo "$INPUT_JSON" | jq -r ".$key")
+            value=$(echo "$VARS_JSON" | jq -r ".$key")
 
             # Sometimes value field could be a bash statement. We want
             # to evaluate it before assigning to terraform
             if [[ "$value" == "eval"* ]]; then
-                echo $value
-                value=$(value)
+                value=$(eval "$value")
             fi
 
             VARS+=" -var $key=$value"
@@ -76,12 +71,12 @@ jobs:
         VARS=" -var region=${{ inputs.region }}"
 
         for key in $(echo "$VARS_JSON" | jq -r 'keys_unsorted[]'); do
-            value=$(echo "$INPUT_JSON" | jq -r ".$key")
+            value=$(echo "$VARS_JSON" | jq -r ".$key")
 
             # Sometimes value field could be a bash statement. We want
             # to evaluate it before assigning to terraform
             if [[ "$value" == "eval"* ]]; then
-                value=$(value)
+                value=$(eval "$value")
             fi
 
             VARS+=" -var $key=$value"
