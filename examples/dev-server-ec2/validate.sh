@@ -59,7 +59,7 @@ while [[ $count -le 20 ]]; do
 done
 echo ""
 
-if [ ! "$success" ]; then
+if [ "$success" ]; then
     echo "e2e setup for Consul on ECS Fargate failed!!"
     exit 1
 fi

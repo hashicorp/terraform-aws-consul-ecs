@@ -14,17 +14,17 @@ jobs:
       matrix:
         name:
           - Consul ECS on Fargate
-          # - Consul ECS on EC2
+          - Consul ECS on EC2
         include:
           - name: Consul ECS on Fargate
             region: us-east-1
             working-directory: ./examples/dev-server-fargate
             variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\"}'
 
-          # - name: Consul ECS on EC2
-          #   region: us-east-2
-          #   working-directory: ./examples/dev-server-ec2
-          #   variables: '{"lb_ingress_ip": "eval curl -s ifconfig.me"}'
+          - name: Consul ECS on EC2
+            region: us-east-2
+            working-directory: ./examples/dev-server-ec2
+            variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\"}'
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:

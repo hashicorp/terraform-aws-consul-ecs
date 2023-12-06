@@ -12,3 +12,11 @@ output "mesh_client_lb_address" {
 output "bastion_ip" {
   value = var.public_ssh_key != null ? module.bastion[0].ip : null
 }
+
+output "client_app_consul_service_name" {
+  value = "${var.name}-example-client-app"
+}
+
+output "server_app_consul_service_name" {
+  value = "${var.name}-example-server-app"
+}
