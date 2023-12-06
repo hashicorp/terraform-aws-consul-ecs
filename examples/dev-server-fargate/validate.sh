@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Script that validates if the setup works E2E on ECS.
-set -e
 
 waitfor() {
   echo -n "waiting for ${1} to be registered in Consul"
@@ -60,7 +59,7 @@ while [[ $count -le 20 ]]; do
 done
 echo ""
 
-if [ ! "$success" ]; then
+if [ "$success" ]; then
     echo "e2e setup for Consul on ECS Fargate failed!!"
     exit 1
 fi
