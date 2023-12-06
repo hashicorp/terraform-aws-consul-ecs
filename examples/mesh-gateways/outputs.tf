@@ -17,3 +17,19 @@ output "dc1_server_url" {
 output "dc2_server_url" {
   value = "http://${module.dc2.dev_consul_server.lb_dns_name}:8500"
 }
+
+output "client_app_consul_service_name" {
+  value = local.example_client_app_name
+}
+
+output "server_app_consul_service_name" {
+  value = local.example_server_app_name
+}
+
+output "dc1_mesh_gateway_name" {
+  value = local.mgw_name_1
+}
+
+output "dc2_mesh_gateway_name" {
+  value = local.mgw_name_2
+}

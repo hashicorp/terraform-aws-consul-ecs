@@ -25,6 +25,11 @@ jobs:
             region: us-east-2
             working-directory: ./examples/dev-server-ec2
             variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-rtya\"}'
+          
+          - name: Mesh gateways on Consul ECS
+            region: us-west-1
+            working-directory: ./examples/mesh-gateways
+            variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oprb\"}'
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
