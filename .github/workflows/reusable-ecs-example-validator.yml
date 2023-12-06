@@ -26,6 +26,8 @@ on:
 
 env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+  HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+  HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
 
 jobs:
   example-validator:
