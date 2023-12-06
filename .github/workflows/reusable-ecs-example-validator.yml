@@ -91,6 +91,10 @@ jobs:
 
             VARS+=" -var $key=$value"
         done
+
+        if [[ ${{ inputs.pass-hcp-project-id }} ]]; then
+            VARS+=" -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
+        fi
         
         terraform init
         terraform destroy -auto-approve $VARS
