@@ -50,15 +50,25 @@ echo -n "calling upstream ${SERVER_AP}/${SERVER_NS}/${SERVER_NAME} from client t
 # make the call to the upstream in a loop because it may take some time for the
 # exported-service config and service intention to propagate.
 count=0
+success=false
 while [[ $count -le 10 ]]; do
   echo -n "."
   response=$(aws ecs execute-command --region ${CLIENT_REGION} --cluster ${CLIENT_CLUSTER_ARN} --task ${CLIENT_TASK_ID} --container=basic --command '/bin/sh -c "curl localhost:1234"' --interactive 2> /dev/null)
   if echo "$response" | grep -q 'Hello World'; then
-    echo " success!"
-    echo "$response"
-    break
+    echo $response
+    responseCode=$(echo $response | jq -rc '.code')
+    if [[ "$responseCode" == "200" ]]; then
+        success=true
+        break
+    fi
   fi
   sleep 20
   ((count++))
 done
-echo ""
+
+if [ ! "$success" ]; then
+    echo "e2e setup for Consul on ECS using admin partitions failed!!"
+    exit 1
+fi
+
+echo "e2e setup for Consul on ECS using admin partitions is successful!!"

@@ -9,14 +9,13 @@ on:
   push:
 
 jobs:
-  validator:
+  single-cluster:
     strategy:
       matrix:
         name:
           - Consul ECS on Fargate
           - Consul ECS on EC2
-          - Mesh gateways
-          - Cluster peering
+          - Admin partitions
         include:
           - name: Consul ECS on Fargate
             region: us-east-1
@@ -28,15 +27,9 @@ jobs:
             working-directory: ./examples/dev-server-ec2
             variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-rtya\"}'
           
-          - name: Mesh gateways
-            region: us-west-1
-            working-directory: ./examples/mesh-gateways
-            variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oprb\"}'
-
-          - name: Cluster peering
+          - name: Admin partitions
             region: us-west-2
-            working-directory: ./examples/cluster-peering
-            variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oerc\"}'
+            working-directory: ./examples/admin-partitions/terraform
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
@@ -45,3 +38,28 @@ jobs:
       working-directory: ${{ matrix.working-directory }}
       variables: ${{ matrix.variables }}
     secrets: inherit
+  multi-cluster:
+      strategy:
+        matrix:
+          name:
+            - Mesh gateways
+            - Cluster peering
+          include:
+            
+            - name: Mesh gateways
+              region: us-east-1
+              working-directory: ./examples/mesh-gateways
+              variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oprb\"}'
+  
+            - name: Cluster peering
+              region: us-east-2
+              working-directory: ./examples/cluster-peering
+              variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oerc\"}'
+        fail-fast: false
+      uses: ./.github/workflows/reusable-ecs-example-validator.yml
+      with:
+        name: ${{ matrix.name }}
+        region: ${{ matrix.region }}
+        working-directory: ${{ matrix.working-directory }}
+        variables: ${{ matrix.variables }}
+      secrets: inherit
