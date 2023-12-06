@@ -22,3 +22,19 @@ output "dc2_server_bootstrap_token" {
   value     = module.dc2.dev_consul_server.bootstrap_token_id
   sensitive = true
 }
+
+output "client_app_consul_service_name" {
+  value = local.example_client_app_name
+}
+
+output "server_app_consul_service_name" {
+  value = local.example_server_app_name
+}
+
+output "dc1_mesh_gateway_name" {
+  value = local.mgw_name_1
+}
+
+output "dc2_mesh_gateway_name" {
+  value = local.mgw_name_2
+}

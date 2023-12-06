@@ -15,6 +15,8 @@ jobs:
         name:
           - Consul ECS on Fargate
           - Consul ECS on EC2
+          - Mesh gateways
+          - Cluster peering
         include:
           - name: Consul ECS on Fargate
             region: us-east-1
@@ -26,10 +28,15 @@ jobs:
             working-directory: ./examples/dev-server-ec2
             variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-rtya\"}'
           
-          - name: Mesh gateways on Consul ECS
+          - name: Mesh gateways
             region: us-west-1
             working-directory: ./examples/mesh-gateways
             variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oprb\"}'
+
+          - name: Cluster peering
+            region: us-west-2
+            working-directory: ./examples/cluster-peering
+            variables: '{\"lb_ingress_ip\": \"eval curl -s ifconfig.me\", \"name\": \"ecs-oerc\"}'
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:

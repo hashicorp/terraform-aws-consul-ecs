@@ -63,7 +63,7 @@ while [[ $count -le 20 ]]; do
   if echo "$response" | grep -q 'Hello World'; then
     echo $response
     responseCode=$(echo $response | jq -rc '.code')
-    if "$responseCode" == "200"; then
+    if [[ "$responseCode" == "200" ]]; then
         success=true
         break
     fi
