@@ -61,9 +61,12 @@ while [[ $count -le 20 ]]; do
   echo -n "."
   response=$(curl -s ${MESH_CLIENT_APP_LB_ADDR} 2> /dev/null)
   if echo "$response" | grep -q 'Hello World'; then
-    echo "$response"
-    success=true
-    break
+    echo $response
+    responseCode=$(echo $response | jq -rc '.code')
+    if "$responseCode" == "200"; then
+        success=true
+        break
+    fi
   fi
   sleep 20
   ((count++))
