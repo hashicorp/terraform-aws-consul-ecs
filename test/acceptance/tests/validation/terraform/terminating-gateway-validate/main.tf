@@ -15,13 +15,13 @@ variable "gateway_count" {
 }
 
 module "test_gateway" {
-  source                      = "../../../../../../modules/gateway-task"
-  family                      = "family"
-  ecs_cluster_arn             = "cluster"
-  subnets                     = ["subnets"]
-  kind                        = var.kind
-  gateway_count               = var.gateway_count
-  consul_server_hosts         = "localhost:8500"
-  tls                         = true
-  lb_create_security_group    = false
+  source                   = "../../../../../../modules/gateway-task"
+  family                   = "family"
+  ecs_cluster_arn          = "cluster"
+  subnets                  = ["subnets"]
+  kind                     = var.kind
+  gateway_count            = var.gateway_count
+  consul_server_hosts      = "localhost:8500"
+  tls                      = true
+  lb_create_security_group = false
 }
