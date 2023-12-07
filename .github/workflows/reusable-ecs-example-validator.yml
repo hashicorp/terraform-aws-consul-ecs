@@ -19,6 +19,7 @@ on:
         description: "Indicates if the id of the project in HCP where Consul specific resources will be spun up should be passed as an input to the terraform config."
         required: false
         type: boolean
+        default: false
       working-directory:
         description: "Directory where the terraform for the example is present"
         required: true
@@ -64,7 +65,7 @@ jobs:
             VARS+=" -var $key=$value"
         done
 
-        if [[ ${{ inputs.pass-hcp-project-id }} ]]; then
+        if [[ "${{ inputs.pass-hcp-project-id }}" == "true" ]]; then
             VARS+=" -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
         fi
         
@@ -92,7 +93,7 @@ jobs:
             VARS+=" -var $key=$value"
         done
 
-        if [[ ${{ inputs.pass-hcp-project-id }} ]]; then
+        if [[ "${{ inputs.pass-hcp-project-id }}" == "true" ]]; then
             VARS+=" -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
         fi
         

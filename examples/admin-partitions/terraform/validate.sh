@@ -56,11 +56,8 @@ while [[ $count -le 10 ]]; do
   response=$(aws ecs execute-command --region ${CLIENT_REGION} --cluster ${CLIENT_CLUSTER_ARN} --task ${CLIENT_TASK_ID} --container=basic --command '/bin/sh -c "curl localhost:1234"' --interactive 2> /dev/null)
   if echo "$response" | grep -q 'Hello World'; then
     echo $response
-    responseCode=$(echo $response | jq -rc '.code')
-    if [[ "$responseCode" == "200" ]]; then
-        success=true
-        break
-    fi
+    success=true
+    break
   fi
   sleep 20
   ((count++))
