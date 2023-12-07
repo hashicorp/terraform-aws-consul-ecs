@@ -6,6 +6,8 @@ FEATURES
   - Add `custom_load_balancer_config` input variable which can be used to feed in custom load balancer target group config that can be attached to the gateway's ECS task.
   - Add `consul.hashicorp.com.gateway-kind` as a tag to the gateway task's IAM Role. This field will hold the type of the gateway that is getting deployed to the ECS task and will be used by the configured IAM auth method to mint tokens
   with appropriate permissions when individual tasks perform a Consul login.
+* Add support for provisioning Terminating gateways as ECS tasks [[GH-236](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/236)]
+  - Add `terminating-gateway` as an acceptable `kind` input for the gateway submodule.
 * examples/api-gateway: Add example terraform to demonstrate exposing mesh tasks in ECS via Consul API gateway deployed as an ECS task. [[GH-235]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/235)
 
 ## 0.7.0 (Nov 8, 2023)
