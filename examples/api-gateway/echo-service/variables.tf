@@ -24,7 +24,7 @@ variable "consul_ca_cert_arn" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to used for the controller task."
   type        = string
-  default     = "ganeshrockz/api-gateway"
+  default     = "hashicorppreview/consul-ecs:0.8.0-dev"
 }
 
 variable "private_subnets" {

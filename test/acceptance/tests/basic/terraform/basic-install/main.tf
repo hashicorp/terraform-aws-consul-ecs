@@ -87,11 +87,13 @@ locals {
 
 module "consul_server" {
   source          = "../../../../../../modules/dev-server"
-  lb_enabled      = false
+  lb_enabled      = true
   ecs_cluster_arn = var.ecs_cluster_arn
   subnet_ids      = var.subnets
   vpc_id          = var.vpc_id
   name            = "consul_server_${var.suffix}"
+  lb_subnets      = var.subnets
+  lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -134,6 +136,7 @@ resource "aws_security_group_rule" "consul_server_ingress" {
 
 module "ecs_controller" {
   count  = var.secure ? 1 : 0
+  depends_on = [module.consul_server]
   source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
@@ -173,6 +176,7 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
+  depends_on = [module.consul_server]
   source = "../../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
   family = "Test_Client_${var.suffix}"
@@ -265,6 +269,7 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
+  depends_on = [module.consul_server]
   source              = "../../../../../../modules/mesh-task"
   family              = "test_server_${var.suffix}"
   consul_service_name = "${var.server_service_name}_${var.suffix}"
