@@ -141,7 +141,7 @@ a call to uri `http://localhost:1234` which is returning with an HTTP code 200. 
 
 If you suffix the URL of `api_gateway_lb_url` with the path `/ui`, you should see the application's UI as shown below
 
-[Application UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/api-gateway-client-ui.png?raw=true)
+[Application UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/api-gateway-client-ui.png)
 
 ### Using API gateway as a load balancer
 
