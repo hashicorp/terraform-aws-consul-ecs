@@ -97,7 +97,7 @@ module "consul_server" {
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-server-${var.suffix}"
+      awslogs-stream-prefix = "consul_server_${var.suffix}"
     }
   }
   launch_type = var.launch_type
