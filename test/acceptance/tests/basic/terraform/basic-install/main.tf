@@ -77,6 +77,11 @@ variable "consul_datacenter" {
   type        = string
 }
 
+variable "public_subnets" {
+  description = "Public subnets to deploy the Consul server's ALB into"
+  type        = list(string)
+}
+
 provider "aws" {
   region = var.region
 }
@@ -92,7 +97,7 @@ module "consul_server" {
   subnet_ids                  = var.subnets
   vpc_id                      = var.vpc_id
   name                        = "consul-server-${var.suffix}"
-  lb_subnets                  = var.subnets
+  lb_subnets                  = var.public_subnets
   lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
   log_configuration = {
     logDriver = "awslogs"
