@@ -12,6 +12,7 @@ module "ecs_controller" {
   consul_server_hosts = module.dc1.dev_consul_server.server_dns
   consul_ca_cert_arn  = module.dc1.dev_consul_server.ca_cert_arn
   launch_type         = "FARGATE"
+  consul_ecs_image    = "ganeshrockz/api-gateway"
 
   consul_bootstrap_token_secret_arn = module.dc1.dev_consul_server.bootstrap_token_secret_arn
 

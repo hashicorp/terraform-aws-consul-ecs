@@ -34,6 +34,8 @@ module "api_gateway" {
     container_port   = 8443
     target_group_arn = aws_lb_target_group.this.arn
   }]
+
+  consul_ecs_image = "ganeshrockz/api-gateway"
 }
 
 # Ingress rule for the API Gateway task that accepts traffic from the API gateway's LB
