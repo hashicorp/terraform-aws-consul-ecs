@@ -91,7 +91,7 @@ module "consul_server" {
   ecs_cluster_arn             = var.ecs_cluster_arn
   subnet_ids                  = var.subnets
   vpc_id                      = var.vpc_id
-  name                        = "consul_server_${var.suffix}"
+  name                        = "consul-server-${var.suffix}"
   lb_subnets                  = var.subnets
   lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
   log_configuration = {
@@ -99,7 +99,7 @@ module "consul_server" {
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul_server_${var.suffix}"
+      awslogs-stream-prefix = "consul-server-${var.suffix}"
     }
   }
   launch_type = var.launch_type
