@@ -13,8 +13,12 @@ output "launch_type" {
   value = var.launch_type
 }
 
-output "subnets" {
+output "private_subnets" {
   value = module.vpc.private_subnets
+}
+
+output "public_subnets" {
+  value = module.vpc.public_subnets
 }
 
 output "suffix" {

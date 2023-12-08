@@ -8,7 +8,8 @@ type TestConfig struct {
 	NoCleanupOnFailure bool
 	ECSClusterARNs     []string    `json:"ecs_cluster_arns"`
 	LaunchType         string      `json:"launch_type"`
-	Subnets            interface{} `json:"subnets"`
+	PrivateSubnets     interface{} `json:"private_subnets"`
+	PublicSubnets      interface{} `json:"public_subnets"`
 	Suffix             string
 	Region             string   `json:"region"`
 	VpcID              string   `json:"vpc_id"`
@@ -24,7 +25,8 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 	vars := map[string]interface{}{
 		"ecs_cluster_arns": t.ECSClusterARNs,
 		"launch_type":      t.LaunchType,
-		"subnets":          t.Subnets,
+		"private_subnets":  t.PrivateSubnets,
+		"public_subnets":   t.PublicSubnets,
 		"region":           t.Region,
 		"log_group_name":   t.LogGroupName,
 		"vpc_id":           t.VpcID,

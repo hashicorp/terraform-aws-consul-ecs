@@ -25,7 +25,7 @@ module "ecs_controller" {
   consul_server_hosts               = var.consul_server_address
   ecs_cluster_arn                   = local.ecs_cluster_arn
   region                            = var.region
-  subnets                           = var.subnets
+  subnets                           = var.private_subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = true
@@ -46,7 +46,7 @@ resource "aws_ecs_service" "test_client" {
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.private_subnets
   }
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
@@ -112,7 +112,7 @@ resource "aws_ecs_service" "test_server" {
   task_definition = module.test_server.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.private_subnets
   }
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
