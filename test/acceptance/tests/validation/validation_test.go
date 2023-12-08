@@ -796,7 +796,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 		"kind must be mesh-gateway": {
 			kind:                    "not-mesh-gateway",
 			enableMeshGatewayWANFed: false,
-			expError:                `Gateway kind must be one of 'mesh-gateway' or 'api-gateway'.`,
+			expError:                `Gateway kind must be one of 'mesh-gateway', 'terminating-gateway'`,
 		},
 		"no WAN federation": {
 			kind:                    "mesh-gateway",
@@ -893,10 +893,12 @@ func TestValidation_MeshGateway(t *testing.T) {
 				"lb_create_security_group":           c.lbCreateSecGroup,
 				"lb_modify_security_group":           c.lbModifySecGroup,
 				"lb_modify_security_group_id":        c.lbModifySecGroupID,
-				"gateway_count":                      c.gatewayCount,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
+			}
+			if c.gatewayCount > 0 {
+				tfVars["gateway_count"] = c.gatewayCount
 			}
 			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
@@ -940,7 +942,7 @@ func TestValidation_APIGateway(t *testing.T) {
 		},
 		"kind must be api-gateway": {
 			kind:     "not-api-gateway",
-			expError: `Gateway kind must be one of 'mesh-gateway' or 'api-gateway'.`,
+			expError: `Gateway kind must be one of 'mesh-gateway', 'terminating-gateway'`,
 		},
 		"lb_enabled": {
 			kind:      "api-gateway",
@@ -997,16 +999,78 @@ func TestValidation_APIGateway(t *testing.T) {
 			t.Parallel()
 
 			tfVars := map[string]interface{}{
-				"lb_enabled":    c.lbEnabled,
-				"gateway_count": c.gatewayCount,
-				"lb_vpc_id":     c.lbVpcID,
-				"lb_subnets":    c.lbSubnets,
+				"lb_enabled": c.lbEnabled,
+				"lb_vpc_id":  c.lbVpcID,
+				"lb_subnets": c.lbSubnets,
 			}
 			if len(c.kind) > 0 {
 				tfVars["kind"] = c.kind
 			}
+			if c.gatewayCount > 0 {
+				tfVars["gateway_count"] = c.gatewayCount
+			}
 			if c.customLBConfig != nil {
 				tfVars["custom_lb_config"] = c.customLBConfig
+			}
+			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+				TerraformDir: terraformOptions.TerraformDir,
+				NoColor:      terraformOptions.NoColor,
+				Vars:         tfVars,
+			})
+			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
+
+			_, err := terraform.PlanE(t, applyOpts)
+			if len(c.expError) > 0 {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), c.expError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidation_TerminatingGateway(t *testing.T) {
+	t.Parallel()
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "./terraform/terminating-gateway-validate",
+		NoColor:      true,
+	})
+	_ = terraform.Init(t, terraformOptions)
+
+	cases := map[string]struct {
+		kind         string
+		expError     string
+		gatewayCount int
+	}{
+		"kind is required": {
+			kind:     "",
+			expError: `variable "kind" is not set`,
+		},
+		"kind must be api-gateway": {
+			kind:     "not-api-gateway",
+			expError: `Gateway kind must be one of 'mesh-gateway', 'terminating-gateway'`,
+		},
+		"single terminating gateways": {
+			kind: "terminating-gateway",
+		},
+		"multiple terminating gateways": {
+			kind:         "terminating-gateway",
+			gatewayCount: 2,
+		},
+	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tfVars := map[string]interface{}{}
+			if len(c.kind) > 0 {
+				tfVars["kind"] = c.kind
+			}
+			if c.gatewayCount > 0 {
+				tfVars["gateway_count"] = c.gatewayCount
 			}
 			applyOpts := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,

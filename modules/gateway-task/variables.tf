@@ -196,8 +196,8 @@ variable "kind" {
   type        = string
 
   validation {
-    error_message = "Gateway kind must be one of 'mesh-gateway' or 'api-gateway'."
-    condition     = contains(["mesh-gateway", "api-gateway"], var.kind)
+    error_message = "Gateway kind must be one of 'mesh-gateway', 'terminating-gateway' or 'api-gateway'."
+    condition     = contains(["mesh-gateway", "terminating-gateway", "api-gateway"], var.kind)
   }
 }
 
