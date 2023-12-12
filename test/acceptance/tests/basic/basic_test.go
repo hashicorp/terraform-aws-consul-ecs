@@ -112,7 +112,7 @@ func TestBasic(t *testing.T) {
 			// Wait for consul server to be up.
 			var consulServerTaskARN string
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("consul_server_%s", randomSuffix))
+				tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("consul-server-%s", randomSuffix))
 
 				r.Check(err)
 				require.NotNil(r, tasks)
