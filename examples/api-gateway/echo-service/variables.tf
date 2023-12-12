@@ -21,12 +21,6 @@ variable "consul_ca_cert_arn" {
   type        = string
 }
 
-variable "consul_ecs_image" {
-  description = "Consul ECS image to used for the controller task."
-  type        = string
-  default     = "ganeshrockz/api-gateway"
-}
-
 variable "private_subnets" {
   description = "List of private subnet ids."
   type        = list(string)
