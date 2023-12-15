@@ -36,9 +36,14 @@ variable "route_table_ids" {
   type        = list(string)
 }
 
-variable "subnets" {
-  description = "Subnets to deploy into."
+variable "private_subnets" {
   type        = list(string)
+  description = "Private subnets to deploy into."
+}
+
+variable "public_subnets" {
+  type        = list(string)
+  description = "Public subnets to deploy into."
 }
 
 variable "launch_type" {
