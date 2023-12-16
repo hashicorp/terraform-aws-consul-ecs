@@ -83,7 +83,7 @@ variable "additional_task_role_policies" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use in all tasks."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.0-rc1"
+  default     = "hashicorppreview/consul-ecs:0.8.0-dev"
 }
 
 variable "consul_server_lb_dns_name" {

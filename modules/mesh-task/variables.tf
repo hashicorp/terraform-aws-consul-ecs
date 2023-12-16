@@ -151,7 +151,7 @@ variable "consul_ecs_image" {
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:1.3.0-rc1"
+  default     = "hashicorppreview/consul-dataplane:1.4.0-dev"
 }
 
 variable "envoy_public_listener_port" {

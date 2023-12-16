@@ -54,7 +54,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Setup Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
           cache-dependency-path: ./test/acceptance/go.sum
@@ -68,7 +68,7 @@ jobs:
           working-directory: ./test/acceptance
       - name: Lint Consul retry
         run: |
-          go install github.com/hashicorp/lint-consul-retry@latest
+          go install github.com/hashicorp/lint-consul-retry@v1.3.0
           lint-consul-retry
   terraform-fmt:
     runs-on: ubuntu-latest
@@ -94,14 +94,14 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.16-FARGATE-HCP
-          - acceptance-1.16-FARGATE
+          - acceptance-1.17-FARGATE-HCP
+          - acceptance-1.17-FARGATE
         include:
-          - name: acceptance-1.16-FARGATE-HCP
+          - name: acceptance-1.17-FARGATE-HCP
             enable-hcp: true
             launch-type: FARGATE
 
-          - name: acceptance-1.16-FARGATE
+          - name: acceptance-1.17-FARGATE
             enable-hcp: false
             launch-type: FARGATE
       fail-fast: false
@@ -122,14 +122,14 @@ jobs:
       # HCP is always disabled for tests on PRs.
       matrix:
         name:
-          - acceptance-1.16-EC2-HCP
-          - acceptance-1.16-EC2
+          - acceptance-1.17-EC2-HCP
+          - acceptance-1.17-EC2
         include:
-          - name: acceptance-1.16-EC2-HCP
+          - name: acceptance-1.17-EC2-HCP
             enable-hcp: true
             launch-type: EC2
 
-          - name: acceptance-1.16-EC2
+          - name: acceptance-1.17-EC2
             enable-hcp: false
             launch-type: EC2
       fail-fast: false

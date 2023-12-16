@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.7.0-rc1"
+  version_string = "0.8.0-dev"
 
   consul_data_volume_name = "consul_data"
   consul_data_mount = {
@@ -36,7 +36,7 @@ locals {
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-dataplane"
     container_port   = local.lan_port
-  }] : []
+  }] : var.custom_load_balancer_config
 
   security_groups = var.lb_create_security_group ? concat(
     var.security_groups,
