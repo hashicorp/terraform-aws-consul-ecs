@@ -22,8 +22,10 @@ type clusterPeering struct {
 }
 
 func New(name string) scenarios.Scenario {
+	// We go ahead with a simple name due to AWS restrictions
+	// on character length of resource names for certain resources.
 	return &clusterPeering{
-		name: name,
+		name: "ecs",
 	}
 }
 
