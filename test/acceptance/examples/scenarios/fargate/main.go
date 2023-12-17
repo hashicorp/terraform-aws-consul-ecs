@@ -48,12 +48,14 @@ func (f *fargate) GetTerraformVars() (map[string]interface{}, error) {
 
 func (f *fargate) Validate(t *testing.T, outputVars map[string]interface{}) {
 	logger.Log(t, "Fetching required output terraform variables")
-	consulServerLBAddr, ok := outputVars["consul_server_lb_address"].(string)
-	require.True(t, ok)
+	getOutputVariableValue := func(name string) string {
+		val, ok := outputVars[name].(string)
+		require.True(t, ok)
+		return val
+	}
 
-	meshClientLBAddr, ok := outputVars["mesh_client_lb_address"].(string)
-	require.True(t, ok)
-
+	consulServerLBAddr := getOutputVariableValue("consul_server_lb_address")
+	meshClientLBAddr := getOutputVariableValue("mesh_client_lb_address")
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 	logger.Log(t, "Setting up the Consul client")
@@ -61,7 +63,7 @@ func (f *fargate) Validate(t *testing.T, outputVars map[string]interface{}) {
 	require.NoError(t, err)
 
 	clientAppName := fmt.Sprintf("%s-example-client-app", f.name)
-	serverAppName := fmt.Sprintf("%s-example-client-app", f.name)
+	serverAppName := fmt.Sprintf("%s-example-server-app", f.name)
 
 	checkServiceExistence(t, consulClient, clientAppName)
 	checkServiceExistence(t, consulClient, serverAppName)
