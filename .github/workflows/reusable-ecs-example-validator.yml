@@ -22,6 +22,7 @@ env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
   HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+  HCP_PROJECT_ID: ${{ secrets.HCP_PROJECT_ID }}
   TEST_SCENARIO: ${{ inputs.scenario }}
 
 jobs:

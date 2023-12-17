@@ -27,14 +27,14 @@ func New(name string) scenarios.Scenario {
 	}
 }
 
-func (f *ec2) GetFolderName() string {
+func (e *ec2) GetFolderName() string {
 	return "dev-server-ec2"
 }
 
-func (f *ec2) GetTerraformVars() (map[string]interface{}, error) {
+func (e *ec2) GetTerraformVars() (map[string]interface{}, error) {
 	vars := map[string]interface{}{
-		"region": "us-east-1",
-		"name":   f.name,
+		"region": "us-east-2",
+		"name":   e.name,
 	}
 
 	publicIP, err := common.GetPublicIP()
@@ -46,22 +46,24 @@ func (f *ec2) GetTerraformVars() (map[string]interface{}, error) {
 	return vars, nil
 }
 
-func (f *ec2) Validate(t *testing.T, outputVars map[string]interface{}) {
+func (e *ec2) Validate(t *testing.T, outputVars map[string]interface{}) {
 	logger.Log(t, "Fetching required output terraform variables")
-	consulServerLBAddr, ok := outputVars["consul_server_lb_address"].(string)
-	require.True(t, ok)
+	getOutputVariableValue := func(name string) string {
+		val, ok := outputVars[name].(string)
+		require.True(t, ok)
+		return val
+	}
 
-	meshClientLBAddr, ok := outputVars["mesh_client_lb_address"].(string)
-	require.True(t, ok)
-
+	consulServerLBAddr := getOutputVariableValue("consul_server_lb_address")
+	meshClientLBAddr := getOutputVariableValue("mesh_client_lb_address")
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 	logger.Log(t, "Setting up the Consul client")
 	consulClient, err := common.SetupConsulClient(consulServerLBAddr, "")
 	require.NoError(t, err)
 
-	clientAppName := fmt.Sprintf("%s--example-client-app", f.name)
-	serverAppName := fmt.Sprintf("%s--example-client-app", f.name)
+	clientAppName := fmt.Sprintf("%s--example-client-app", e.name)
+	serverAppName := fmt.Sprintf("%s--example-server-app", e.name)
 
 	checkServiceExistence(t, consulClient, clientAppName)
 	checkServiceExistence(t, consulClient, serverAppName)
