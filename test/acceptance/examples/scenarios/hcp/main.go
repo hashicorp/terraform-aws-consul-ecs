@@ -6,6 +6,7 @@ package hcp
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,7 +60,6 @@ func (h *hcp) Validate(t *testing.T, outputVars map[string]interface{}) {
 	consulServerLBAddr := getOutputVariableValue("hcp_public_endpoint")
 	consulServerToken := getOutputVariableValue("token")
 
-	logger.Log(t, outputVars)
 	clientService := getServiceDetails(t, "client", outputVars)
 	serverService := getServiceDetails(t, "server", outputVars)
 
@@ -79,31 +79,26 @@ func (h *hcp) Validate(t *testing.T, outputVars map[string]interface{}) {
 	tasks, err := ecsClient.WithClusterARN(clientService.ecsClusterARN).ListTasksForService(clientService.name)
 	require.NoError(t, err)
 	require.Len(t, tasks, 1)
-	// Perform assertions by hitting the client app's LB
-	// retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-	// 	logger.Log(t, "calling client app's load balancer to see if the server app is reachable")
-	// 	resp, err := common.GetFakeServiceResponse(meshClientLBAddr)
-	// 	require.NoError(r, err)
 
-	// 	require.Equal(r, 200, resp.Code)
-	// 	require.Equal(r, "Hello World", resp.Body)
-	// 	require.NotNil(r, resp.UpstreamCalls)
-
-	// 	upstreamResp := resp.UpstreamCalls["http://localhost:1234"]
-	// 	require.NotNil(r, upstreamResp)
-	// 	require.Equal(r, serverAppName, upstreamResp.Name)
-	// 	require.Equal(r, 200, upstreamResp.Code)
-	// 	require.Equal(r, "Hello World", upstreamResp.Body)
-	// })
+	// Validate connection between apps by running a remote command inside the container.
+	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+		res, err := ecsClient.
+			WithClusterARN(clientService.ecsClusterARN).
+			ExecuteCommandInteractive(t, tasks[0], "basic", `/bin/sh -c "curl localhost:1234"`)
+		r.Check(err)
+		if !strings.Contains(res, `"code": 200`) {
+			r.Errorf("response was unexpected: %q", res)
+		}
+	})
 }
 
 func getServiceDetails(t *testing.T, name string, outputVars map[string]interface{}) *service {
-	val, ok := outputVars[name].(map[string]string)
+	val, ok := outputVars[name].(map[string]interface{})
 	require.True(t, ok)
 
-	ensureAndReturnNonEmptyVal := func(v string) string {
+	ensureAndReturnNonEmptyVal := func(v interface{}) string {
 		require.NotEmpty(t, v)
-		return v
+		return v.(string)
 	}
 
 	return &service{

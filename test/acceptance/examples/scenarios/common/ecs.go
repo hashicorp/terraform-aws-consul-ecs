@@ -5,9 +5,12 @@ package common
 
 import (
 	"context"
+	"fmt"
+	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/gruntwork-io/terratest/modules/shell"
 )
 
 type ECSClientWrapper struct {
@@ -57,14 +60,25 @@ func (e *ECSClientWrapper) ListTasksForService(service string) ([]string, error)
 	return taskARNs, nil
 }
 
-// func (e *ECSClientWrapper) ExecuteCommandInteractive(taskARN, container, command string) {
-// 	req := &ecs.ExecuteCommandInput{
-// 		Container:   &container,
-// 		Task:        &taskARN,
-// 		Cluster:     &e.clusterARN,
-// 		Command:     &command,
-// 		Interactive: true,
-// 	}
-// 	res, err := e.client.ExecuteCommand(context.TODO(), req)
-// 	res.ResultMetadata.Get()
-// }
+// ExecuteCommandInteractive runs the provided command inside a container in the ECS task
+// and returns back the results.
+//
+// Note: Ideally we should try to use the SDK for this but it wasn't straight forward and
+// there was no clear documentation around the same.
+func (e *ECSClientWrapper) ExecuteCommandInteractive(t *testing.T, taskARN, container, command string) (string, error) {
+	return shell.RunCommandAndGetOutputE(t, shell.Command{
+		Command: "aws",
+		Args: []string{
+			"ecs",
+			"execute-command",
+			"--cluster",
+			e.clusterARN,
+			"--task",
+			taskARN,
+			fmt.Sprintf("--container=%s", container),
+			"--command",
+			command,
+			"--interactive",
+		},
+	})
+}
