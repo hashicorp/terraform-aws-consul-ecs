@@ -87,8 +87,7 @@ jobs:
     secrets: inherit
   multi-cluster:
     needs:
-    - terraform-fmt
-    - go-fmt-and-lint-acceptance
+    - single-cluster
     strategy:
       matrix:
         name:
