@@ -15,8 +15,10 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/serf/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
+	clusterpeering "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/cluster-peering"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
+	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +52,11 @@ func TestRunScenario(t *testing.T) {
 		NoColor:      true,
 	})
 
-	t.Cleanup(func() { terraform.Destroy(t, applyOptions) })
+	t.Cleanup(func() {
+		if os.Getenv("NO_CLEANUP_ON_FAILURE") == "" {
+			terraform.Destroy(t, applyOptions)
+		}
+	})
 	terraform.Apply(t, applyOptions)
 
 	outputs := terraform.OutputAll(t, &terraform.Options{
@@ -74,6 +80,10 @@ func getScenario(name string) scenarios.Scenario {
 		return fargate.New(terraformResourcesName)
 	case "EC2":
 		return ec2.New(terraformResourcesName)
+	case "HCP":
+		return hcp.New(terraformResourcesName)
+	case "CLUSTER_PEERING":
+		return clusterpeering.New(terraformResourcesName)
 	}
 
 	return nil
