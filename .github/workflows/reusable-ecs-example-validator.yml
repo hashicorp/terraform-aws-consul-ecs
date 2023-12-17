@@ -44,6 +44,17 @@ jobs:
       run: |
         curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
         tar -xz --overwrite -C /usr/local/bin gotestsum
+    - name: Install AWS CLI
+      run: |
+        curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+        sudo dpkg -i session-manager-plugin.deb
+        aws --version
+        echo session-manager-plugin version "$(session-manager-plugin --version)"
+    - name: Install AWS ECS CLI
+      run: |
+        curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
+        chmod +x /usr/local/bin/ecs-cli
+        ecs-cli --version
     - name: Assume AWS IAM Role
       uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
       with:

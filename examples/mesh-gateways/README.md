@@ -60,7 +60,8 @@ The plan should look similar to:
 Plan: 152 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + bootstrap_token   = (sensitive value)
+  + dc1_server_bootstrap_token   = (sensitive value)
+  + dc2_server_bootstrap_token   = (sensitive value)
   + client_lb_address = (known after apply)
   + dc1_server_url    = (known after apply)
   + dc2_server_url    = (known after apply)
@@ -79,7 +80,8 @@ Apply complete! Resources: 152 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-bootstrap_token = <sensitive>
+dc1_server_bootstrap_token = <sensitive>
+dc2_server_bootstrap_token = <sensitive>
 client_lb_address = "http://ecs-dc1-example-client-app-111111111.us-east-1.elb.amazonaws.com:9090/ui"
 dc1_server_url = "http://ecs-dc1-consul-server-111111111.us-east-1.elb.amazonaws.com:8500"
 dc2_server_url = "http://ecs-dc2-consul-server-111111111.us-east-1.elb.amazonaws.com:8500"
@@ -87,15 +89,15 @@ dc2_server_url = "http://ecs-dc2-consul-server-111111111.us-east-1.elb.amazonaws
 
 ### Explore
 
-Get the `bootstrap_token` from the Terraform output:
+Get the `dc1_server_bootstrap_token` from the Terraform output:
 
 ```console
-$ terraform output -json | jq -r .bootstrap_token.value
+$ terraform output -json | jq -r .dc1_server_bootstrap_token.value
 abcd1234-abcd-1234-abcd-123456789abcd
 ```
 
 If you click on the URL of the `dc1_server_url`, you should be able
-to view the Consul UI and log in using the `bootstrap_token` above:
+to view the Consul UI and log in using the `dc1_server_bootstrap_token` above:
 
 ![Consul dc1 UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/mgw-dc1-consul-ui.png?raw=true)
 
