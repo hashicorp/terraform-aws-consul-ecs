@@ -96,6 +96,7 @@ jobs:
         # - Cluster Peering
         # - WAN Federation with Mesh gateways
         - Locality Aware Routing
+        # - Service Sameness
         include:
         # - name: Cluster Peering
         #   scenario: CLUSTER_PEERING
@@ -105,7 +106,9 @@ jobs:
         
         - name: Locality Aware Routing
           scenario: LOCALITY_AWARE_ROUTING
-    
+        
+        # - name: Service Sameness
+        #   scenario: SERVICE_SAMENESS
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
