@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package localityawarerouting
+package localityAwareRouting
 
 import (
 	"fmt"
@@ -19,21 +19,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type localityawarerouting struct {
+type localityAwareRouting struct {
 	name string
 }
 
 func New(name string) scenarios.Scenario {
-	return &localityawarerouting{
+	return &localityAwareRouting{
 		name: "con",
 	}
 }
 
-func (l *localityawarerouting) GetFolderName() string {
+func (l *localityAwareRouting) GetFolderName() string {
 	return "locality-aware-routing"
 }
 
-func (l *localityawarerouting) GetTerraformVars() (map[string]interface{}, error) {
+func (l *localityAwareRouting) GetTerraformVars() (map[string]interface{}, error) {
 	vars := map[string]interface{}{
 		"region": "us-west-2",
 		"name":   l.name,
@@ -54,7 +54,7 @@ func (l *localityawarerouting) GetTerraformVars() (map[string]interface{}, error
 	return vars, nil
 }
 
-func (l *localityawarerouting) Validate(t *testing.T, outputVars map[string]interface{}) {
+func (l *localityAwareRouting) Validate(t *testing.T, outputVars map[string]interface{}) {
 	logger.Log(t, "Fetching required output terraform variables")
 	getOutputVariableValue := func(name string) string {
 		val, ok := outputVars[name].(string)
@@ -65,6 +65,8 @@ func (l *localityawarerouting) Validate(t *testing.T, outputVars map[string]inte
 	consulServerLBAddr := getOutputVariableValue("consul_server_url")
 	consulServerToken := getOutputVariableValue("consul_server_bootstrap_token")
 	meshClientLBAddr := getOutputVariableValue("client_lb_address")
+	clusterARN := getOutputVariableValue("ecs_cluster_arn")
+
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 	logger.Log(t, "Setting up the Consul client")
@@ -86,6 +88,8 @@ func (l *localityawarerouting) Validate(t *testing.T, outputVars map[string]inte
 
 	ecsClient, err := common.NewECSClient()
 	require.NoError(t, err)
+
+	ecsClient = ecsClient.WithClusterARN(clusterARN)
 
 	logger.Log(t, "Listing and describing tasks for each ECS service")
 	clientTasks := assertAndListTasks(t, ecsClient, clientAppName, 1)

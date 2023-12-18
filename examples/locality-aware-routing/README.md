@@ -79,6 +79,7 @@ Changes to Outputs:
   + client_lb_address             = (known after apply)
   + consul_server_bootstrap_token = (sensitive value)
   + consul_server_url             = (known after apply)
+  + ecs_cluster_arn               = (known after apply)
 ```
 
 Type `yes` to apply the changes.
@@ -97,6 +98,7 @@ Outputs:
 client_lb_address = "http://example-client-app-1959503271.us-west-2.elb.amazonaws.com:9090/ui"
 consul_server_bootstrap_token = <sensitive>
 consul_server_url = "http://ecs-dc1-consul-server-713584774.us-west-2.elb.amazonaws.com:8500"
+ecs_cluster_arn = "arn:aws:ecs:us-east-1:123456789012:cluster/my-ecs-cluster"
 ```
 
 ### Explore
