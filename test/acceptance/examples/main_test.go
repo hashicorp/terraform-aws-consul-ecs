@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
 	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
+	sameness "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/service-sameness"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/wan-federation"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -90,6 +91,8 @@ func getScenario(name string) scenarios.Scenario {
 		return wan.New(terraformResourcesName)
 	case "LOCALITY_AWARE_ROUTING":
 		return localityawarerouting.New(terraformResourcesName)
+	case "SERVICE_SAMENESS":
+		return sameness.New(terraformResourcesName)
 	}
 
 	return nil

@@ -47,6 +47,16 @@ func ServiceExists(consulClient *api.Client, serviceName string, queryOpts *api.
 	return ok, nil
 }
 
+// IsServiceHealthy verifies if all service instances of a service with a given name are healthy in Consul's catalog.
+func IsServiceHealthy(consulClient *api.Client, serviceName string, queryOpts *api.QueryOptions) (bool, error) {
+	res, _, err := consulClient.Health().Checks(serviceName, queryOpts)
+	if err != nil {
+		return false, err
+	}
+
+	return res.AggregatedStatus() == api.HealthPassing, nil
+}
+
 // ListServiceInstances returns the list of service instances for a given service
 func ListServiceInstances(consulClient *api.Client, serviceName string, queryOpts *api.QueryOptions) ([]*api.CatalogService, error) {
 	instances, _, err := consulClient.Catalog().Service(serviceName, "", queryOpts)

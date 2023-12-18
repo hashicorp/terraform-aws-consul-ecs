@@ -82,6 +82,17 @@ func (e *ECSClientWrapper) StopTask(taskID, reason string) error {
 	return err
 }
 
+func (e *ECSClientWrapper) UpdateService(serviceName string, desiredCount int32) error {
+	req := &ecs.UpdateServiceInput{
+		Service:      &serviceName,
+		Cluster:      &e.clusterARN,
+		DesiredCount: &desiredCount,
+	}
+
+	_, err := e.client.UpdateService(context.TODO(), req)
+	return err
+}
+
 // ExecuteCommandInteractive runs the provided command inside a container in the ECS task
 // and returns back the results.
 //
