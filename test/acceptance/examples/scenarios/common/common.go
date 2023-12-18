@@ -47,6 +47,16 @@ func ServiceExists(consulClient *api.Client, serviceName string, queryOpts *api.
 	return ok, nil
 }
 
+// ListServiceInstances returns the list of service instances for a given service
+func ListServiceInstances(consulClient *api.Client, serviceName string, queryOpts *api.QueryOptions) ([]*api.CatalogService, error) {
+	instances, _, err := consulClient.Catalog().Service(serviceName, "", queryOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
+}
+
 func listServices(consulClient *api.Client, opts *api.QueryOptions) (map[string][]string, error) {
 	services, _, err := consulClient.Catalog().Services(opts)
 	if err != nil {

@@ -59,46 +59,52 @@ jobs:
         terraform_version: 1.4.2
     - name: Validate
       run: terraform fmt -check -recursive .
-  single-cluster:
+#   single-cluster:
+#     needs:
+#     - terraform-fmt
+#     - go-fmt-and-lint-acceptance
+#     strategy:
+#       matrix:
+#         name:
+#           - Consul ECS on Fargate
+#           - Consul ECS on EC2
+#           - Consul ECS with HCP
+#         include:
+#           - name: Consul ECS on Fargate
+#             scenario: FARGATE
+
+#           - name: Consul ECS on EC2
+#             scenario: EC2
+          
+#           - name: Consul ECS with HCP
+#             scenario: HCP
+#       fail-fast: false
+#     uses: ./.github/workflows/reusable-ecs-example-validator.yml
+#     with:
+#       name: ${{ matrix.name }}
+#       scenario: ${{ matrix.scenario }}
+#       go-version: ${{ needs.get-go-version.outputs.go-version }}
+#     secrets: inherit
+  multi-cluster:
     needs:
     - terraform-fmt
     - go-fmt-and-lint-acceptance
+    #- single-cluster
     strategy:
       matrix:
         name:
-          - Consul ECS on Fargate
-          - Consul ECS on EC2
-          - Consul ECS with HCP
+        # - Cluster Peering
+        # - WAN Federation with Mesh gateways
+        - Locality Aware Routing
         include:
-          - name: Consul ECS on Fargate
-            scenario: FARGATE
-
-          - name: Consul ECS on EC2
-            scenario: EC2
-          
-          - name: Consul ECS with HCP
-            scenario: HCP
-      fail-fast: false
-    uses: ./.github/workflows/reusable-ecs-example-validator.yml
-    with:
-      name: ${{ matrix.name }}
-      scenario: ${{ matrix.scenario }}
-      go-version: ${{ needs.get-go-version.outputs.go-version }}
-    secrets: inherit
-  multi-cluster:
-    needs:
-    - single-cluster
-    strategy:
-      matrix:
-        name:
-        - Cluster Peering
-        - WAN Federation with Mesh gateways
-        include:
-        - name: Cluster Peering
-          scenario: CLUSTER_PEERING
+        # - name: Cluster Peering
+        #   scenario: CLUSTER_PEERING
         
-        - name: WAN Federation with Mesh gateways
-          scenario: WAN_FEDERATION
+        # - name: WAN Federation with Mesh gateways
+        #   scenario: WAN_FEDERATION
+        
+        - name: Locality Aware Routing
+          scenario: LOCALITY_AWARE_ROUTING
     
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml

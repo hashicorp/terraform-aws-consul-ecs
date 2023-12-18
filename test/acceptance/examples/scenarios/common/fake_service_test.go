@@ -54,6 +54,10 @@ func TestGetFakeServiceResponse(t *testing.T) {
 						Name: "consul-ecs-example-server-app",
 						Body: "Hello World",
 						Code: 200,
+						IpAddresses: []string{
+							"169.254.172.2",
+							"10.0.2.34",
+						},
 					},
 				},
 			},

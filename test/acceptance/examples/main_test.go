@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
+	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/wan-federation"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -87,6 +88,8 @@ func getScenario(name string) scenarios.Scenario {
 		return clusterpeering.New(terraformResourcesName)
 	case "WAN_FEDERATION":
 		return wan.New(terraformResourcesName)
+	case "LOCALITY_AWARE_ROUTING":
+		return localityawarerouting.New(terraformResourcesName)
 	}
 
 	return nil
