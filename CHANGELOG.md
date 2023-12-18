@@ -2,6 +2,8 @@
 
 BUG FIXES
 * Fixes a bug in the health check logic of the `consul-ecs-control-plane` container in `mesh-task` and `gateway-task` submodule. Because of the bug, the ECS agent tries to start up the `consul-dataplane` container before the `consul-ecs-control-plane` container writes the Consul ECS binary to a shared volume. [[GH-241]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/241)
+* Bump Consul ECS image version to 0.7.1
+* Bump Consul Dataplane's image version to 1.3.1
 
 ## 0.7.0 (Nov 8, 2023)
 
