@@ -18,6 +18,8 @@ const (
 	flagECSClusterARNs     = "ecs-cluster-arns"
 	flagLaunchType         = "launch-type"
 	flagSubnets            = "subnets"
+	flagPrivateSubnets     = "private-subnets"
+	flagPublicSubnets      = "public-subnets"
 	flagRegion             = "region"
 	flagLogGroupName       = "log-group-name"
 	// flagTFTags is named to disambiguate from the --tags flags used
@@ -32,7 +34,8 @@ type TestFlags struct {
 	flagNoCleanupOnFailure bool
 	flagECSClusterARNs     string
 	flagLaunchType         string
-	flagSubnets            string
+	flagPrivateSubnets     string
+	flagPublicSubnets      string
 	flagRegion             string
 	flagLogGroupName       string
 	flagTFTags             string
@@ -54,7 +57,8 @@ func (t *TestFlags) init() {
 			"Note this flag must be run with -failfast flag, otherwise subsequent tests will fail.")
 	flag.StringVar(&t.flagECSClusterARNs, flagECSClusterARNs, "", "ECS Cluster ARNs. In TF Var form, e.g. '[<arn>, <arn>]'")
 	flag.StringVar(&t.flagLaunchType, flagLaunchType, "", "The ECS launch type to test: 'FARGATE' or 'EC2'.")
-	flag.StringVar(&t.flagSubnets, flagSubnets, "", "Subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
+	flag.StringVar(&t.flagPrivateSubnets, flagPrivateSubnets, "", "Private subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
+	flag.StringVar(&t.flagPublicSubnets, flagPublicSubnets, "", "Private subnets to deploy into. In TF var form, e.g. '[\"sub1\",\"sub2\"]'.")
 	flag.StringVar(&t.flagRegion, flagRegion, "", "Region.")
 	flag.StringVar(&t.flagLogGroupName, flagLogGroupName, "", "CloudWatch log group name.")
 	flag.StringVar(&t.flagTFTags, flagTFTags, "", "Tags to add to resources. In TF var form, e.g. '{key=val,key2=val2}'.")
@@ -121,7 +125,8 @@ func (t *TestFlags) TestConfigFromFlags() (*config.TestConfig, error) {
 			NoCleanupOnFailure: t.flagNoCleanupOnFailure,
 			ECSClusterARNs:     arns,
 			LaunchType:         t.flagLaunchType,
-			Subnets:            t.flagSubnets,
+			PrivateSubnets:     t.flagPrivateSubnets,
+			PublicSubnets:      t.flagPublicSubnets,
 			Region:             t.flagRegion,
 			LogGroupName:       t.flagLogGroupName,
 			Tags:               t.flagTFTags,

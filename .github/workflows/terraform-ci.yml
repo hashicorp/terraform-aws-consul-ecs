@@ -68,7 +68,7 @@ jobs:
           working-directory: ./test/acceptance
       - name: Lint Consul retry
         run: |
-          go install github.com/hashicorp/lint-consul-retry@latest
+          go install github.com/hashicorp/lint-consul-retry@v1.3.0
           lint-consul-retry
   terraform-fmt:
     runs-on: ubuntu-latest

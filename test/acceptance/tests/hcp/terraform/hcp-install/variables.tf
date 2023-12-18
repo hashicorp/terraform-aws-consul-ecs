@@ -21,11 +21,15 @@ variable "route_table_ids" {
   type        = list(string)
 }
 
-variable "subnets" {
+variable "private_subnets" {
   type        = list(string)
-  description = "Subnets to deploy into."
+  description = "Private subnets to deploy into."
 }
 
+variable "public_subnets" {
+  type        = list(string)
+  description = "Public subnets to deploy into."
+}
 variable "launch_type" {
   description = "Whether to launch tasks on Fargate or EC2"
   type        = string
