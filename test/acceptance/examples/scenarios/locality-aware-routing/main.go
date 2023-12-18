@@ -142,7 +142,7 @@ func (l *localityAwareRouting) Validate(t *testing.T, outputVars map[string]inte
 	// Stop the server app present in the same AZ as that of the client
 	var serverTaskToStop types.Task
 	for _, v := range tasks {
-		if v.AvailabilityZone == clientTask.AvailabilityZone {
+		if *v.AvailabilityZone == *clientTask.AvailabilityZone {
 			serverTaskToStop = v
 			break
 		}
