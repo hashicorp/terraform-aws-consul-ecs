@@ -21,9 +21,14 @@ variable "route_table_ids" {
   type        = list(string)
 }
 
-variable "subnets" {
+variable "private_subnets" {
   type        = list(string)
-  description = "Subnets to deploy into."
+  description = "Private subnets to deploy into."
+}
+
+variable "public_subnets" {
+  type        = list(string)
+  description = "Public subnets to deploy into."
 }
 
 variable "launch_type" {
@@ -61,7 +66,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.0"
+  default     = "hashicorppreview/consul-ecs:0.7.1-dev"
 }
 
 variable "consul_server_address" {
