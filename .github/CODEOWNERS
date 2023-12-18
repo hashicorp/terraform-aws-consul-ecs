@@ -1,4 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-/.github/workflows/* @hashicorp/release-engineering
+
+@hashicorp/team-consul-india
+
+/.github/workflows/* @hashicorp/release-engineering @hashicorp/team-consul-india
