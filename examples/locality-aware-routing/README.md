@@ -115,7 +115,7 @@ to view the Consul UI and log in using the `consul_server_bootstrap_token` above
 
 If you browse to the URL of the `client_lb_address`, the example application UI should be displayed:
 
-![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/locality-aware-dc1-ui.png?raw=true)
+![Example App UI](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/locality-aware-app-ui.png?raw=true)
 
 Notice the IP of the upstream server application's task. Because of the locality parameters added during the service registration, Consul takes care of routing traffic from the client application to the server application task within the same availability zone. You can read more about the locality aware routing feature [here](https://developer.hashicorp.com/consul/docs/v1.17.x/connect/manage-traffic/route-to-local-upstreams?ajs_aid=54615e8b-87b1-40fa-aecc-3e16280d6a88&product_intent=consul)
 

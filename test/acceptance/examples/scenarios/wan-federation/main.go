@@ -56,8 +56,7 @@ func (w *wan) Validate(t *testing.T, outputVars map[string]interface{}) {
 
 	dc1ConsulServerURL := getOutputVariableValue("dc1_server_url")
 	dc2ConsulServerURL := getOutputVariableValue("dc2_server_url")
-	dc1ConsulServerToken := getOutputVariableValue("dc1_server_bootstrap_token")
-	dc2ConsulServerToken := getOutputVariableValue("dc2_server_bootstrap_token")
+	dc1ConsulServerToken := getOutputVariableValue("bootstrap_token")
 
 	meshClientLBAddr := getOutputVariableValue("client_lb_address")
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
@@ -66,7 +65,7 @@ func (w *wan) Validate(t *testing.T, outputVars map[string]interface{}) {
 	consulClientOne, err := common.SetupConsulClient(dc1ConsulServerURL, dc1ConsulServerToken)
 	require.NoError(t, err)
 
-	consulClientTwo, err := common.SetupConsulClient(dc2ConsulServerURL, dc2ConsulServerToken)
+	consulClientTwo, err := common.SetupConsulClient(dc2ConsulServerURL, dc1ConsulServerToken)
 	require.NoError(t, err)
 
 	clientAppName := fmt.Sprintf("%s-dc1-example-client-app", w.name)
@@ -83,7 +82,7 @@ func (w *wan) Validate(t *testing.T, outputVars map[string]interface{}) {
 
 	// Perform assertions by hitting the client app's LB
 	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		logger.Log(t, "calling client app's load balancer to see if the server app in the peer cluster is reachable")
+		logger.Log(t, "calling client app's load balancer to see if the server app in the secondary datacenter is reachable")
 		resp, err := common.GetFakeServiceResponse(meshClientLBAddr)
 		require.NoError(r, err)
 

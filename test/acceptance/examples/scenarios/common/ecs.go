@@ -60,6 +60,28 @@ func (e *ECSClientWrapper) ListTasksForService(service string) ([]string, error)
 	return taskARNs, nil
 }
 
+// DescribeTasks returns back a detailed description of all the tasks passed as input.
+func (e *ECSClientWrapper) DescribeTasks(taskIDs []string) (*ecs.DescribeTasksOutput, error) {
+	req := &ecs.DescribeTasksInput{
+		Tasks:   taskIDs,
+		Cluster: &e.clusterARN,
+	}
+
+	return e.client.DescribeTasks(context.TODO(), req)
+}
+
+// StopTask stops a given task with a reason
+func (e *ECSClientWrapper) StopTask(taskID, reason string) error {
+	req := &ecs.StopTaskInput{
+		Task:    &taskID,
+		Cluster: &e.clusterARN,
+		Reason:  &reason,
+	}
+
+	_, err := e.client.StopTask(context.TODO(), req)
+	return err
+}
+
 // ExecuteCommandInteractive runs the provided command inside a container in the ECS task
 // and returns back the results.
 //

@@ -17,9 +17,10 @@ type FakeServiceResponse struct {
 }
 
 type UpstreamCallResponse struct {
-	Name string `json:"name"`
-	Body string `json:"body"`
-	Code int    `json:"code"`
+	Name        string   `json:"name"`
+	Body        string   `json:"body"`
+	IpAddresses []string `json:"ip_addresses,omitempty"`
+	Code        int      `json:"code"`
 }
 
 // GetFakeServiceResponse takes in the client application's address(typically
