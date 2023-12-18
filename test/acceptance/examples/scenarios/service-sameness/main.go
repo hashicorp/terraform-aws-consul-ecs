@@ -6,6 +6,7 @@ package sameness
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -227,6 +228,8 @@ func getAppDetails(t *testing.T, name string, outputVars map[string]interface{})
 		lbAddr:            ensureAndReturnNonEmptyVal(clientAppVal["lb_address"]),
 	}
 
+	client.lbAddr = strings.TrimSuffix(client.lbAddr, "/ui")
+
 	serverAppVal := val["server"].(map[string]interface{})
 	require.NotEmpty(t, serverAppVal)
 	server := app{
@@ -291,7 +294,7 @@ func ensureHealthyService(t *testing.T, consulClient *api.Client, name string, o
 func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
 	upstreamCalls := make(map[string]string)
 	for _, app := range apps {
-		logger.Log(t, "calling upstream for apps in %s partition and %s cluster", app.partition, app.clusterARN)
+		logger.Log(t, fmt.Sprintf("calling upstream for %s app in %s partition and %s cluster", app.getClientAppName(), app.partition, app.clusterARN))
 		retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 			logger.Log(t, "hitting client app's load balancer to see if the server app is reachable")
 			resp, err := common.GetFakeServiceResponse(app.client.lbAddr)
@@ -306,7 +309,7 @@ func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
 			require.Equal(r, 200, upstreamResp.Code)
 			require.Equal(r, "Hello World", upstreamResp.Body)
 
-			upstreamCalls[app.client.name] = upstreamResp.Name
+			upstreamCalls[app.getClientAppName()] = upstreamResp.Name
 		})
 	}
 
