@@ -4,9 +4,6 @@ on:
   #   - cron: '0 0 * * *' # Runs every day at midnight UTC
   workflow_dispatch:
   push:
-    branches:
-        - 'main'
-        - 'release/**'
 
 jobs:
   get-go-version:
