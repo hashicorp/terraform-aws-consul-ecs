@@ -200,7 +200,7 @@ resource "aws_ecs_task_definition" "this" {
               initProcessEnabled = true
             }
             healthCheck = {
-              command  = ["CMD-SHELL", "curl -f localhost:10000/consul-ecs/health || exit 1"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
+              command  = ["CMD-SHELL", "curl -f localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
               interval = 30
               retries  = 10
               timeout  = 5
