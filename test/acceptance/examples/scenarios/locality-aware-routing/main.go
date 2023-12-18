@@ -156,7 +156,9 @@ func (l *localityAwareRouting) Validate(t *testing.T, outputVars map[string]inte
 
 	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 		logger.Log(t, "Waiting for ECS to spin up the previously stopped server app's task")
-		serverTasks = assertAndListTasks(t, ecsClient, serverAppName, 2)
+		serverTasks, err = ecsClient.ListTasksForService(serverAppName)
+		require.NoError(r, err)
+		require.Len(r, tasks, 2)
 	})
 
 	tasks = assertAndDescribeTasks(t, ecsClient, serverTasks, 2)
