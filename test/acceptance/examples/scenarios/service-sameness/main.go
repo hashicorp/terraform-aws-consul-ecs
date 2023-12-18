@@ -33,9 +33,7 @@ type apps struct {
 type app struct {
 	name              string
 	consulServiceName string
-	port              int
 	lbAddr            string
-	lbDNSName         string
 }
 
 func New(name string) scenarios.Scenario {
@@ -222,12 +220,11 @@ func getAppDetails(t *testing.T, name string, outputVars map[string]interface{})
 
 	clientAppVal := val["client"].(map[string]interface{})
 	require.NotEmpty(t, clientAppVal)
+
 	client := app{
 		name:              ensureAndReturnNonEmptyVal(clientAppVal["name"]),
 		consulServiceName: ensureAndReturnNonEmptyVal(clientAppVal["consul_service_name"]),
-		port:              clientAppVal["port"].(int),
 		lbAddr:            ensureAndReturnNonEmptyVal(clientAppVal["lb_address"]),
-		lbDNSName:         ensureAndReturnNonEmptyVal(clientAppVal["lb_dns_name"]),
 	}
 
 	serverAppVal := val["server"].(map[string]interface{})
