@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/common"
@@ -70,26 +69,19 @@ func (l *localityAwareRouting) Validate(t *testing.T, outputVars map[string]inte
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 	logger.Log(t, "Setting up the Consul client")
-	consulClient, err := common.SetupConsulClient(consulServerLBAddr, consulServerToken)
+	consulClient, err := common.SetupConsulClient(t, consulServerLBAddr, common.WithToken(consulServerToken))
 	require.NoError(t, err)
 
 	clientAppName := "example-client-app"
 	serverAppName := "example-server-app"
 
-	checkServiceExistence(t, consulClient, clientAppName)
-	checkServiceExistence(t, consulClient, serverAppName)
+	consulClient.EnsureServiceRegistration(clientAppName, nil)
+	consulClient.EnsureServiceRegistration(serverAppName, nil)
 
-	logger.Log(t, fmt.Sprintf("checking if service %s has two instances registered", serverAppName))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		instances, err := common.ListServiceInstances(consulClient, serverAppName, nil)
-		require.NoError(r, err)
-		require.Len(t, instances, 2)
-	})
+	consulClient.EnsureServiceInstances(serverAppName, 2, nil)
 
-	ecsClient, err := common.NewECSClient()
+	ecsClient, err := common.NewECSClient(common.WithClusterARN(clusterARN))
 	require.NoError(t, err)
-
-	ecsClient = ecsClient.WithClusterARN(clusterARN)
 
 	logger.Log(t, "Listing and describing tasks for each ECS service")
 	clientTasks := assertAndListTasks(t, ecsClient, clientAppName, 1)
@@ -202,13 +194,4 @@ func getTaskPrivateIP(t *testing.T, task types.Task) string {
 	ip := task.Containers[0].NetworkInterfaces[0].PrivateIpv4Address
 	require.NotNil(t, ip)
 	return *ip
-}
-
-func checkServiceExistence(t *testing.T, consulClient *api.Client, name string) {
-	logger.Log(t, fmt.Sprintf("checking if service %s is registered in Consul", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		exists, err := common.ServiceExists(consulClient, name, nil)
-		require.NoError(r, err)
-		require.True(r, exists)
-	})
 }

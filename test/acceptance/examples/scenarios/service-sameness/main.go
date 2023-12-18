@@ -22,21 +22,6 @@ type sameness struct {
 	name string
 }
 
-type apps struct {
-	partition  string
-	namespace  string
-	clusterARN string
-	region     string
-	client     app
-	server     app
-}
-
-type app struct {
-	name              string
-	consulServiceName string
-	lbAddr            string
-}
-
 func New(name string) scenarios.Scenario {
 	return &sameness{
 		name: "same",
@@ -86,10 +71,10 @@ func (s *sameness) Validate(t *testing.T, outputVars map[string]interface{}) {
 	dc2DefaultPartitionApps := getAppDetails(t, "dc2_default_partition_apps", outputVars)
 
 	logger.Log(t, "Setting up the Consul clients")
-	consulClientOne, err := common.SetupConsulClient(dc1ConsulServerURL, dc1ConsulServerToken)
+	consulClientOne, err := common.SetupConsulClient(t, dc1ConsulServerURL, common.WithToken(dc1ConsulServerToken))
 	require.NoError(t, err)
 
-	consulClientTwo, err := common.SetupConsulClient(dc2ConsulServerURL, dc2ConsulServerToken)
+	consulClientTwo, err := common.SetupConsulClient(t, dc2ConsulServerURL, common.WithToken(dc2ConsulServerToken))
 	require.NoError(t, err)
 
 	logger.Log(t, "Setting up ECS Client")
@@ -198,18 +183,6 @@ func (s *sameness) Validate(t *testing.T, outputVars map[string]interface{}) {
 	assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
 }
 
-func (a *apps) getClientAppName() string {
-	return a.client.name
-}
-
-func (a *apps) getServerAppName() string {
-	return a.server.name
-}
-
-func (a *apps) getServerAppConsulName() string {
-	return a.server.consulServiceName
-}
-
 func getAppDetails(t *testing.T, name string, outputVars map[string]interface{}) *apps {
 	val, ok := outputVars[name].(map[string]interface{})
 	require.True(t, ok)
@@ -247,7 +220,7 @@ func getAppDetails(t *testing.T, name string, outputVars map[string]interface{})
 	}
 }
 
-func ensureAppsReadiness(t *testing.T, consulClient *api.Client, appDetails *apps) {
+func ensureAppsReadiness(t *testing.T, consulClient *common.ConsulClientWrapper, appDetails *apps) {
 	logger.Log(t, fmt.Sprintf("checking if apps in %s partition & %s namespace are registered in Consul", appDetails.partition, appDetails.namespace))
 
 	opts := &api.QueryOptions{
@@ -255,40 +228,13 @@ func ensureAppsReadiness(t *testing.T, consulClient *api.Client, appDetails *app
 		Partition: appDetails.partition,
 	}
 
-	ensureServiceReadiness(t, consulClient, appDetails.client.consulServiceName, opts)
-	ensureServiceReadiness(t, consulClient, appDetails.server.consulServiceName, opts)
+	ensureServiceReadiness(t, consulClient, appDetails.getClientAppConsulName(), opts)
+	ensureServiceReadiness(t, consulClient, appDetails.getServerAppConsulName(), opts)
 }
 
-func ensureServiceReadiness(t *testing.T, client *api.Client, name string, opts *api.QueryOptions) {
-	ensureServiceRegistration(t, client, name, opts)
-	ensureHealthyService(t, client, name, opts)
-}
-
-func ensureServiceRegistration(t *testing.T, consulClient *api.Client, name string, opts *api.QueryOptions) {
-	logger.Log(t, fmt.Sprintf("checking if service %s is registered in Consul", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		exists, err := common.ServiceExists(consulClient, name, opts)
-		require.NoError(r, err)
-		require.True(r, exists)
-	})
-}
-
-func ensureServiceDeregistration(t *testing.T, consulClient *api.Client, name string, opts *api.QueryOptions) {
-	logger.Log(t, fmt.Sprintf("checking if service %s is deregistered in Consul", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		exists, err := common.ServiceExists(consulClient, name, opts)
-		require.NoError(r, err)
-		require.False(r, exists)
-	})
-}
-
-func ensureHealthyService(t *testing.T, consulClient *api.Client, name string, opts *api.QueryOptions) {
-	logger.Log(t, fmt.Sprintf("checking if all instances of %s are healthy", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		healthy, err := common.IsServiceHealthy(consulClient, name, opts)
-		require.NoError(r, err)
-		require.True(r, healthy)
-	})
+func ensureServiceReadiness(t *testing.T, client *common.ConsulClientWrapper, name string, opts *api.QueryOptions) {
+	client.EnsureServiceRegistration(name, opts)
+	client.EnsureHealthyService(name, opts)
 }
 
 func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
@@ -297,7 +243,7 @@ func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
 		logger.Log(t, fmt.Sprintf("calling upstream for %s app in %s partition and %s cluster", app.getClientAppName(), app.partition, app.clusterARN))
 		retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 			logger.Log(t, "hitting client app's load balancer to see if the server app is reachable")
-			resp, err := common.GetFakeServiceResponse(app.client.lbAddr)
+			resp, err := common.GetFakeServiceResponse(app.getClientAppLBAddr())
 			require.NoError(r, err)
 
 			require.Equal(r, 200, resp.Code)
@@ -317,7 +263,7 @@ func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
 	return upstreamCalls
 }
 
-func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *api.Client, apps *apps) {
+func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *apps) {
 	logger.Log(t, fmt.Sprintf("Scaling up %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.partition, apps.namespace))
 	err := ecsClient.
 		WithClusterARN(apps.clusterARN).
@@ -331,7 +277,7 @@ func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, cons
 	ensureServiceReadiness(t, consulClient, apps.getServerAppConsulName(), opts)
 }
 
-func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *api.Client, apps *apps) {
+func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *apps) {
 	logger.Log(t, fmt.Sprintf("Scaling down %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.partition, apps.namespace))
 	err := ecsClient.
 		WithClusterARN(apps.clusterARN).
@@ -342,5 +288,26 @@ func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, co
 		Partition: apps.partition,
 		Namespace: apps.namespace,
 	}
-	ensureServiceDeregistration(t, consulClient, apps.getServerAppConsulName(), opts)
+	consulClient.EnsureServiceDeregistration(apps.getServerAppConsulName(), opts)
+}
+
+type apps struct {
+	partition  string
+	namespace  string
+	clusterARN string
+	region     string
+	client     app
+	server     app
+}
+
+func (a *apps) getClientAppName() string       { return a.client.name }
+func (a *apps) getServerAppName() string       { return a.server.name }
+func (a *apps) getClientAppLBAddr() string     { return a.server.consulServiceName }
+func (a *apps) getClientAppConsulName() string { return a.server.consulServiceName }
+func (a *apps) getServerAppConsulName() string { return a.server.consulServiceName }
+
+type app struct {
+	name              string
+	consulServiceName string
+	lbAddr            string
 }

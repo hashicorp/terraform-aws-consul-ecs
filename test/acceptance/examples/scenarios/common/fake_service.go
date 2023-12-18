@@ -8,6 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"testing"
+	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 type FakeServiceResponse struct {
@@ -21,6 +26,30 @@ type UpstreamCallResponse struct {
 	Body        string   `json:"body"`
 	IpAddresses []string `json:"ip_addresses,omitempty"`
 	Code        int      `json:"code"`
+}
+
+// ValidateFakeServiceResponse takes in the client application's address(typically
+// the address of the ALB infront of the client app's ECS task) and performs a
+// HTTP GET against the same. It also verifies if the response matches the
+// success criteria and also verifies if the expected upstream app was hit.
+func ValidateFakeServiceResponse(t *testing.T, lbURL, expectedUpstream string) *UpstreamCallResponse {
+	var upstreamResp UpstreamCallResponse
+	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+		resp, err := GetFakeServiceResponse(lbURL)
+		require.NoError(r, err)
+
+		require.Equal(r, 200, resp.Code)
+		require.Equal(r, "Hello World", resp.Body)
+		require.NotNil(r, resp.UpstreamCalls)
+
+		upstreamResp = resp.UpstreamCalls["http://localhost:1234"]
+		require.NotNil(r, upstreamResp)
+		require.Equal(r, expectedUpstream, upstreamResp.Name)
+		require.Equal(r, 200, upstreamResp.Code)
+		require.Equal(r, "Hello World", upstreamResp.Body)
+	})
+
+	return &upstreamResp
 }
 
 // GetFakeServiceResponse takes in the client application's address(typically

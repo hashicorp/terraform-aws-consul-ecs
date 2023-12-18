@@ -7,10 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/common"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
@@ -59,38 +56,16 @@ func (e *ec2) Validate(t *testing.T, outputVars map[string]interface{}) {
 	meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 	logger.Log(t, "Setting up the Consul client")
-	consulClient, err := common.SetupConsulClient(consulServerLBAddr, "")
+	consulClient, err := common.SetupConsulClient(t, consulServerLBAddr)
 	require.NoError(t, err)
 
 	clientAppName := fmt.Sprintf("%s-example-client-app", e.name)
 	serverAppName := fmt.Sprintf("%s-example-server-app", e.name)
 
-	checkServiceExistence(t, consulClient, clientAppName)
-	checkServiceExistence(t, consulClient, serverAppName)
+	consulClient.EnsureServiceRegistration(clientAppName, nil)
+	consulClient.EnsureServiceRegistration(serverAppName, nil)
 
 	// Perform assertions by hitting the client app's LB
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		logger.Log(t, "calling client app's load balancer to see if the server app is reachable")
-		resp, err := common.GetFakeServiceResponse(meshClientLBAddr)
-		require.NoError(r, err)
-
-		require.Equal(r, 200, resp.Code)
-		require.Equal(r, "Hello World", resp.Body)
-		require.NotNil(r, resp.UpstreamCalls)
-
-		upstreamResp := resp.UpstreamCalls["http://localhost:1234"]
-		require.NotNil(r, upstreamResp)
-		require.Equal(r, serverAppName, upstreamResp.Name)
-		require.Equal(r, 200, upstreamResp.Code)
-		require.Equal(r, "Hello World", upstreamResp.Body)
-	})
-}
-
-func checkServiceExistence(t *testing.T, consulClient *api.Client, name string) {
-	logger.Log(t, fmt.Sprintf("checking if service %s is registered in Consul", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		exists, err := common.ServiceExists(consulClient, name, nil)
-		require.NoError(r, err)
-		require.True(r, exists)
-	})
+	logger.Log(t, "calling client app's load balancer to see if the server app is reachable")
+	common.ValidateFakeServiceResponse(t, meshClientLBAddr, serverAppName)
 }

@@ -18,15 +18,29 @@ type ECSClientWrapper struct {
 	clusterARN string
 }
 
-func NewECSClient() (*ECSClientWrapper, error) {
+type ECSClientWrapperOpts func(*ECSClientWrapper)
+
+func NewECSClient(opts ...ECSClientWrapperOpts) (*ECSClientWrapper, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
-	return &ECSClientWrapper{
+	ew := &ECSClientWrapper{
 		client: ecs.NewFromConfig(cfg),
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(ew)
+	}
+
+	return ew, nil
+}
+
+func WithClusterARN(arn string) ECSClientWrapperOpts {
+	return func(ew *ECSClientWrapper) {
+		ew.clusterARN = arn
+	}
 }
 
 func (e *ECSClientWrapper) WithClusterARN(clusterARN string) *ECSClientWrapper {

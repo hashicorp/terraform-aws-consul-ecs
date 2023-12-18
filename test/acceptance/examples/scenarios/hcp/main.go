@@ -64,11 +64,11 @@ func (h *hcp) Validate(t *testing.T, outputVars map[string]interface{}) {
 	serverService := getServiceDetails(t, "server", outputVars)
 
 	logger.Log(t, "Setting up the Consul client")
-	consulClient, err := common.SetupConsulClient(consulServerLBAddr, consulServerToken)
+	consulClient, err := common.SetupConsulClient(t, consulServerLBAddr, common.WithToken(consulServerToken))
 	require.NoError(t, err)
 
-	checkServiceExistence(t, consulClient, clientService)
-	checkServiceExistence(t, consulClient, serverService)
+	ensureServiceRegistration(consulClient, clientService)
+	ensureServiceRegistration(consulClient, serverService)
 
 	logger.Log(t, "Setting up ECS client")
 
@@ -110,21 +110,10 @@ func getServiceDetails(t *testing.T, name string, outputVars map[string]interfac
 	}
 }
 
-func checkServiceExistence(t *testing.T, consulClient *api.Client, service *service) {
-	logger.Log(t, fmt.Sprintf("checking if service %s is registered in Consul in the %s namespace under %s partition",
-		service.name,
-		service.namespace,
-		service.partition,
-	))
-
+func ensureServiceRegistration(consulClient *common.ConsulClientWrapper, service *service) {
 	opts := &api.QueryOptions{
 		Namespace: service.namespace,
 		Partition: service.partition,
 	}
-
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-		exists, err := common.ServiceExists(consulClient, service.name, opts)
-		require.NoError(r, err)
-		require.True(r, exists)
-	})
+	consulClient.EnsureServiceRegistration(service.name, opts)
 }

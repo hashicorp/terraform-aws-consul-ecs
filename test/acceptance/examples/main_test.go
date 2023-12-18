@@ -26,6 +26,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type ScenarioFunc func(string) scenarios.Scenario
+
+var scenarioFuncs = map[string]ScenarioFunc{
+	"FARGATE":                fargate.New,
+	"EC2":                    ec2.New,
+	"HCP":                    hcp.New,
+	"CLUSTER_PEERING":        clusterpeering.New,
+	"WAN_FEDERATION":         wan.New,
+	"LOCALITY_AWARE_ROUTING": localityawarerouting.New,
+	"SERVICE_SAMENESS":       sameness.New,
+}
+
 // TestRunScenario accepts a single scenario name as an environment
 // variable and executes tests for the same. We want to run each
 // scenario as a separate GitHub Action job.
@@ -78,21 +90,9 @@ func getScenario(name string) scenarios.Scenario {
 	// This name can be modified inside the individual scenarios too according
 	// to the scenario's needs.
 	terraformResourcesName := fmt.Sprintf("ecs-%s", strings.ToLower(random.UniqueId()))
-	switch name {
-	case "FARGATE":
-		return fargate.New(terraformResourcesName)
-	case "EC2":
-		return ec2.New(terraformResourcesName)
-	case "HCP":
-		return hcp.New(terraformResourcesName)
-	case "CLUSTER_PEERING":
-		return clusterpeering.New(terraformResourcesName)
-	case "WAN_FEDERATION":
-		return wan.New(terraformResourcesName)
-	case "LOCALITY_AWARE_ROUTING":
-		return localityawarerouting.New(terraformResourcesName)
-	case "SERVICE_SAMENESS":
-		return sameness.New(terraformResourcesName)
+
+	if scenario, ok := scenarioFuncs[name]; ok {
+		return scenario(terraformResourcesName)
 	}
 
 	return nil
