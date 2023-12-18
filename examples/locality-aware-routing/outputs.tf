@@ -13,3 +13,7 @@ output "consul_server_bootstrap_token" {
 output "client_lb_address" {
   value = "http://${aws_lb.example_client_app.dns_name}:9090/ui"
 }
+
+output "ecs_cluster_arn" {
+  value = module.cluster.ecs_cluster.arn
+}
