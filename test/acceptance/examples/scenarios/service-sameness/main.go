@@ -101,7 +101,7 @@ func (s *sameness) Validate(t *testing.T, outputVars map[string]interface{}) {
 
 	// Ensure that the gateways are also ready
 	ensureServiceReadiness(t, consulClientOne, fmt.Sprintf("%s-dc1-default-mesh-gateway", s.name), nil)
-	ensureServiceReadiness(t, consulClientOne, fmt.Sprintf("%s-dc1-%s-mesh-gateway", s.name, dc1Part1PartitionApps.partition), &api.QueryOptions{Partition: dc1DefaultPartitionApps.partition})
+	ensureServiceReadiness(t, consulClientOne, fmt.Sprintf("%s-dc1-%s-mesh-gateway", s.name, dc1Part1PartitionApps.partition), &api.QueryOptions{Partition: dc1Part1PartitionApps.partition})
 	ensureServiceReadiness(t, consulClientTwo, fmt.Sprintf("%s-dc2-default-mesh-gateway", s.name), nil)
 
 	// Begin actual validation
