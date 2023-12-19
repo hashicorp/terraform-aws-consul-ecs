@@ -71,10 +71,10 @@ func (c *clusterPeering) Validate(t *testing.T, outputVars map[string]interface{
 	clientAppName := fmt.Sprintf("%s-dc1-example-client-app", c.name)
 	serverAppName := fmt.Sprintf("%s-dc2-example-server-app", c.name)
 
-	consulClientOne.EnsureServiceRegistration(clientAppName, nil)
-	consulClientTwo.EnsureServiceRegistration(serverAppName, nil)
-	consulClientOne.EnsureServiceRegistration(fmt.Sprintf("%s-dc1-mesh-gateway", c.name), nil)
-	consulClientTwo.EnsureServiceRegistration(fmt.Sprintf("%s-dc2-mesh-gateway", c.name), nil)
+	consulClientOne.EnsureServiceReadiness(clientAppName, nil)
+	consulClientTwo.EnsureServiceReadiness(serverAppName, nil)
+	consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-mesh-gateway", c.name), nil)
+	consulClientTwo.EnsureServiceReadiness(fmt.Sprintf("%s-dc2-mesh-gateway", c.name), nil)
 
 	// Perform assertions by hitting the client app's LB
 	logger.Log(t, "calling client app's load balancer to see if the server app in the peer cluster is reachable")

@@ -68,10 +68,10 @@ func (w *wan) Validate(t *testing.T, outputVars map[string]interface{}) {
 	clientAppName := fmt.Sprintf("%s-dc1-example-client-app", w.name)
 	serverAppName := fmt.Sprintf("%s-dc2-example-server-app", w.name)
 
-	consulClientOne.EnsureServiceRegistration(clientAppName, nil)
-	consulClientTwo.EnsureServiceRegistration(serverAppName, nil)
-	consulClientOne.EnsureServiceRegistration(fmt.Sprintf("%s-dc1-mesh-gateway", w.name), nil)
-	consulClientTwo.EnsureServiceRegistration(fmt.Sprintf("%s-dc2-mesh-gateway", w.name), nil)
+	consulClientOne.EnsureServiceReadiness(clientAppName, nil)
+	consulClientTwo.EnsureServiceReadiness(serverAppName, nil)
+	consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-mesh-gateway", w.name), nil)
+	consulClientTwo.EnsureServiceReadiness(fmt.Sprintf("%s-dc2-mesh-gateway", w.name), nil)
 
 	// Perform assertions by hitting the client app's LB
 	logger.Log(t, "calling client app's load balancer to see if the server app in the secondary DC is reachable")

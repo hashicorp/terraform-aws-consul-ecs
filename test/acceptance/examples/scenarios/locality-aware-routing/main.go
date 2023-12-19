@@ -75,8 +75,8 @@ func (l *localityAwareRouting) Validate(t *testing.T, outputVars map[string]inte
 	clientAppName := "example-client-app"
 	serverAppName := "example-server-app"
 
-	consulClient.EnsureServiceRegistration(clientAppName, nil)
-	consulClient.EnsureServiceRegistration(serverAppName, nil)
+	consulClient.EnsureServiceReadiness(clientAppName, nil)
+	consulClient.EnsureServiceReadiness(serverAppName, nil)
 
 	consulClient.EnsureServiceInstances(serverAppName, 2, nil)
 

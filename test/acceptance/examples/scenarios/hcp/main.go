@@ -67,8 +67,8 @@ func (h *hcp) Validate(t *testing.T, outputVars map[string]interface{}) {
 	consulClient, err := common.SetupConsulClient(t, consulServerLBAddr, common.WithToken(consulServerToken))
 	require.NoError(t, err)
 
-	ensureServiceRegistration(consulClient, clientService)
-	ensureServiceRegistration(consulClient, serverService)
+	ensureServiceReadiness(consulClient, clientService)
+	ensureServiceReadiness(consulClient, serverService)
 
 	logger.Log(t, "Setting up ECS client")
 
@@ -110,10 +110,10 @@ func getServiceDetails(t *testing.T, name string, outputVars map[string]interfac
 	}
 }
 
-func ensureServiceRegistration(consulClient *common.ConsulClientWrapper, service *service) {
+func ensureServiceReadiness(consulClient *common.ConsulClientWrapper, service *service) {
 	opts := &api.QueryOptions{
 		Namespace: service.namespace,
 		Partition: service.partition,
 	}
-	consulClient.EnsureServiceRegistration(service.name, opts)
+	consulClient.EnsureServiceReadiness(service.name, opts)
 }
