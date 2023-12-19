@@ -86,9 +86,9 @@ func (s *sameness) Validate(t *testing.T, outputVars map[string]interface{}) {
 	ensureAppsReadiness(t, consulClientTwo, dc2DefaultPartitionApps)
 
 	// Ensure that the gateways are also ready
-	ensureServiceReadiness(t, consulClientOne, fmt.Sprintf("%s-dc1-default-mesh-gateway", s.name), nil)
-	ensureServiceReadiness(t, consulClientOne, fmt.Sprintf("%s-dc1-%s-mesh-gateway", s.name, dc1Part1PartitionApps.partition), &api.QueryOptions{Partition: dc1Part1PartitionApps.partition})
-	ensureServiceReadiness(t, consulClientTwo, fmt.Sprintf("%s-dc2-mesh-gateway", s.name), nil)
+	consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-default-mesh-gateway", s.name), nil)
+	consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-%s-mesh-gateway", s.name, dc1Part1PartitionApps.partition), &api.QueryOptions{Partition: dc1Part1PartitionApps.partition})
+	consulClientTwo.EnsureServiceReadiness(fmt.Sprintf("%s-dc2-mesh-gateway", s.name), nil)
 
 	// Begin actual validation
 	clusterAppsList := []*apps{
@@ -228,13 +228,8 @@ func ensureAppsReadiness(t *testing.T, consulClient *common.ConsulClientWrapper,
 		Partition: appDetails.partition,
 	}
 
-	ensureServiceReadiness(t, consulClient, appDetails.getClientAppConsulName(), opts)
-	ensureServiceReadiness(t, consulClient, appDetails.getServerAppConsulName(), opts)
-}
-
-func ensureServiceReadiness(t *testing.T, client *common.ConsulClientWrapper, name string, opts *api.QueryOptions) {
-	client.EnsureServiceRegistration(name, opts)
-	client.EnsureHealthyService(name, opts)
+	consulClient.EnsureServiceReadiness(appDetails.getClientAppConsulName(), opts)
+	consulClient.EnsureServiceReadiness(appDetails.getServerAppConsulName(), opts)
 }
 
 func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
@@ -274,7 +269,7 @@ func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, cons
 		Partition: apps.partition,
 		Namespace: apps.namespace,
 	}
-	ensureServiceReadiness(t, consulClient, apps.getServerAppConsulName(), opts)
+	consulClient.EnsureServiceReadiness(apps.getServerAppConsulName(), opts)
 }
 
 func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *apps) {
@@ -302,8 +297,8 @@ type apps struct {
 
 func (a *apps) getClientAppName() string       { return a.client.name }
 func (a *apps) getServerAppName() string       { return a.server.name }
-func (a *apps) getClientAppLBAddr() string     { return a.server.consulServiceName }
-func (a *apps) getClientAppConsulName() string { return a.server.consulServiceName }
+func (a *apps) getClientAppLBAddr() string     { return a.client.lbAddr }
+func (a *apps) getClientAppConsulName() string { return a.client.consulServiceName }
 func (a *apps) getServerAppConsulName() string { return a.server.consulServiceName }
 
 type app struct {

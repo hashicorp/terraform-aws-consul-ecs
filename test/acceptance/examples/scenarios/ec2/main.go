@@ -62,8 +62,8 @@ func (e *ec2) Validate(t *testing.T, outputVars map[string]interface{}) {
 	clientAppName := fmt.Sprintf("%s-example-client-app", e.name)
 	serverAppName := fmt.Sprintf("%s-example-server-app", e.name)
 
-	consulClient.EnsureServiceRegistration(clientAppName, nil)
-	consulClient.EnsureServiceRegistration(serverAppName, nil)
+	consulClient.EnsureServiceReadiness(clientAppName, nil)
+	consulClient.EnsureServiceReadiness(serverAppName, nil)
 
 	// Perform assertions by hitting the client app's LB
 	logger.Log(t, "calling client app's load balancer to see if the server app is reachable")

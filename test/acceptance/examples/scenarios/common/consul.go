@@ -47,15 +47,11 @@ func WithToken(token string) ClientOpts {
 	}
 }
 
-// EnsureServiceRegistration makes sure that a service with a given name
-// is registered as part of Consul's catalog
-func (ccw *ConsulClientWrapper) EnsureServiceRegistration(name string, queryOpts *api.QueryOptions) {
-	logger.Log(ccw.t, fmt.Sprintf("checking if service %s is registered in Consul", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, ccw.t, func(r *retry.R) {
-		exists, err := ccw.serviceExists(name, queryOpts)
-		require.NoError(r, err)
-		require.True(r, exists)
-	})
+// EnsureServiceReadiness makes sure that a service with a given name
+// is registered as part of Consul's catalog and is also healthy.
+func (ccw *ConsulClientWrapper) EnsureServiceReadiness(name string, queryOpts *api.QueryOptions) {
+	ccw.ensureServiceRegistration(name, queryOpts)
+	ccw.ensureHealthyService(name, queryOpts)
 }
 
 // EnsureServiceDeregistration makes sure that a service with a given name
@@ -69,18 +65,6 @@ func (ccw *ConsulClientWrapper) EnsureServiceDeregistration(name string, queryOp
 	})
 }
 
-// EnsureHealthyService polls the catalog endpoint to understand a service's health status.
-// Note that the health of a service is an accumulation of all the health checks associated
-// with that of the service instances of that service.
-func (ccw *ConsulClientWrapper) EnsureHealthyService(name string, opts *api.QueryOptions) {
-	logger.Log(ccw.t, fmt.Sprintf("checking if all instances of %s are healthy", name))
-	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, ccw.t, func(r *retry.R) {
-		healthy, err := ccw.isServiceHealthy(name, opts)
-		require.NoError(r, err)
-		require.True(r, healthy)
-	})
-}
-
 // EnsureServiceInstances verifies if the number of service instances for a service
 // in Consul catalog matches the expected count.
 func (ccw *ConsulClientWrapper) EnsureServiceInstances(name string, expectedCount int, queryOpts *api.QueryOptions) {
@@ -89,6 +73,29 @@ func (ccw *ConsulClientWrapper) EnsureServiceInstances(name string, expectedCoun
 		instances, err := ccw.listServiceInstances(name, nil)
 		require.NoError(r, err)
 		require.Len(r, instances, expectedCount)
+	})
+}
+
+// ensureServiceRegistration makes sure that a service with a given name
+// is registered as part of Consul's catalog
+func (ccw *ConsulClientWrapper) ensureServiceRegistration(name string, queryOpts *api.QueryOptions) {
+	logger.Log(ccw.t, fmt.Sprintf("checking if service %s is registered in Consul", name))
+	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, ccw.t, func(r *retry.R) {
+		exists, err := ccw.serviceExists(name, queryOpts)
+		require.NoError(r, err)
+		require.True(r, exists)
+	})
+}
+
+// ensureHealthyService polls the catalog endpoint to understand a service's health status.
+// Note that the health of a service is an accumulation of all the health checks associated
+// with that of the service instances of that service.
+func (ccw *ConsulClientWrapper) ensureHealthyService(name string, opts *api.QueryOptions) {
+	logger.Log(ccw.t, fmt.Sprintf("checking if all instances of %s are healthy", name))
+	retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, ccw.t, func(r *retry.R) {
+		healthy, err := ccw.isServiceHealthy(name, opts)
+		require.NoError(r, err)
+		require.True(r, healthy)
 	})
 }
 
