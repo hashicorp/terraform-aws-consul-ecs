@@ -50,8 +50,8 @@ resource "aws_ecs_service" "example_client_app" {
 }
 
 module "example_client_app" {
-  depends_on = [ module.dev_consul_server ]
-  
+  depends_on = [module.dev_consul_server]
+
   source = "../../modules/mesh-task"
   family = "${var.name}-example-client-app"
   port   = "9090"
@@ -114,7 +114,7 @@ resource "aws_ecs_service" "example_server_app" {
 }
 
 module "example_server_app" {
-  depends_on = [ module.dev_consul_server ]
+  depends_on = [module.dev_consul_server]
 
   source            = "../../modules/mesh-task"
   family            = "${var.name}-example-server-app"
