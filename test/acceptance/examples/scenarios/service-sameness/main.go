@@ -22,6 +22,10 @@ type sameness struct {
 	name string
 }
 
+const (
+	awsRegion = "us-west-1"
+)
+
 func New(name string) scenarios.Scenario {
 	return &sameness{
 		name: "same",
@@ -34,7 +38,7 @@ func (s *sameness) GetFolderName() string {
 
 func (s *sameness) GetTerraformVars() (map[string]interface{}, error) {
 	vars := map[string]interface{}{
-		"region": "us-west-1",
+		"region": awsRegion,
 		"name":   s.name,
 	}
 
@@ -78,7 +82,7 @@ func (s *sameness) Validate(t *testing.T, outputVars map[string]interface{}) {
 	require.NoError(t, err)
 
 	logger.Log(t, "Setting up ECS Client")
-	ecsClient, err := common.NewECSClient()
+	ecsClient, err := common.NewECSClient(common.WithRegion(awsRegion))
 	require.NoError(t, err)
 
 	ensureAppsReadiness(t, consulClientOne, dc1DefaultPartitionApps)

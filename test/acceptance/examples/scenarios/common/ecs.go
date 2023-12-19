@@ -16,6 +16,7 @@ import (
 type ECSClientWrapper struct {
 	client     *ecs.Client
 	clusterARN string
+	region     string
 }
 
 type ECSClientWrapperOpts func(*ECSClientWrapper)
@@ -26,13 +27,15 @@ func NewECSClient(opts ...ECSClientWrapperOpts) (*ECSClientWrapper, error) {
 		return nil, err
 	}
 
-	ew := &ECSClientWrapper{
-		client: ecs.NewFromConfig(cfg),
-	}
-
+	ew := &ECSClientWrapper{}
 	for _, opt := range opts {
 		opt(ew)
 	}
+
+	if ew.region != "" {
+		cfg.Region = ew.region
+	}
+	ew.client = ecs.NewFromConfig(cfg)
 
 	return ew, nil
 }
@@ -40,6 +43,12 @@ func NewECSClient(opts ...ECSClientWrapperOpts) (*ECSClientWrapper, error) {
 func WithClusterARN(arn string) ECSClientWrapperOpts {
 	return func(ew *ECSClientWrapper) {
 		ew.clusterARN = arn
+	}
+}
+
+func WithRegion(region string) ECSClientWrapperOpts {
+	return func(ew *ECSClientWrapper) {
+		ew.region = region
 	}
 }
 
@@ -96,6 +105,8 @@ func (e *ECSClientWrapper) StopTask(taskID, reason string) error {
 	return err
 }
 
+// UpdateService scales the number of tasks governed by the service to the
+// desiredCount.
 func (e *ECSClientWrapper) UpdateService(serviceName string, desiredCount int32) error {
 	req := &ecs.UpdateServiceInput{
 		Service:      &serviceName,
