@@ -11,6 +11,12 @@ FEATURES
 * examples/api-gateway: Add example terraform to demonstrate exposing mesh tasks in ECS via Consul API gateway deployed as an ECS task. [[GH-235]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/235)
 * examples/terminating-gateway: Add example terraform to demonstrate the use of terminating gateways deployed as ECS tasks to facilitate communication between mesh and non mesh services. [[GH-238]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/238)
 
+## 0.7.1 (Dec 19, 2023)
+
+IMPROVEMENTS
+* Bump Consul ECS image version to 0.7.1
+* Bump Consul Dataplane's image version to 1.3.1
+
 BUG FIXES
 * Fixes a bug in the health check logic of the `consul-ecs-control-plane` container in `mesh-task` and `gateway-task` submodule. Because of the bug, the ECS agent tries to start up the `consul-dataplane` container before the `consul-ecs-control-plane` container writes the Consul ECS binary to a shared volume. [[GH-241]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/241)
 
