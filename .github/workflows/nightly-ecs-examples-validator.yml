@@ -104,7 +104,9 @@ jobs:
 
         - name: Locality Aware Routing
           scenario: LOCALITY_AWARE_ROUTING
-          
+
+        - name: Service Sameness
+          scenario: SERVICE_SAMENESS
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
