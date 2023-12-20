@@ -38,8 +38,8 @@ type PartitionDetails struct {
 	Namespace     string `json:"namespace"`
 	ECSClusterARN string `json:"ecs_cluster_arn"`
 	Region        string `json:"region"`
-	ClientApp     *App   `json:"server"`
-	ServerApp     *App   `json:"client"`
+	ClientApp     *App   `json:"client"`
+	ServerApp     *App   `json:"server"`
 }
 
 func (p *PartitionDetails) getClientAppName() string       { return p.ClientApp.Name }
@@ -55,7 +55,7 @@ type App struct {
 }
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
-	tfResName := common.GenerateRandomStr(4)
+	tfResName := "pjye" //common.GenerateRandomStr(4)
 
 	r.Register(scenarios.ScenarioRegistration{
 		Name:               "SERVICE_SAMENESS",
