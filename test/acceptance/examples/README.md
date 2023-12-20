@@ -38,8 +38,8 @@ The following prerequisites are needed to run the acceptance tests:
 
 ### Adding a new scenario
 
-1. We expect every scenario to implement the `Scenario` interface present [here](./scenarios/scenario.go). Similar to existing examples, add a new folder corresponding to your scenario under the `scenarios/` subfolder and add relevant code into the same.
+1. We expect every scenario to register itself to the scenario registry. Similar to existing examples, add a new folder corresponding to your scenario under the `scenarios/` subfolder and add relevant code into the same.
 
-1. Make sure to add the scenario as part of the `scenarioFuncs` map in [this](./main.go) file.
+1. Make sure to call the function that adds the scenario to the registry from [main_test.go](./main_test.go).
 
 1. If you want your scenario to run as part of CI, make sure to add it to the matrix list in [this](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/.github/workflows/nightly-ecs-examples-validator.yml) workflow file. If the number of parallel jobs within a matrix exceeds 4, make sure to create a new matrix job that is dependent on the existing ones and add your scenario there.
