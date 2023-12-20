@@ -12,7 +12,7 @@ import (
 // actual registry that holds details about the scenarios.
 type ScenarioRegistry interface {
 	// Register registers a scenario into the registry
-	Register(ScenarioRegistration) error
+	Register(ScenarioRegistration)
 
 	// Retrieve retrieves a scenario from the registry
 	Retrieve(name string) (ScenarioRegistration, error)

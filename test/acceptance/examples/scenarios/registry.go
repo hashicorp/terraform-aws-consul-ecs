@@ -17,17 +17,16 @@ func NewScenarioRegistry() ScenarioRegistry {
 	}
 }
 
-func (s *registry) Register(reg ScenarioRegistration) error {
+func (s *registry) Register(reg ScenarioRegistration) {
 	if _, ok := s.scenarios[scenarioName(reg.Name)]; ok {
-		return fmt.Errorf("scenario %s already registered", reg.Name)
+		panic(fmt.Sprintf("scenario %s already registered", reg.Name))
 	}
 
 	if err := reg.validate(); err != nil {
-		return err
+		panic(fmt.Errorf("error validating scenario %w", err))
 	}
 
 	s.scenarios[scenarioName(reg.Name)] = reg
-	return nil
 }
 
 func (s *registry) Retrieve(name string) (ScenarioRegistration, error) {
