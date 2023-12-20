@@ -22,6 +22,10 @@ func (s *registry) Register(reg ScenarioRegistration) error {
 		return fmt.Errorf("scenario %s already registered", reg.Name)
 	}
 
+	if err := reg.validate(); err != nil {
+		return err
+	}
+
 	s.scenarios[scenarioName(reg.Name)] = reg
 	return nil
 }

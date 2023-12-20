@@ -3,7 +3,10 @@
 
 package scenarios
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 // ScenarioRegistry helps us interact with the
 // actual registry that holds details about the scenarios.
@@ -37,4 +40,24 @@ type ScenarioRegistration struct {
 	// Validate is the hook called when validations need to be performed on the deployment. This
 	// hook will only be called after a successful terraform apply.
 	Validate ValidateHook
+}
+
+func (r *ScenarioRegistration) validate() error {
+	if r.Name == "" {
+		return fmt.Errorf("scenario name cannot be empty")
+	}
+
+	if r.FolderName == "" {
+		return fmt.Errorf("scenario %s should have a folder name associated to it", r.Name)
+	}
+
+	if r.TerraformInputVars == nil {
+		return fmt.Errorf("scenario %s should provide hooks for providing terraform input variables", r.Name)
+	}
+
+	if r.Validate == nil {
+		return fmt.Errorf("scenario %s should provide hooks validating the deployment", r.Name)
+	}
+
+	return nil
 }
