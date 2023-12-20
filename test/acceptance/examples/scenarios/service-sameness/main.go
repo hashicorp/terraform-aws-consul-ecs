@@ -55,7 +55,7 @@ type App struct {
 }
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
-	tfResName := "pjye" //common.GenerateRandomStr(4)
+	tfResName := common.GenerateRandomStr(4)
 
 	r.Register(scenarios.ScenarioRegistration{
 		Name:               "SERVICE_SAMENESS",
