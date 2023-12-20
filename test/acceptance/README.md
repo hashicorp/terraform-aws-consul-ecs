@@ -1,6 +1,6 @@
 ## Acceptance Tests
 
-These tests run the Terraform code.
+These tests run the Terraform code. For scenario based tests please refer to [this](./examples/README.md) document.
 
 ### Prerequisites
 
@@ -27,9 +27,9 @@ The following prerequisites are needed to run the acceptance tests:
 1. Now you can run the tests. The tests accept flags for passing in information about the
    VPC and ECS cluster you've just created.
 
-   Switch back to the `test/acceptance` directory:
+   Switch back to the `test/acceptance/tests` directory:
 
-1. To run the tests, use `go test` from the `test/acceptance` directory:
+1. To run the tests, use `go test` from the `test/acceptance/tests` directory:
 
    For tests that use Consul Enterprise outside of HCP, you must set the
    `CONSUL_LICENSE` environment variable to a Consul Enterprise license key.
