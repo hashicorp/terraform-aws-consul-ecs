@@ -13,7 +13,13 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
+	clusterpeering "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/cluster-peering"
+	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
+	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
+	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
+	sameness "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/service-sameness"
+	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/wan-federation"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
@@ -72,6 +78,12 @@ func setupScenarios() scenarios.ScenarioRegistry {
 	reg := scenarios.NewScenarioRegistry()
 
 	fargate.RegisterScenario(reg)
+	ec2.RegisterScenario(reg)
+	clusterpeering.RegisterScenario(reg)
+	hcp.RegisterScenario(reg)
+	sameness.RegisterScenario(reg)
+	wan.RegisterScenario(reg)
+	localityawarerouting.RegisterScenario(reg)
 
 	return reg
 }

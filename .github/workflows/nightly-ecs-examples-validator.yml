@@ -60,6 +60,7 @@ jobs:
     needs:
     - terraform-fmt
     - go-fmt-and-lint-acceptance
+    - get-go-version
     strategy:
       matrix:
         name:
@@ -85,6 +86,7 @@ jobs:
   multi-cluster:
     needs:
     - single-cluster
+    - get-go-version
     strategy:
       matrix:
         name:

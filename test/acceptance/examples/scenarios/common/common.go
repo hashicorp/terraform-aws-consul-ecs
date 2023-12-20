@@ -5,7 +5,14 @@ package common
 
 import (
 	"io"
+	"math/rand"
 	"net/http"
+	"strings"
+	"time"
+)
+
+const (
+	characterSet = "abcdefghijklmnopqrstuvwxyz"
 )
 
 // This method relies on a third party API to retrieve
@@ -23,4 +30,17 @@ func GetPublicIP() (string, error) {
 	}
 
 	return string(ip), nil
+}
+
+// GenerateRandomStr generate a random string of a given length
+// from the predefined characterSet.
+//
+// Note: The resulting string is always lowercased.
+func GenerateRandomStr(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = characterSet[rand.Intn(len(characterSet))]
+	}
+	return strings.ToLower(string(result))
 }

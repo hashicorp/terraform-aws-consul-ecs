@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/common"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
@@ -16,7 +15,7 @@ import (
 )
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
-	tfResourcesName := strings.ToLower(fmt.Sprintf("ecs-%s", random.UniqueId()))
+	tfResourcesName := fmt.Sprintf("ecs-%s", common.GenerateRandomStr(6))
 
 	r.Register(scenarios.ScenarioRegistration{
 		Name:               "FARGATE",
