@@ -4,6 +4,7 @@
 package clusterpeering
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -13,6 +14,14 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
+
+type TFOutputs struct {
+	DC1ConsulServerAddr  string `json:"dc1_server_url"`
+	DC1ConsulServerToken string `json:"dc1_server_bootstrap_token"`
+	DC2ConsulServerAddr  string `json:"dc2_server_url"`
+	DC2ConsulServerToken string `json:"dc2_server_bootstrap_token"`
+	MeshClientLBAddr     string `json:"client_lb_address"`
+}
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
 	tfResourcesName := common.GenerateRandomStr(4)
@@ -43,27 +52,18 @@ func getTerraformVars(tfResName string) scenarios.TerraformInputVarsHook {
 }
 
 func validate(tfResName string) scenarios.ValidateHook {
-	return func(t *testing.T, tfOutput map[string]interface{}) {
+	return func(t *testing.T, data []byte) {
 		logger.Log(t, "Fetching required output terraform variables")
-		getOutputVariableValue := func(name string) string {
-			val, ok := tfOutput[name].(string)
-			require.True(t, ok)
-			return val
-		}
 
-		dc1ConsulServerURL := getOutputVariableValue("dc1_server_url")
-		dc2ConsulServerURL := getOutputVariableValue("dc2_server_url")
-		dc1ConsulServerToken := getOutputVariableValue("dc1_server_bootstrap_token")
-		dc2ConsulServerToken := getOutputVariableValue("dc2_server_bootstrap_token")
-
-		meshClientLBAddr := getOutputVariableValue("client_lb_address")
-		meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
+		var tfOutputs *TFOutputs
+		require.NoError(t, json.Unmarshal(data, &tfOutputs))
+		tfOutputs.MeshClientLBAddr = strings.TrimSuffix(tfOutputs.MeshClientLBAddr, "/ui")
 
 		logger.Log(t, "Setting up the Consul clients")
-		consulClientOne, err := common.SetupConsulClient(t, dc1ConsulServerURL, common.WithToken(dc1ConsulServerToken))
+		consulClientOne, err := common.SetupConsulClient(t, tfOutputs.DC1ConsulServerAddr, common.WithToken(tfOutputs.DC1ConsulServerToken))
 		require.NoError(t, err)
 
-		consulClientTwo, err := common.SetupConsulClient(t, dc2ConsulServerURL, common.WithToken(dc2ConsulServerToken))
+		consulClientTwo, err := common.SetupConsulClient(t, tfOutputs.DC2ConsulServerAddr, common.WithToken(tfOutputs.DC2ConsulServerToken))
 		require.NoError(t, err)
 
 		clientAppName := fmt.Sprintf("%s-dc1-example-client-app", tfResName)
@@ -76,6 +76,6 @@ func validate(tfResName string) scenarios.ValidateHook {
 
 		// Perform assertions by hitting the client app's LB
 		logger.Log(t, "calling client app's load balancer to see if the server app in the peer cluster is reachable")
-		common.ValidateFakeServiceResponse(t, meshClientLBAddr, serverAppName)
+		common.ValidateFakeServiceResponse(t, tfOutputs.MeshClientLBAddr, serverAppName)
 	}
 }

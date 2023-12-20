@@ -4,6 +4,7 @@
 package hcp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,19 +12,26 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/serf/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/common"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
 
-type service struct {
-	awsRegion     string
-	ecsClusterARN string
-	name          string
-	partition     string
-	namespace     string
+type TFOutputs struct {
+	HCPConsulServerAddr  string `json:"hcp_public_endpoint"`
+	HCPConsulServerToken string `json:"token"`
+	ClientApp            *App   `json:"client"`
+	ServerApp            *App   `json:"server"`
+}
+
+type App struct {
+	Name          string `json:"name"`
+	ECSClusterARN string `json:"ecs_cluster_arn"`
+	Region        string `json:"region"`
+	Partition     string `json:"partition"`
+	Namespace     string `json:"namespace"`
 }
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
@@ -52,25 +60,18 @@ func getTerraformVars() scenarios.TerraformInputVarsHook {
 }
 
 func validate() scenarios.ValidateHook {
-	return func(t *testing.T, tfOutput map[string]interface{}) {
+	return func(t *testing.T, data []byte) {
 		logger.Log(t, "Fetching required output terraform variables")
-		getOutputVariableValue := func(name string) string {
-			val, ok := tfOutput[name].(string)
-			require.True(t, ok)
-			return val
-		}
-		consulServerLBAddr := getOutputVariableValue("hcp_public_endpoint")
-		consulServerToken := getOutputVariableValue("token")
 
-		clientService := getServiceDetails(t, "client", tfOutput)
-		serverService := getServiceDetails(t, "server", tfOutput)
+		var tfOutputs *TFOutputs
+		require.NoError(t, json.Unmarshal(data, &tfOutputs))
 
 		logger.Log(t, "Setting up the Consul client")
-		consulClient, err := common.SetupConsulClient(t, consulServerLBAddr, common.WithToken(consulServerToken))
+		consulClient, err := common.SetupConsulClient(t, tfOutputs.HCPConsulServerAddr, common.WithToken(tfOutputs.HCPConsulServerToken))
 		require.NoError(t, err)
 
-		ensureServiceReadiness(consulClient, clientService)
-		ensureServiceReadiness(consulClient, serverService)
+		ensureServiceReadiness(consulClient, tfOutputs.ClientApp)
+		ensureServiceReadiness(consulClient, tfOutputs.ServerApp)
 
 		logger.Log(t, "Setting up ECS client")
 
@@ -78,14 +79,14 @@ func validate() scenarios.ValidateHook {
 		require.NoError(t, err)
 
 		// List tasks for the client service
-		tasks, err := ecsClient.WithClusterARN(clientService.ecsClusterARN).ListTasksForService(clientService.name)
+		tasks, err := ecsClient.WithClusterARN(tfOutputs.ClientApp.ECSClusterARN).ListTasksForService(tfOutputs.ClientApp.Name)
 		require.NoError(t, err)
 		require.Len(t, tasks, 1)
 
 		// Validate connection between apps by running a remote command inside the container.
 		retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 			res, err := ecsClient.
-				WithClusterARN(clientService.ecsClusterARN).
+				WithClusterARN(tfOutputs.ClientApp.ECSClusterARN).
 				ExecuteCommandInteractive(t, tasks[0], "basic", `/bin/sh -c "curl localhost:1234"`)
 			r.Check(err)
 			if !strings.Contains(res, `"code": 200`) {
@@ -95,28 +96,10 @@ func validate() scenarios.ValidateHook {
 	}
 }
 
-func getServiceDetails(t *testing.T, name string, outputVars map[string]interface{}) *service {
-	val, ok := outputVars[name].(map[string]interface{})
-	require.True(t, ok)
-
-	ensureAndReturnNonEmptyVal := func(v interface{}) string {
-		require.NotEmpty(t, v)
-		return v.(string)
-	}
-
-	return &service{
-		name:          ensureAndReturnNonEmptyVal(val["name"]),
-		awsRegion:     ensureAndReturnNonEmptyVal(val["region"]),
-		ecsClusterARN: ensureAndReturnNonEmptyVal(val["ecs_cluster_arn"]),
-		partition:     ensureAndReturnNonEmptyVal(val["partition"]),
-		namespace:     ensureAndReturnNonEmptyVal(val["namespace"]),
-	}
-}
-
-func ensureServiceReadiness(consulClient *common.ConsulClientWrapper, service *service) {
+func ensureServiceReadiness(consulClient *common.ConsulClientWrapper, service *App) {
 	opts := &api.QueryOptions{
-		Namespace: service.namespace,
-		Partition: service.partition,
+		Namespace: service.Namespace,
+		Partition: service.Partition,
 	}
-	consulClient.EnsureServiceReadiness(service.name, opts)
+	consulClient.EnsureServiceReadiness(service.Name, opts)
 }

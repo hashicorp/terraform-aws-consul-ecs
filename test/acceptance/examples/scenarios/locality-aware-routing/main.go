@@ -4,6 +4,7 @@
 package localityawarerouting
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,12 +12,19 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/serf/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/common"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
+
+type TFOutputs struct {
+	ConsulServerAddr  string `json:"consul_server_url"`
+	ConsulServerToken string `json:"consul_server_bootstrap_token"`
+	MeshClientLBAddr  string `json:"client_lb_address"`
+	ECSClusterARN     string `json:"ecs_cluster_arn"`
+}
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
 	tfResName := common.GenerateRandomStr(4)
@@ -52,23 +60,15 @@ func getTerraformVars(tfResName string) scenarios.TerraformInputVarsHook {
 }
 
 func validate(tfResName string) scenarios.ValidateHook {
-	return func(t *testing.T, tfOutput map[string]interface{}) {
+	return func(t *testing.T, data []byte) {
 		logger.Log(t, "Fetching required output terraform variables")
-		getOutputVariableValue := func(name string) string {
-			val, ok := tfOutput[name].(string)
-			require.True(t, ok)
-			return val
-		}
 
-		consulServerLBAddr := getOutputVariableValue("consul_server_url")
-		consulServerToken := getOutputVariableValue("consul_server_bootstrap_token")
-		meshClientLBAddr := getOutputVariableValue("client_lb_address")
-		clusterARN := getOutputVariableValue("ecs_cluster_arn")
-
-		meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
+		var tfOutputs *TFOutputs
+		require.NoError(t, json.Unmarshal(data, &tfOutputs))
+		tfOutputs.MeshClientLBAddr = strings.TrimSuffix(tfOutputs.MeshClientLBAddr, "/ui")
 
 		logger.Log(t, "Setting up the Consul client")
-		consulClient, err := common.SetupConsulClient(t, consulServerLBAddr, common.WithToken(consulServerToken))
+		consulClient, err := common.SetupConsulClient(t, tfOutputs.ConsulServerAddr, common.WithToken(tfOutputs.ConsulServerToken))
 		require.NoError(t, err)
 
 		clientAppName := "example-client-app"
@@ -79,7 +79,7 @@ func validate(tfResName string) scenarios.ValidateHook {
 
 		consulClient.EnsureServiceInstances(serverAppName, 2, nil)
 
-		ecsClient, err := common.NewECSClient(common.WithClusterARN(clusterARN))
+		ecsClient, err := common.NewECSClient(common.WithClusterARN(tfOutputs.ECSClusterARN))
 		require.NoError(t, err)
 
 		logger.Log(t, "Listing and describing tasks for each ECS service")
@@ -96,7 +96,7 @@ func validate(tfResName string) scenarios.ValidateHook {
 
 		performAssertions := func(expectSameAZ bool) {
 			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
-				resp, err := common.GetFakeServiceResponse(meshClientLBAddr)
+				resp, err := common.GetFakeServiceResponse(tfOutputs.MeshClientLBAddr)
 				require.NoError(r, err)
 
 				require.Equal(r, 200, resp.Code)

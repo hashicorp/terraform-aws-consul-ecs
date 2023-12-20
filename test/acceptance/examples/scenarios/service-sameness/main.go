@@ -4,6 +4,7 @@
 package sameness
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -21,6 +22,37 @@ import (
 const (
 	awsRegion = "us-west-1"
 )
+
+type TFOutputs struct {
+	DC1ConsulServerAddr  string            `json:"dc1_server_url"`
+	DC1ConsulServerToken string            `json:"dc1_server_bootstrap_token"`
+	DC2ConsulServerAddr  string            `json:"dc2_server_url"`
+	DC2ConsulServerToken string            `json:"dc2_server_bootstrap_token"`
+	DC1DefaultPartition  *PartitionDetails `json:"dc1_default_partition_apps"`
+	DC1Part1Partition    *PartitionDetails `json:"dc1_part1_partition_apps"`
+	DC2DefaultPartition  *PartitionDetails `json:"dc2_default_partition_apps"`
+}
+
+type PartitionDetails struct {
+	Partition     string `json:"partition"`
+	Namespace     string `json:"namespace"`
+	ECSClusterARN string `json:"ecs_cluster_arn"`
+	Region        string `json:"region"`
+	ClientApp     *App   `json:"server"`
+	ServerApp     *App   `json:"client"`
+}
+
+func (p *PartitionDetails) getClientAppName() string       { return p.ClientApp.Name }
+func (p *PartitionDetails) getServerAppName() string       { return p.ServerApp.Name }
+func (p *PartitionDetails) getClientAppLBAddr() string     { return p.ClientApp.LBAddr }
+func (p *PartitionDetails) getClientAppConsulName() string { return p.ClientApp.ConsulName }
+func (p *PartitionDetails) getServerAppConsulName() string { return p.ServerApp.ConsulName }
+
+type App struct {
+	Name       string `json:"name"`
+	ConsulName string `json:"consul_service_name"`
+	LBAddr     string `json:"lb_address,omitempty"`
+}
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
 	tfResName := common.GenerateRandomStr(4)
@@ -57,53 +89,48 @@ func getTerraformVars(tfResName string) scenarios.TerraformInputVarsHook {
 }
 
 func validate(tfResName string) scenarios.ValidateHook {
-	return func(t *testing.T, tfOutput map[string]interface{}) {
+	return func(t *testing.T, data []byte) {
 		logger.Log(t, "Fetching required output terraform variables")
-		getOutputVariableValue := func(name string) string {
-			val, ok := tfOutput[name].(string)
-			require.True(t, ok)
-			return val
+		var tfOutputs *TFOutputs
+		require.NoError(t, json.Unmarshal(data, &tfOutputs))
+
+		removeUISuffix := func(addr string) string {
+			return strings.TrimSuffix(addr, "/ui")
 		}
-
-		dc1ConsulServerURL := getOutputVariableValue("dc1_server_url")
-		dc2ConsulServerURL := getOutputVariableValue("dc2_server_url")
-		dc1ConsulServerToken := getOutputVariableValue("dc1_server_bootstrap_token")
-		dc2ConsulServerToken := getOutputVariableValue("dc2_server_bootstrap_token")
-
-		dc1DefaultPartitionApps := getAppDetails(t, "dc1_default_partition_apps", tfOutput)
-		dc1Part1PartitionApps := getAppDetails(t, "dc1_part1_partition_apps", tfOutput)
-		dc2DefaultPartitionApps := getAppDetails(t, "dc2_default_partition_apps", tfOutput)
+		tfOutputs.DC1DefaultPartition.ClientApp.LBAddr = removeUISuffix(tfOutputs.DC1DefaultPartition.ClientApp.LBAddr)
+		tfOutputs.DC1Part1Partition.ClientApp.LBAddr = removeUISuffix(tfOutputs.DC1Part1Partition.ClientApp.LBAddr)
+		tfOutputs.DC2DefaultPartition.ClientApp.LBAddr = removeUISuffix(tfOutputs.DC2DefaultPartition.ClientApp.LBAddr)
 
 		logger.Log(t, "Setting up the Consul clients")
-		consulClientOne, err := common.SetupConsulClient(t, dc1ConsulServerURL, common.WithToken(dc1ConsulServerToken))
+		consulClientOne, err := common.SetupConsulClient(t, tfOutputs.DC1ConsulServerAddr, common.WithToken(tfOutputs.DC1ConsulServerToken))
 		require.NoError(t, err)
 
-		consulClientTwo, err := common.SetupConsulClient(t, dc2ConsulServerURL, common.WithToken(dc2ConsulServerToken))
+		consulClientTwo, err := common.SetupConsulClient(t, tfOutputs.DC2ConsulServerAddr, common.WithToken(tfOutputs.DC2ConsulServerToken))
 		require.NoError(t, err)
 
 		logger.Log(t, "Setting up ECS Client")
 		ecsClient, err := common.NewECSClient(common.WithRegion(awsRegion))
 		require.NoError(t, err)
 
-		ensureAppsReadiness(t, consulClientOne, dc1DefaultPartitionApps)
-		ensureAppsReadiness(t, consulClientOne, dc1Part1PartitionApps)
-		ensureAppsReadiness(t, consulClientTwo, dc2DefaultPartitionApps)
+		ensureAppsReadiness(t, consulClientOne, tfOutputs.DC1DefaultPartition)
+		ensureAppsReadiness(t, consulClientOne, tfOutputs.DC1Part1Partition)
+		ensureAppsReadiness(t, consulClientTwo, tfOutputs.DC2DefaultPartition)
 
 		// Ensure that the gateways are also ready
 		consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-default-mesh-gateway", tfResName), nil)
-		consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-%s-mesh-gateway", tfResName, dc1Part1PartitionApps.partition), &api.QueryOptions{Partition: dc1Part1PartitionApps.partition})
+		consulClientOne.EnsureServiceReadiness(fmt.Sprintf("%s-dc1-%s-mesh-gateway", tfResName, tfOutputs.DC1Part1Partition.Partition), &api.QueryOptions{Partition: tfOutputs.DC1Part1Partition.Partition})
 		consulClientTwo.EnsureServiceReadiness(fmt.Sprintf("%s-dc2-mesh-gateway", tfResName), nil)
 
 		// Begin actual validation
-		clusterAppsList := []*apps{
-			dc1DefaultPartitionApps,
-			dc1Part1PartitionApps,
-			dc2DefaultPartitionApps,
+		clusterAppsList := []*PartitionDetails{
+			tfOutputs.DC1DefaultPartition,
+			tfOutputs.DC1Part1Partition,
+			tfOutputs.DC2DefaultPartition,
 		}
 
 		var recordedUpstreamCalls map[string]string
 
-		assertUpstreamCall := func(apps *apps, expectedUpstream string) {
+		assertUpstreamCall := func(apps *PartitionDetails, expectedUpstream string) {
 			recordedUpstream, ok := recordedUpstreamCalls[apps.getClientAppName()]
 			require.True(t, ok)
 			require.Equal(t, expectedUpstream, recordedUpstream)
@@ -113,134 +140,97 @@ func validate(tfResName string) scenarios.ValidateHook {
 		// to reach the server apps in their local partitions.
 		logger.Log(t, "Calling upstreams from individual client tasks. Calls are expected to hit the local server instances in the same namespace as the client")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1Part1PartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1Part1Partition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
 
 		// Scaling down server app present in the default partition in DC1. After this, requests from
 		// the client app in the default partition will failover to the server app present in
 		// the part1 partition in DC1.
-		mustScaleDownServerApp(t, ecsClient, consulClientOne, dc1DefaultPartitionApps)
+		mustScaleDownServerApp(t, ecsClient, consulClientOne, tfOutputs.DC1DefaultPartition)
 
 		logger.Log(t, "Scale down complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1Part1PartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1Part1PartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1Part1Partition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1Part1Partition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
 
 		// Scaling down server app present in the part1 partition in DC1. After this,
 		// the client apps present in the default and part1 partition will hit the server app present in
 		// the default partition in DC2.
-		mustScaleDownServerApp(t, ecsClient, consulClientOne, dc1Part1PartitionApps)
+		mustScaleDownServerApp(t, ecsClient, consulClientOne, tfOutputs.DC1Part1Partition)
 
 		logger.Log(t, "Scale down complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc2DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC2DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
 
 		// Scaling up server app present in the default partition in DC1. After this,
 		// the client app in the default partition will hit the server app present in
 		// the default partition in DC1. The client app in the part1 partition will also
 		// hit the server app present in the default partition in DC1.
-		mustScaleUpServerApp(t, ecsClient, consulClientOne, dc1DefaultPartitionApps)
+		mustScaleUpServerApp(t, ecsClient, consulClientOne, tfOutputs.DC1DefaultPartition)
 
 		logger.Log(t, "Scale up complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
 
 		// Scaling down server app present in the default partition in DC2. After this,
 		// the client app present in the default partition in DC2 will hit the server app present in
 		// the default partition in DC1. The client app in the part1 partition should continue to
 		// hit the server app present in the default partition in DC1.
-		mustScaleDownServerApp(t, ecsClient, consulClientTwo, dc2DefaultPartitionApps)
+		mustScaleDownServerApp(t, ecsClient, consulClientTwo, tfOutputs.DC2DefaultPartition)
 
 		logger.Log(t, "Scale down complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
 
 		// Scaling up server app present in the part1 partition in DC1. After this,
 		// the client app in the part1 partition will hit the server app present in
 		// the part1 partition in DC1. The client app in the default partition will continue to
 		// hit the server app present in the default partition in DC1.
-		mustScaleUpServerApp(t, ecsClient, consulClientOne, dc1Part1PartitionApps)
+		mustScaleUpServerApp(t, ecsClient, consulClientOne, tfOutputs.DC1Part1Partition)
 
 		logger.Log(t, "Scale up complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1Part1PartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1Part1Partition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
 
 		// Scaling up server app present in the default partition in DC2. After this,
 		// the client app present in the default partition in DC2 will hit the server app present in
 		// the default partition in DC2. All the other client apps should hit their local server apps
-		mustScaleUpServerApp(t, ecsClient, consulClientTwo, dc2DefaultPartitionApps)
+		mustScaleUpServerApp(t, ecsClient, consulClientTwo, tfOutputs.DC2DefaultPartition)
 
 		logger.Log(t, "Scale up complete. Calling upstreams for individual client tasks.")
 		recordedUpstreamCalls = recordUpstreams(t, clusterAppsList)
-		assertUpstreamCall(dc1DefaultPartitionApps, dc1DefaultPartitionApps.getServerAppName())
-		assertUpstreamCall(dc1Part1PartitionApps, dc1Part1PartitionApps.getServerAppName())
-		assertUpstreamCall(dc2DefaultPartitionApps, dc2DefaultPartitionApps.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1DefaultPartition, tfOutputs.DC1DefaultPartition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC1Part1Partition, tfOutputs.DC1Part1Partition.getServerAppName())
+		assertUpstreamCall(tfOutputs.DC2DefaultPartition, tfOutputs.DC2DefaultPartition.getServerAppName())
 	}
 }
 
-func getAppDetails(t *testing.T, name string, outputVars map[string]interface{}) *apps {
-	val, ok := outputVars[name].(map[string]interface{})
-	require.True(t, ok)
-
-	ensureAndReturnNonEmptyVal := func(v interface{}) string {
-		require.NotEmpty(t, v)
-		return v.(string)
-	}
-
-	clientAppVal := val["client"].(map[string]interface{})
-	require.NotEmpty(t, clientAppVal)
-
-	client := app{
-		name:              ensureAndReturnNonEmptyVal(clientAppVal["name"]),
-		consulServiceName: ensureAndReturnNonEmptyVal(clientAppVal["consul_service_name"]),
-		lbAddr:            ensureAndReturnNonEmptyVal(clientAppVal["lb_address"]),
-	}
-
-	client.lbAddr = strings.TrimSuffix(client.lbAddr, "/ui")
-
-	serverAppVal := val["server"].(map[string]interface{})
-	require.NotEmpty(t, serverAppVal)
-	server := app{
-		name:              ensureAndReturnNonEmptyVal(serverAppVal["name"]),
-		consulServiceName: ensureAndReturnNonEmptyVal(serverAppVal["consul_service_name"]),
-	}
-
-	return &apps{
-		partition:  ensureAndReturnNonEmptyVal(val["partition"]),
-		namespace:  ensureAndReturnNonEmptyVal(val["namespace"]),
-		clusterARN: ensureAndReturnNonEmptyVal(val["ecs_cluster_arn"]),
-		region:     ensureAndReturnNonEmptyVal(val["region"]),
-		client:     client,
-		server:     server,
-	}
-}
-
-func ensureAppsReadiness(t *testing.T, consulClient *common.ConsulClientWrapper, appDetails *apps) {
-	logger.Log(t, fmt.Sprintf("checking if apps in %s partition & %s namespace are registered in Consul", appDetails.partition, appDetails.namespace))
+func ensureAppsReadiness(t *testing.T, consulClient *common.ConsulClientWrapper, partitionDetails *PartitionDetails) {
+	logger.Log(t, fmt.Sprintf("checking if apps in %s partition & %s namespace are registered in Consul", partitionDetails.Partition, partitionDetails.Namespace))
 
 	opts := &api.QueryOptions{
-		Namespace: appDetails.namespace,
-		Partition: appDetails.partition,
+		Namespace: partitionDetails.Namespace,
+		Partition: partitionDetails.Partition,
 	}
 
-	consulClient.EnsureServiceReadiness(appDetails.getClientAppConsulName(), opts)
-	consulClient.EnsureServiceReadiness(appDetails.getServerAppConsulName(), opts)
+	consulClient.EnsureServiceReadiness(partitionDetails.getClientAppConsulName(), opts)
+	consulClient.EnsureServiceReadiness(partitionDetails.getServerAppConsulName(), opts)
 }
 
-func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
+func recordUpstreams(t *testing.T, apps []*PartitionDetails) map[string]string {
 	upstreamCalls := make(map[string]string)
 	for _, app := range apps {
-		logger.Log(t, fmt.Sprintf("calling upstream for %s app in %s partition and %s cluster", app.getClientAppName(), app.partition, app.clusterARN))
+		logger.Log(t, fmt.Sprintf("calling upstream for %s app in %s partition and %s cluster", app.getClientAppName(), app.Partition, app.ECSClusterARN))
 		retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
 			logger.Log(t, "hitting client app's load balancer to see if the server app is reachable")
 			resp, err := common.GetFakeServiceResponse(app.getClientAppLBAddr())
@@ -263,51 +253,30 @@ func recordUpstreams(t *testing.T, apps []*apps) map[string]string {
 	return upstreamCalls
 }
 
-func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *apps) {
-	logger.Log(t, fmt.Sprintf("Scaling up %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.partition, apps.namespace))
+func mustScaleUpServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *PartitionDetails) {
+	logger.Log(t, fmt.Sprintf("Scaling up %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.Partition, apps.Namespace))
 	err := ecsClient.
-		WithClusterARN(apps.clusterARN).
+		WithClusterARN(apps.ECSClusterARN).
 		UpdateService(apps.getServerAppName(), 1)
 	require.NoError(t, err)
 
 	opts := &api.QueryOptions{
-		Partition: apps.partition,
-		Namespace: apps.namespace,
+		Partition: apps.Partition,
+		Namespace: apps.Namespace,
 	}
 	consulClient.EnsureServiceReadiness(apps.getServerAppConsulName(), opts)
 }
 
-func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *apps) {
-	logger.Log(t, fmt.Sprintf("Scaling down %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.partition, apps.namespace))
+func mustScaleDownServerApp(t *testing.T, ecsClient *common.ECSClientWrapper, consulClient *common.ConsulClientWrapper, apps *PartitionDetails) {
+	logger.Log(t, fmt.Sprintf("Scaling down %s app in %s partition and %s namespace", apps.getServerAppConsulName(), apps.Partition, apps.Namespace))
 	err := ecsClient.
-		WithClusterARN(apps.clusterARN).
+		WithClusterARN(apps.ECSClusterARN).
 		UpdateService(apps.getServerAppName(), 0)
 	require.NoError(t, err)
 
 	opts := &api.QueryOptions{
-		Partition: apps.partition,
-		Namespace: apps.namespace,
+		Partition: apps.Partition,
+		Namespace: apps.Namespace,
 	}
 	consulClient.EnsureServiceDeregistration(apps.getServerAppConsulName(), opts)
-}
-
-type apps struct {
-	partition  string
-	namespace  string
-	clusterARN string
-	region     string
-	client     app
-	server     app
-}
-
-func (a *apps) getClientAppName() string       { return a.client.name }
-func (a *apps) getServerAppName() string       { return a.server.name }
-func (a *apps) getClientAppLBAddr() string     { return a.client.lbAddr }
-func (a *apps) getClientAppConsulName() string { return a.client.consulServiceName }
-func (a *apps) getServerAppConsulName() string { return a.server.consulServiceName }
-
-type app struct {
-	name              string
-	consulServiceName string
-	lbAddr            string
 }

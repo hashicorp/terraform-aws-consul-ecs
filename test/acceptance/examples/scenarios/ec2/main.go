@@ -4,6 +4,7 @@
 package ec2
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -13,6 +14,11 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
 )
+
+type TFOutputs struct {
+	ConsulServerLBAddr string `json:"consul_server_lb_address"`
+	MeshClientLBAddr   string `json:"mesh_client_lb_address"`
+}
 
 func RegisterScenario(r scenarios.ScenarioRegistry) {
 	tfResourcesName := fmt.Sprintf("ecs-%s", common.GenerateRandomStr(6))
@@ -43,16 +49,14 @@ func getTerraformVars(tfResName string) scenarios.TerraformInputVarsHook {
 }
 
 func validate(tfResName string) scenarios.ValidateHook {
-	return func(t *testing.T, tfOutput map[string]interface{}) {
+	return func(t *testing.T, data []byte) {
 		logger.Log(t, "Fetching required output terraform variables")
-		getOutputVariableValue := func(name string) string {
-			val, ok := tfOutput[name].(string)
-			require.True(t, ok)
-			return val
-		}
 
-		consulServerLBAddr := getOutputVariableValue("consul_server_lb_address")
-		meshClientLBAddr := getOutputVariableValue("mesh_client_lb_address")
+		var tfOutputs *TFOutputs
+		require.NoError(t, json.Unmarshal(data, &tfOutputs))
+
+		consulServerLBAddr := tfOutputs.ConsulServerLBAddr
+		meshClientLBAddr := tfOutputs.MeshClientLBAddr
 		meshClientLBAddr = strings.TrimSuffix(meshClientLBAddr, "/ui")
 
 		logger.Log(t, "Setting up the Consul client")

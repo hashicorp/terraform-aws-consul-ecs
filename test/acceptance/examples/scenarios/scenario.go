@@ -19,7 +19,7 @@ type ScenarioRegistry interface {
 }
 
 type TerraformInputVarsHook func() (map[string]interface{}, error)
-type ValidateHook func(t *testing.T, tfOutput map[string]interface{})
+type ValidateHook func(*testing.T, []byte)
 
 // ScenarioRegistration is the struct we expect each individual
 // scenario to use and register themselves by providing valid

@@ -4,6 +4,7 @@
 package examples
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -69,8 +70,13 @@ func TestRunScenario(t *testing.T) {
 		Logger:       terratestLogger.Default,
 	})
 
+	// Marshal the output into a json so that individual
+	// scenarios can unmarshal it into their required format.
+	outputJSON, err := json.Marshal(outputs)
+	require.NoError(t, err)
+
 	logger.Log(t, "running validation for scenario")
-	scenario.Validate(t, outputs)
+	scenario.Validate(t, outputJSON)
 	logger.Log(t, "validation successful!!")
 }
 
