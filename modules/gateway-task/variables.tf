@@ -65,6 +65,12 @@ variable "memory" {
   default     = 512
 }
 
+variable "volumes" {
+  description = "List of volumes to include in the aws_ecs_task_definition resource."
+  type        = any
+  default     = []
+}
+
 variable "iam_role_path" {
   description = "The path where IAM roles will be created."
   type        = string
