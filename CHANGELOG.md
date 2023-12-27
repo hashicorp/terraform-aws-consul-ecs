@@ -1,5 +1,10 @@
 ## Unreleased
 
+BREAKING CHANGES
+* Following are the changes made to the task definitions for `mesh-task` and `gateway-task` submodules to react to the changes made in [this](https://github.com/hashicorp/consul-ecs/pull/211) PR.
+  - Removes the `consul-ecs-control-plane` container from the task definition and adds a new `consul-ecs-mesh-init` container which will be responsible for setting up mesh on ECS.
+  - Adds a new container named `consul-ecs-health-sync` to the task definition which will be responsible for syncing back ECS container health checks into Consul. This container will wait for a successful exit of `consul-ecs-mesh-init` container before starting.
+
 FEATURES
 * Add support for provisioning API gateways as ECS tasks [[GH-234](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/234)]
   - Add `api-gateway` as an acceptable `kind` input.
@@ -10,6 +15,15 @@ FEATURES
   - Add `terminating-gateway` as an acceptable `kind` input for the gateway submodule.
 * examples/api-gateway: Add example terraform to demonstrate exposing mesh tasks in ECS via Consul API gateway deployed as an ECS task. [[GH-235]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/235)
 * examples/terminating-gateway: Add example terraform to demonstrate the use of terminating gateways deployed as ECS tasks to facilitate communication between mesh and non mesh services. [[GH-238]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/238)
+
+## 0.7.1 (Dec 19, 2023)
+
+IMPROVEMENTS
+* Bump Consul ECS image version to 0.7.1
+* Bump Consul Dataplane's image version to 1.3.1
+
+BUG FIXES
+* Fixes a bug in the health check logic of the `consul-ecs-control-plane` container in `mesh-task` and `gateway-task` submodule. Because of the bug, the ECS agent tries to start up the `consul-dataplane` container before the `consul-ecs-control-plane` container writes the Consul ECS binary to a shared volume. [[GH-241]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/241)
 
 ## 0.7.0 (Nov 8, 2023)
 

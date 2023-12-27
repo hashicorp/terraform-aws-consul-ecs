@@ -1,30 +1,20 @@
-name: reusable-ecs-acceptance
+name: reusable-ecs-example-validator
 
 on:
   workflow_call:
     inputs:
       name:
-        description: "The name of the job that runs the tests"
+        description: "The name of the job"
+        required: true
+        type: string        
+      scenario:
+        description: "The name of the scenario that needs to be tested on ECS. This will be passed as an environment variable to the test."
         required: true
         type: string
       go-version:
         description: "Version of Go to use to run the tests"
         required: true
         type: string
-      launch-type:
-        description: "The ECS launch type. Can be either EC2 or FARGATE"
-        required: false
-        type: string
-        default: "FARGATE"
-      consul-version:
-        required: false
-        type: string
-        default: "1.17.0"
-      enable-hcp:
-        description: "Whether to create a HCP cluster for running acceptance tests"
-        required: true
-        type: boolean
-
 
 env:
   TEST_RESULTS: /tmp/test-results
@@ -32,14 +22,16 @@ env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
   HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+  HCP_PROJECT_ID: ${{ secrets.HCP_PROJECT_ID }}
+  TEST_SCENARIO: ${{ inputs.scenario }}
 
 jobs:
-  acceptance-tests:
+  example-validator:
     name: ${{ inputs.name }}
     runs-on: ['ubuntu-latest']
     defaults:
       run:
-        working-directory: ./test/acceptance
+        working-directory: ./test/acceptance/examples
     steps:
     - name: Checkout
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -48,9 +40,6 @@ jobs:
       with:
         go-version: ${{ inputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
-    - name: Install base apps
-      run: |
-        sudo apt-get install -y expect openssl jq
     - name: Install gotestsum
       run: |
         curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${{ env.GOTESTSUM_VERSION }}/gotestsum_${{ env.GOTESTSUM_VERSION }}_linux_amd64.tar.gz" | \
@@ -74,39 +63,12 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
-    - name: terraform init & apply
-      run: |
-        cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ inputs.launch-type }}'
-        VARS+=' -var consul_version=${{ inputs.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
-        esac
-        terraform init
-        terraform apply -auto-approve $VARS
-    - name: Acceptance tests
+    - name: Validation
       run: |
         mkdir -p "$TEST_RESULTS"
-        cd tests/
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
     - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
       if: always()
       with:
         name: acceptance-test-results
         path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
-    - name: terraform destroy
-      if: always()
-      run: |
-        cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ inputs.launch-type }}'
-        VARS+=' -var consul_version=${{ inputs.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
-        esac
-        terraform destroy -auto-approve $VARS
