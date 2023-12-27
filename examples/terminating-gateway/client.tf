@@ -46,10 +46,11 @@ module "example_client_app" {
       localBindPort   = 1234
     }
   ]
-  acls               = true
-  tls                = true
-  consul_ca_cert_arn = module.dc1.dev_consul_server.ca_cert_arn
-  log_configuration  = local.example_client_app_log_config
+  enable_transparent_proxy = false
+  acls                     = true
+  tls                      = true
+  consul_ca_cert_arn       = module.dc1.dev_consul_server.ca_cert_arn
+  log_configuration        = local.example_client_app_log_config
   container_definitions = [{
     name             = "example-client-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

@@ -15,13 +15,14 @@ resource "aws_ecs_service" "echo_app" {
 }
 
 module "echo_app" {
-  source             = "../../../modules/mesh-task"
-  family             = "echo-app-${var.name}"
-  port               = "3000"
-  log_configuration  = local.echo_app_log_config
-  acls               = true
-  tls                = true
-  consul_ca_cert_arn = var.consul_ca_cert_arn
+  source                   = "../../../modules/mesh-task"
+  family                   = "echo-app-${var.name}"
+  port                     = "3000"
+  log_configuration        = local.echo_app_log_config
+  acls                     = true
+  tls                      = true
+  consul_ca_cert_arn       = var.consul_ca_cert_arn
+  enable_transparent_proxy = false
   container_definitions = [{
     name             = "echo-app"
     image            = "k8s.gcr.io/ingressconformance/echoserver:v0.0.1"
