@@ -35,7 +35,7 @@ locals {
   namespace_tag = var.consul_namespace != "" ? { "consul.hashicorp.com/namespace" = var.consul_namespace } : {}
 
   // container_defs_with_depends_on is the app's container definitions with their dependsOn keys
-  // modified to add in dependencies on consul-ecs-control-plane and consul-dataplane.
+  // modified to add in dependencies on consul-ecs-mesh-init and consul-dataplane.
   // We add these dependencies in so that the app containers don't start until the proxy
   // is ready to serve traffic.
   container_defs_with_depends_on = [for def in var.container_definitions :
@@ -46,10 +46,6 @@ locals {
           concat(
             lookup(def, "dependsOn", []),
             [
-              {
-                containerName = "consul-ecs-control-plane"
-                condition     = "HEALTHY"
-              },
               {
                 containerName = "consul-dataplane"
                 condition     = "HEALTHY"
@@ -175,11 +171,11 @@ resource "aws_ecs_task_definition" "this" {
         local.container_defs_with_depends_on,
         [
           {
-            name             = "consul-ecs-control-plane"
+            name             = "consul-ecs-mesh-init"
             image            = var.consul_ecs_image
             essential        = false
             logConfiguration = var.log_configuration
-            command          = ["control-plane"]
+            command          = ["mesh-init"]
             mountPoints = [
               local.consul_data_mount_read_write,
               {
@@ -198,12 +194,6 @@ resource "aws_ecs_task_definition" "this" {
             ]
             linuxParameters = {
               initProcessEnabled = true
-            }
-            healthCheck = {
-              command  = ["CMD-SHELL", "curl -f localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
-              interval = 30
-              retries  = 10
-              timeout  = 5
             }
             secrets = flatten(
               concat(
@@ -234,15 +224,15 @@ resource "aws_ecs_task_definition" "this" {
             essential        = false
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
-            command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-control-plane dumps the dataplane's config into consul-dataplane.json
+            command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-mesh-init dumps the dataplane's config into consul-dataplane.json
             portMappings     = []
             mountPoints = [
               local.consul_data_mount
             ]
             dependsOn = [
               {
-                containerName = "consul-ecs-control-plane"
-                condition     = "HEALTHY"
+                containerName = "consul-ecs-mesh-init"
+                condition     = "SUCCESS"
               },
             ]
             healthCheck = {
@@ -262,6 +252,57 @@ resource "aws_ecs_task_definition" "this" {
               softLimit = 1048576
               hardLimit = 1048576
             }]
+          },
+          {
+            name             = "consul-ecs-health-sync"
+            image            = var.consul_ecs_image
+            essential        = false
+            logConfiguration = var.log_configuration
+            command          = ["health-sync"]
+            user             = "5996"
+            portMappings     = []
+            mountPoints = [
+              local.consul_data_mount
+            ]
+            dependsOn = [
+              {
+                containerName = "consul-ecs-mesh-init"
+                condition     = "SUCCESS"
+              }
+            ]
+            cpu         = 0
+            volumesFrom = []
+            environment = [
+              {
+                name  = "CONSUL_ECS_CONFIG_JSON",
+                value = local.encoded_config
+              }
+            ]
+            linuxParameters = {
+              initProcessEnabled = true
+            }
+            secrets = flatten(
+              concat(
+                var.tls ? [
+                  concat(
+                    local.https_ca_cert_arn != "" ? [
+                      {
+                        name      = "CONSUL_HTTPS_CACERT_PEM"
+                        valueFrom = local.https_ca_cert_arn
+                      },
+                    ] : [],
+                    local.grpc_ca_cert_arn != "" ? [
+                      {
+                        name      = "CONSUL_GRPC_CACERT_PEM"
+                        valueFrom = local.grpc_ca_cert_arn
+                      }
+                    ] : [],
+                    []
+                  )
+                ] : [],
+                []
+              )
+            )
           },
         ],
       )

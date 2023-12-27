@@ -1,5 +1,10 @@
 ## Unreleased
 
+BREAKING CHANGES
+* Following are the changes made to the task definitions for `mesh-task` and `gateway-task` submodules to react to the changes made in [this](https://github.com/hashicorp/consul-ecs/pull/211) PR.
+  - Removes the `consul-ecs-control-plane` container from the task definition and adds a new `consul-ecs-mesh-init` container which will be responsible for setting up mesh on ECS.
+  - Adds a new container named `consul-ecs-health-sync` to the task definition which will be responsible for syncing back ECS container health checks into Consul. This container will wait for a successful exit of `consul-ecs-mesh-init` container before starting.
+
 FEATURES
 * Add support for provisioning API gateways as ECS tasks [[GH-234](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/234)]
   - Add `api-gateway` as an acceptable `kind` input.

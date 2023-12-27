@@ -125,7 +125,7 @@ variable "additional_execution_role_policies" {
 }
 
 variable "skip_server_watch" {
-  description = "Set this to true to prevent the consul-dataplane and consul-ecs-control-plane from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
+  description = "Set this to true to prevent the consul-dataplane and consul-ecs-health-sync from watching the Consul servers for changes. This is useful for situations where Consul servers are behind a load balancer."
   type        = bool
   default     = false
 }
@@ -168,7 +168,6 @@ variable "envoy_public_listener_port" {
     error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
       8600,  // consul dns
-      10000, // consul-ecs-control-plane health check port
       19000, // envoy admin port
     ], var.envoy_public_listener_port)
   }
@@ -188,7 +187,6 @@ variable "envoy_readiness_port" {
     error_message = "The envoy_readiness_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
       8600,  // consul dns
-      10000, // consul-ecs-control-plane health check port
       19000, // envoy admin port
     ], var.envoy_readiness_port)
   }
