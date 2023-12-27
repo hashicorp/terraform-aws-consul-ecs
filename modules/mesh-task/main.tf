@@ -124,7 +124,7 @@ locals {
 
   # Additional user attribute that needs to be added to run the control-plane
   # container with root access.
-  additional_user_attr                         = var.enable_transparent_proxy ? { user = "0" } : {}
+  additional_user_attr                     = var.enable_transparent_proxy ? { user = "0" } : {}
   finalized_mesh_init_container_definition = merge(local.mesh_init_container_definition, local.additional_user_attr)
 }
 
