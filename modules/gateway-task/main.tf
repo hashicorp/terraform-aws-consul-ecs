@@ -63,6 +63,72 @@ resource "aws_ecs_task_definition" "this" {
     name = local.consul_binary_volume_name
   }
 
+
+  dynamic "volume" {
+    for_each = var.volumes
+    content {
+      name      = volume.value["name"]
+      host_path = lookup(volume.value, "host_path", null)
+
+      dynamic "docker_volume_configuration" {
+        for_each = contains(keys(volume.value), "docker_volume_configuration") ? [
+          volume.value["docker_volume_configuration"]
+        ] : []
+        content {
+          autoprovision = lookup(docker_volume_configuration.value, "autoprovision", null)
+          driver_opts   = lookup(docker_volume_configuration.value, "driver_opts", null)
+          driver        = lookup(docker_volume_configuration.value, "driver", null)
+          labels        = lookup(docker_volume_configuration.value, "labels", null)
+          scope         = lookup(docker_volume_configuration.value, "scope", null)
+        }
+      }
+
+      dynamic "efs_volume_configuration" {
+        for_each = contains(keys(volume.value), "efs_volume_configuration") ? [
+          volume.value["efs_volume_configuration"]
+        ] : []
+        content {
+          file_system_id          = efs_volume_configuration.value["file_system_id"]
+          root_directory          = lookup(efs_volume_configuration.value, "root_directory", null)
+          transit_encryption      = lookup(efs_volume_configuration.value, "transit_encryption", null)
+          transit_encryption_port = lookup(efs_volume_configuration.value, "transit_encryption_port", null)
+          dynamic "authorization_config" {
+            for_each = contains(keys(efs_volume_configuration.value), "authorization_config") ? [
+              efs_volume_configuration.value["authorization_config"]
+            ] : []
+            content {
+              access_point_id = lookup(authorization_config.value, "access_point_id", null)
+              iam             = lookup(authorization_config.value, "iam", null)
+            }
+          }
+        }
+      }
+
+      dynamic "fsx_windows_file_server_volume_configuration" {
+        for_each = contains(keys(volume.value), "fsx_windows_file_server_volume_configuration") ? [
+          volume.value["fsx_windows_file_server_volume_configuration"]
+        ] : []
+
+        content {
+          // All fields required.
+          file_system_id = fsx_windows_file_server_volume_configuration.value["file_system_id"]
+          root_directory = fsx_windows_file_server_volume_configuration.value["root_directory"]
+          dynamic "authorization_config" {
+            for_each = contains(keys(fsx_windows_file_server_volume_configuration.value), "authorization_config") ? [
+              fsx_windows_file_server_volume_configuration.value["authorization_config"]
+            ] : []
+            content {
+              // All fields required.
+              credentials_parameter = authorization_config.value["credentials_parameter"]
+              domain                = authorization_config.value["domain"]
+            }
+          }
+        }
+      }
+    }
+  }
+
+
   tags = merge(
     var.tags,
     {

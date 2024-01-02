@@ -376,3 +376,10 @@ variable "grpc_config" {
     ])
   }
 }
+
+variable "volumes" {
+  description = "List of volumes to include in the aws_ecs_task_definition resource."
+  type        = any
+  default     = []
+}
+
