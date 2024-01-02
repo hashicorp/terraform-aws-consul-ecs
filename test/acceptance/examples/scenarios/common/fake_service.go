@@ -58,7 +58,7 @@ func ValidateFakeServiceResponse(t *testing.T, lbURL, expectedUpstream string) *
 // json which can be used by the caller to validate if the request went
 // through as expected.
 func GetFakeServiceResponse(addr string) (*FakeServiceResponse, error) {
-	resp, err := httpGet(addr)
+	resp, err := HTTPGet(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func GetFakeServiceResponse(addr string) (*FakeServiceResponse, error) {
 	return fakeSvcResp, nil
 }
 
-func httpGet(addr string) ([]byte, error) {
+func HTTPGet(addr string) ([]byte, error) {
 	resp, err := http.Get(addr)
 	if err != nil {
 		return nil, err
