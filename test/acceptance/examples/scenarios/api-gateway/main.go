@@ -82,6 +82,9 @@ func validate(tfResName string) scenarios.ValidateHook {
 			Service string `json:"service"`
 		}
 
+		// We hit the API gateway's LB URL along with the `/echo` path for a finite number
+		// of times to check if the gateway performs weighted load balancing between
+		// the two replicas of the echo service.
 		svcMap := make(map[string]struct{})
 		for i := 0; i <= 20; i++ {
 			resp, err := common.HTTPGet(apiGatewayLBURL)
