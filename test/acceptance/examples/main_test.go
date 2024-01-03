@@ -14,12 +14,14 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios"
+	apigateway "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/api-gateway"
 	clusterpeering "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/cluster-peering"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
 	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
 	sameness "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/service-sameness"
+	terminatinggateway "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/terminating-gateway"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/wan-federation"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
 	"github.com/stretchr/testify/require"
@@ -90,6 +92,8 @@ func setupScenarios() scenarios.ScenarioRegistry {
 	sameness.RegisterScenario(reg)
 	wan.RegisterScenario(reg)
 	localityawarerouting.RegisterScenario(reg)
+	apigateway.RegisterScenario(reg)
+	terminatinggateway.RegisterScenario(reg)
 
 	return reg
 }

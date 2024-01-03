@@ -13,6 +13,6 @@ output "mesh_client_lb_address" {
   value = "http://${aws_lb.example_client_app.dns_name}:9090/ui"
 }
 
-# output "non_mesh_server_lb_address" {
-#   value = "http://${aws_lb.example_server_app.dns_name}:9090"
-# }
+output "non_mesh_server_lb_address" {
+  value = "http://${aws_lb.example_server_app.dns_name}:9090"
+}
