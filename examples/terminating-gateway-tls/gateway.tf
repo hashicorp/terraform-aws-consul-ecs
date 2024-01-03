@@ -30,6 +30,7 @@ module "terminating_gateway" {
 }
 
 resource "consul_config_entry" "terminating_gateway" {
+  count = var.tgw_certs_enabled ? 1 : 0
   name = "${var.name}-terminating-gateway"
   kind = "terminating-gateway"
 

@@ -33,19 +33,11 @@ resource "aws_ecs_service" "example_server_app" {
 }
 
 resource "aws_ecs_task_definition" "this" {
-
-  volume {
-    name = "efs_certs"
-    efs_volume_configuration {
-      file_system_id = "fs-0d62c8543cde905e1"
-      root_directory = "/"
-    }
-  }
-
   family                   = "${var.name}-external-server-app"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  task_role_arn            = aws_iam_role.task.arn
+  execution_role_arn       = aws_iam_role.this_execution.arn
+  task_role_arn            = aws_iam_role.this_task.arn
   cpu                      = 256
   memory                   = 512
 
@@ -53,10 +45,38 @@ resource "aws_ecs_task_definition" "this" {
     "consul.hashicorp.com/mesh" = "false"
   }
 
+  dynamic "volume" {
+    for_each = var.volumes
+    content {
+      name      = volume.value["name"]
+      dynamic "efs_volume_configuration" {
+        for_each = contains(keys(volume.value), "efs_volume_configuration") ? [
+          volume.value["efs_volume_configuration"]
+        ] : []
+        content {
+          file_system_id          = efs_volume_configuration.value["file_system_id"]
+          root_directory          = lookup(efs_volume_configuration.value, "root_directory", null)
+          transit_encryption      = lookup(efs_volume_configuration.value, "transit_encryption", null)
+          transit_encryption_port = lookup(efs_volume_configuration.value, "transit_encryption_port", null)
+          dynamic "authorization_config" {
+            for_each = contains(keys(efs_volume_configuration.value), "authorization_config") ? [
+              efs_volume_configuration.value["authorization_config"]
+            ] : []
+            content {
+              access_point_id = lookup(authorization_config.value, "access_point_id", null)
+              iam             = lookup(authorization_config.value, "iam", null)
+            }
+          }
+        }
+      }
+    }
+  }
+
   container_definitions = jsonencode([{
     name      = "example-server-app"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
+    logConfiguration = local.example_server_app_log_config
     environment = [
       {
         name  = "NAME"
@@ -64,25 +84,29 @@ resource "aws_ecs_task_definition" "this" {
       },
       {
         name  = "TLS_CERT_LOCATION"
-        value = "/usr/share/gateway.cert"
+        value = var.cert_paths.cert_path
       },
       {
         name  = "TLS_KEY_LOCATION"
-        value = "/usr/share/gateway.key"
+        value = var.cert_paths.key_path
       }
-    ]
-    mountPoints = [
-        {
-            sourceVolume  = "efs_certs"
-            containerPath = "/usr/share"
-            readOnly      = true
-        }
     ]
     portMappings = [
       {
         containerPort = 9090
         hostPort      = 9090
         protocol      = "tcp"
+      },
+      {
+        containerPort = 2049
+        hostPort      = 2049
+        protocol      = "tcp"
+      }
+    ]
+    mountPoints = [
+      {
+        sourceVolume  = "certs-efs"
+        containerPath = var.certs_mount_path
       }
     ]
     healthCheck = {
@@ -108,9 +132,9 @@ resource "aws_security_group" "example_server_app_alb" {
 
   ingress {
     description = "Access to example server application."
-    from_port   = 9090
-    to_port     = 9090
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -131,6 +155,33 @@ resource "aws_security_group_rule" "ingress_from_server_service_alb_to_ecs" {
   security_group_id        = data.aws_security_group.vpc_default.id
 }
 
+resource "aws_security_group_rule" "ingress_from_server_service_alb_to_efs" {
+  type                     = "egress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.example_server_app_alb.id
+  security_group_id        = data.aws_security_group.vpc_default.id
+}
+
+resource "aws_security_group_rule" "ingress_from_efs_to_server_service_alb" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  source_security_group_id = aws_security_group.efs.id
+  security_group_id        = aws_security_group.example_server_app_alb.id
+}
+
+#resource "aws_security_group_rule" "eggress_from_efs_to_server_service_alb" {
+#  type                     = "egress"
+#  from_port                = 2049
+#  to_port                  = 2049
+#  protocol                 = "-1"
+#  source_security_group_id = aws_security_group.example_server_app_alb.id
+#  security_group_id        = aws_security_group.efs.id
+#}
+
 resource "aws_lb_target_group" "example_server_app" {
   name                 = "${var.name}-external-server-app"
   port                 = 9090
@@ -149,28 +200,12 @@ resource "aws_lb_target_group" "example_server_app" {
 
 resource "aws_lb_listener" "example_server_app" {
   load_balancer_arn = aws_lb.example_server_app.arn
-  port              = "9090"
-  protocol          = "HTTP"
+#  port              = "9090"
+#  protocol          = "HTTP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.example_server_app.arn
   }
-}
-
-resource "aws_iam_role" "task" {
-  name = "${var.name}-external-server-app-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
 }
 
 resource "consul_service" "external_server_service" {
@@ -259,4 +294,92 @@ resource "consul_acl_role_policy_attachment" "external_server_app_role_policy_at
   policy  = consul_acl_policy.external_server_app_policy.name
 
   provider = consul.dc1-cluster
+}
+
+
+resource "aws_iam_role" "this_task" {
+  name = "${var.name}-external-server-app-role2"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  inline_policy {
+    name = "exec"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          Action = [
+            "ssmmessages:CreateControlChannel",
+            "ssmmessages:CreateDataChannel",
+            "ssmmessages:OpenControlChannel",
+            "ssmmessages:OpenDataChannel",
+
+            "ecs:ListTasks",
+            "ecs:DescribeTasks",
+          ]
+          Resource = "*"
+        },
+      ]
+    })
+  }
+}
+
+resource "aws_iam_policy" "this_execution" {
+  name        = "${var.name}-external-server-app-policy"
+  path        = "/ecs/"
+  description = "log execution policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role" "this_execution" {
+  name = "${var.name}-external-server-app-execution"
+  path = "/ecs/"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "external-server-app-execution" {
+  role       = aws_iam_role.this_execution.id
+  policy_arn = aws_iam_policy.this_execution.arn
 }
