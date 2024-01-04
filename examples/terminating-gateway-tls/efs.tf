@@ -39,28 +39,30 @@ resource "aws_security_group" "efs" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    security_groups = [aws_security_group.ec2.id, aws_security_group.example_server_app_alb.id]
+#    security_groups = [aws_security_group.ec2.id, aws_security_group.example_server_app_alb.id]
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    security_groups = [aws_security_group.ec2.id, aws_security_group.example_server_app_alb.id]
+#    security_groups = [aws_security_group.ec2.id, aws_security_group.example_server_app_alb.id]
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-resource "aws_security_group_rule" "ingress_from_efs_to_default" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.efs.id
-  security_group_id        = data.aws_security_group.vpc_default.id
-}
+#resource "aws_security_group_rule" "ingress_from_efs_to_default" {
+#  type                     = "ingress"
+#  from_port                = 0
+#  to_port                  = 0
+#  protocol                 = "-1"
+#  source_security_group_id = aws_security_group.efs.id
+#  security_group_id        = data.aws_security_group.vpc_default.id
+#}
 
 #resource "aws_security_group_rule" "ingress_from_default_to_efs" {
 #  type                     = "ingress"
@@ -118,9 +120,9 @@ resource "aws_efs_file_system" "certs_efs" {
 
 
 resource "aws_efs_mount_target" "efs_mt" {
-  count           = length(module.vpc.public_subnets)
+  count           = length(module.vpc.private_subnets)
   file_system_id  = aws_efs_file_system.certs_efs.id
-  subnet_id       = module.vpc.public_subnets[count.index]
+  subnet_id       = module.vpc.private_subnets[count.index]
   security_groups = [aws_security_group.efs.id]
 }
 

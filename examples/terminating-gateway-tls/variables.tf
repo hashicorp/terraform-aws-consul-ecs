@@ -47,8 +47,8 @@ variable "cert_paths" {
 #    key_path = ""
 #  }
     default     = {
-      cert_path = "/mnt/efs/gateway.crt"
-      key_path = "/mnt/efs/gateway.key"
+      cert_path = "/efs-certs/gateway.crt"
+      key_path = "/efs-certs/gateway.key"
     }
 }
 
@@ -60,8 +60,9 @@ variable "volumes" {
       name =      "certs-efs"
       host_path =  "/mnt/efs"
       efs_volume_configuration = {
-          file_system_id = "fs-0f82df761214b502c"
+          file_system_id = "fs-0c90e40991f78214c"
           root_directory = "/"
+          iam = "ENABLED"
         }
     }
   ]

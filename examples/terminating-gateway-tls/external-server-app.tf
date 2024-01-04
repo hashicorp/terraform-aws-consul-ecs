@@ -77,6 +77,17 @@ resource "aws_ecs_task_definition" "this" {
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
     essential = true
     logConfiguration = local.example_server_app_log_config
+    command = [
+      "mkdir -p /efs-certs"
+#      "yum install sudo -y"
+    ],
+    mountPoints = [
+      {
+        sourceVolume  = "certs-efs"
+        containerPath = "/efs-certs"
+        readOnly      = true
+      }
+    ]
     environment = [
       {
         name  = "NAME"
@@ -103,16 +114,10 @@ resource "aws_ecs_task_definition" "this" {
         protocol      = "tcp"
       }
     ]
-    mountPoints = [
-      {
-        sourceVolume  = "certs-efs"
-        containerPath = var.certs_mount_path
-      }
-    ]
     healthCheck = {
       command  = ["CMD-SHELL", "curl -f http://localhost:9090/health"]
-      interval = 5
-      retries  = 3
+      interval = 30
+      retries  = 10
       timeout  = 10
     }
   }])
@@ -200,8 +205,8 @@ resource "aws_lb_target_group" "example_server_app" {
 
 resource "aws_lb_listener" "example_server_app" {
   load_balancer_arn = aws_lb.example_server_app.arn
-#  port              = "9090"
-#  protocol          = "HTTP"
+  port              = "9090"
+  protocol          = "HTTP"
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.example_server_app.arn
@@ -325,7 +330,14 @@ resource "aws_iam_role" "this_task" {
             "ssmmessages:CreateDataChannel",
             "ssmmessages:OpenControlChannel",
             "ssmmessages:OpenDataChannel",
-
+            "ssm:StartSession",
+            "ssm:GetConnectionStatus",
+            "ssm:DescribeSessions",
+            "ssm:DescribeInstanceProperties",
+            "ssm:TerminateSession",
+            "elasticfilesystem:ClientRootAccess",
+            "elasticfilesystem:ClientMount",
+            "elasticfilesystem:ClientWrite",
             "ecs:ListTasks",
             "ecs:DescribeTasks",
           ]
@@ -335,6 +347,8 @@ resource "aws_iam_role" "this_task" {
     })
   }
 }
+
+
 
 resource "aws_iam_policy" "this_execution" {
   name        = "${var.name}-external-server-app-policy"
@@ -349,7 +363,10 @@ resource "aws_iam_policy" "this_execution" {
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogStream",
-        "logs:PutLogEvents"
+        "logs:PutLogEvents",
+        "elasticfilesystem:ClientRootAccess",
+        "elasticfilesystem:ClientMount",
+        "elasticfilesystem:ClientWrite"
       ],
       "Resource": "*"
     }
