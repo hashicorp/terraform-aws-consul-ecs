@@ -18,10 +18,10 @@ variable "lb_ingress_ip" {
   type        = string
 }
 
-variable "private_key" {
+variable "consul_image" {
   type = string
-  description = "Private key to be used to access the EC2 instances."
-  default = "/Users/kumarkavish/Documents/AWS/kavishECS.pem"
+  description = "hashicorp alpine image"
+  default = "hashicorp/consul:1.17.0"
 }
 
 variable "tgw_certs_enabled" {
@@ -33,7 +33,7 @@ variable "tgw_certs_enabled" {
 variable "certs_mount_path" {
   description = "Path to mount the EFS volume on the EC2 container."
   type        = string
-  default     = "/mnt/efs"
+  default     = "/etc/certs"
 }
 
 variable "cert_paths" {
@@ -41,14 +41,12 @@ variable "cert_paths" {
     type        = object({
       cert_path = string
       key_path = string
+      ca_path = string
     })
-#  default = {
-#    cert_path = ""
-#    key_path = ""
-#  }
     default     = {
-      cert_path = "/efs-certs/gateway.crt"
-      key_path = "/efs-certs/gateway.key"
+      cert_path = "/efs/gateway.cert"
+      key_path = "/efs/gateway.key"
+      ca_path = "/efs/ca.cert"
     }
 }
 
@@ -58,11 +56,10 @@ variable "volumes" {
   default     = [
     {
       name =      "certs-efs"
-      host_path =  "/mnt/efs"
+      host_path =  "/etc/certs"
       efs_volume_configuration = {
-          file_system_id = "fs-0c90e40991f78214c"
+          file_system_id = "fs-0ba09c0bef071476d"
           root_directory = "/"
-          iam = "ENABLED"
         }
     }
   ]

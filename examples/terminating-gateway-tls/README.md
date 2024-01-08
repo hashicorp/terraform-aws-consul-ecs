@@ -64,6 +64,32 @@ Changes to Outputs:
 
 Type `yes` to apply the changes.
 
+once the apply is complete, certs would have been uploaded to the efs volume.
+change the `variables.tf` file to point to the correct efs volume id.
+
+Add the following to the `variables.tf` file
+```variable "volumes" {
+description = "List of volumes to include in the aws_ecs_task_definition resource."
+type        = any
+default     = [
+    {
+      name =      "certs-efs"
+      host_path =  "<mount_path_inside_container>"
+      efs_volume_configuration = {
+          file_system_id = "<your_file_system_id>"
+          root_directory = "<path_inside_file_system_where_certs_are_present>"
+          iam = "ENABLED"
+        }
+    }
+]
+}
+```
+and set `tgw_certs_enabled = true` in `variables.tf` file.
+
+Then apply the Terraform passing in a name and your IP again.
+
+```shell
+
 ~> **Warning:** These resources will cost money. Be sure to run `terraform destroy`
    when you've finished testing.
 

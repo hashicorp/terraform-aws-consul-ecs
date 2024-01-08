@@ -14,9 +14,9 @@ output "mesh_client_lb_address" {
 }
 
 output "certs_efs_file_system_address" {
-  value = "http://${aws_efs_file_system.certs_efs.dns_name}"
+  value = aws_efs_file_system.certs_efs.id
 }
 
-# output "non_mesh_server_lb_address" {
-#   value = "http://${aws_lb.example_server_app.dns_name}:9090"
-# }
+ output "non_mesh_server_lb_dns_name" {
+   value = aws_lb.example_server_app.dns_name
+ }

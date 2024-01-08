@@ -43,6 +43,14 @@ locals {
     [aws_security_group.this[0].id]
   ) : var.security_groups
 
+  mount_points = var.tls ? [
+    for volume in var.volumes : {
+      sourceVolume  = volume["name"]
+      containerPath =  lookup(volume, "host_path", null)
+      readOnly      = lookup(volume, "read_only", true)
+    }
+  ] : []
+
   https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_ca_cert_arn
   grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_ca_cert_arn
 }
@@ -68,7 +76,7 @@ resource "aws_ecs_task_definition" "this" {
     for_each = var.volumes
     content {
       name      = volume.value["name"]
-      host_path = lookup(volume.value, "host_path", null)
+#      host_path = lookup(volume.value, "host_path", null)
 
       dynamic "docker_volume_configuration" {
         for_each = contains(keys(volume.value), "docker_volume_configuration") ? [
@@ -151,14 +159,17 @@ resource "aws_ecs_task_definition" "this" {
             essential        = false
             logConfiguration = var.log_configuration
             command          = ["mesh-init"]
-            mountPoints = [
-              local.consul_data_mount_read_write,
-              {
-                sourceVolume  = local.consul_binary_volume_name
-                containerPath = "/bin/consul-inject"
-                readOnly      = true
-              }
-            ]
+            mountPoints = concat(
+              [
+                local.consul_data_mount_read_write,
+                {
+                  sourceVolume  = local.consul_binary_volume_name
+                  containerPath = "/bin/consul-inject"
+                  readOnly      = true
+                }
+              ],
+              local.mount_points
+            )
             cpu         = 0
             volumesFrom = []
             environment = [
@@ -207,9 +218,10 @@ resource "aws_ecs_task_definition" "this" {
                 protocol      = "tcp"
               }
             ]
-            mountPoints = [
-              local.consul_data_mount
-            ]
+            mountPoints = concat(
+              [local.consul_data_mount],
+              local.mount_points
+            )
             dependsOn = [
               {
                 containerName = "consul-ecs-mesh-init"
@@ -242,9 +254,10 @@ resource "aws_ecs_task_definition" "this" {
             command          = ["health-sync"]
             user             = "5996"
             portMappings     = []
-            mountPoints = [
-              local.consul_data_mount
-            ]
+            mountPoints = concat(
+              [local.consul_data_mount],
+              local.mount_points
+            )
             dependsOn = [
               {
                 containerName = "consul-ecs-mesh-init"

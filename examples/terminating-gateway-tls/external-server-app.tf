@@ -10,6 +10,19 @@ locals {
       awslogs-stream-prefix = "app"
     }
   }
+
+  copy_cert_command = <<EOF
+cd /efs
+rm -rf *.cert
+rm -rf *.key
+echo "$TGW_EXTERNAL_APP_CA_CERT" > ./ca.cert
+echo "$TGW_EXTERNAL_APP_CERT" > ./gateway.cert
+echo "$TGW_EXTERNAL_APP_KEY" > ./gateway.key
+chmod go-wx *.key
+chmod go-wx *.cert
+echo "Copied certs to /efs, contents:"
+ls -la
+EOF
 }
 
 # The server app is an external app that is not part of the mesh
@@ -45,82 +58,96 @@ resource "aws_ecs_task_definition" "this" {
     "consul.hashicorp.com/mesh" = "false"
   }
 
-  dynamic "volume" {
-    for_each = var.volumes
-    content {
-      name      = volume.value["name"]
-      dynamic "efs_volume_configuration" {
-        for_each = contains(keys(volume.value), "efs_volume_configuration") ? [
-          volume.value["efs_volume_configuration"]
-        ] : []
-        content {
-          file_system_id          = efs_volume_configuration.value["file_system_id"]
-          root_directory          = lookup(efs_volume_configuration.value, "root_directory", null)
-          transit_encryption      = lookup(efs_volume_configuration.value, "transit_encryption", null)
-          transit_encryption_port = lookup(efs_volume_configuration.value, "transit_encryption_port", null)
-          dynamic "authorization_config" {
-            for_each = contains(keys(efs_volume_configuration.value), "authorization_config") ? [
-              efs_volume_configuration.value["authorization_config"]
-            ] : []
-            content {
-              access_point_id = lookup(authorization_config.value, "access_point_id", null)
-              iam             = lookup(authorization_config.value, "iam", null)
-            }
-          }
-        }
-      }
+  volume {
+    name = "certs-efs"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.certs_efs.id
+      root_directory = "/"
     }
   }
 
-  container_definitions = jsonencode([{
-    name      = "example-server-app"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
-    logConfiguration = local.example_server_app_log_config
-    command = [
-      "mkdir -p /efs-certs"
-#      "yum install sudo -y"
-    ],
-    mountPoints = [
-      {
-        sourceVolume  = "certs-efs"
-        containerPath = "/efs-certs"
-        readOnly      = true
-      }
-    ]
-    environment = [
-      {
-        name  = "NAME"
-        value = "${var.name}-external-server-app"
+  container_definitions = jsonencode(concat(
+    [{
+      name  = "import-cert-container"
+      image = var.consul_image
+      logConfiguration = local.example_server_app_log_config
+      essential = false
+
+      entryPoint = ["/bin/sh", "-ec"]
+
+      secrets = [{
+        name = "TGW_EXTERNAL_APP_CA_CERT"
+        valueFrom = aws_secretsmanager_secret_version.tgw_external_app_ca_cert.arn
       },
-      {
-        name  = "TLS_CERT_LOCATION"
-        value = var.cert_paths.cert_path
-      },
-      {
-        name  = "TLS_KEY_LOCATION"
-        value = var.cert_paths.key_path
+        {
+          name = "TGW_EXTERNAL_APP_CERT"
+          valueFrom = aws_secretsmanager_secret_version.tgw_external_app_cert.arn
+        },
+        {
+          name = "TGW_EXTERNAL_APP_KEY"
+          valueFrom = aws_secretsmanager_secret_version.tgw_external_app_key.arn
+        }
+      ]
+
+      mountPoints = [{
+        sourceVolume = "certs-efs",
+        containerPath = "/efs"
+        readOnly = false
+      }]
+
+      command = [local.copy_cert_command]
+    }],
+    [{
+      name      = "example-server-app"
+      image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+      logConfiguration = local.example_server_app_log_config
+      essential = true
+      dependsOn = [{
+        containerName = "import-cert-container"
+        condition     = "SUCCESS"
+      }]
+      environment = [
+        {
+          name  = "NAME"
+          value = "${var.name}-external-server-app"
+        },
+        {
+          name  = "TLS_CERT_LOCATION"
+          value = var.cert_paths.cert_path
+        },
+        {
+          name  = "TLS_KEY_LOCATION"
+          value = var.cert_paths.key_path
+        }
+      ]
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 2049
+          hostPort      = 2049
+          protocol      = "tcp"
+        }
+      ]
+      mountPoints = [
+        {
+          sourceVolume  = "certs-efs"
+          containerPath = "/efs"
+          readOnly      = true
+        }
+      ]
+      healthCheck = {
+        #--cert ${var.cert_paths.cert_path} --key ${var.cert_paths.key_path} --cacert ${var.cert_paths.ca_path}
+        command  = ["CMD-SHELL", "curl -k -f https://localhost:9090/health"]
+        interval = 30
+        retries  = 5
+        timeout  = 10
       }
-    ]
-    portMappings = [
-      {
-        containerPort = 9090
-        hostPort      = 9090
-        protocol      = "tcp"
-      },
-      {
-        containerPort = 2049
-        hostPort      = 2049
-        protocol      = "tcp"
-      }
-    ]
-    healthCheck = {
-      command  = ["CMD-SHELL", "curl -f http://localhost:9090/health"]
-      interval = 30
-      retries  = 10
-      timeout  = 10
-    }
-  }])
+    }]
+  ))
 }
 
 resource "aws_lb" "example_server_app" {
@@ -178,24 +205,16 @@ resource "aws_security_group_rule" "ingress_from_efs_to_server_service_alb" {
   security_group_id        = aws_security_group.example_server_app_alb.id
 }
 
-#resource "aws_security_group_rule" "eggress_from_efs_to_server_service_alb" {
-#  type                     = "egress"
-#  from_port                = 2049
-#  to_port                  = 2049
-#  protocol                 = "-1"
-#  source_security_group_id = aws_security_group.example_server_app_alb.id
-#  security_group_id        = aws_security_group.efs.id
-#}
-
 resource "aws_lb_target_group" "example_server_app" {
   name                 = "${var.name}-external-server-app"
   port                 = 9090
-  protocol             = "HTTP"
+  protocol             = "HTTPS"
   vpc_id               = module.vpc.vpc_id
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
     path                = "/health"
+    protocol            = "HTTPS"
     healthy_threshold   = 2
     unhealthy_threshold = 10
     timeout             = 30
@@ -203,10 +222,18 @@ resource "aws_lb_target_group" "example_server_app" {
   }
 }
 
+resource "aws_acm_certificate" "tgw_external_app_cert" {
+  certificate_body  = tls_locally_signed_cert.tgw_external_app_cert.cert_pem
+  private_key       = tls_private_key.tgw_external_app_private_key.private_key_pem
+  certificate_chain = tls_self_signed_cert.tgw_external_app_ca_cert.cert_pem
+}
+
 resource "aws_lb_listener" "example_server_app" {
   load_balancer_arn = aws_lb.example_server_app.arn
-  port              = "9090"
-  protocol          = "HTTP"
+  port              = 9090
+  protocol          = "HTTPS"
+  ssl_policy = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.tgw_external_app_cert.arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.example_server_app.arn
@@ -340,6 +367,7 @@ resource "aws_iam_role" "this_task" {
             "elasticfilesystem:ClientWrite",
             "ecs:ListTasks",
             "ecs:DescribeTasks",
+            "secretsmanager:GetSecretValue",
           ]
           Resource = "*"
         },
@@ -366,7 +394,8 @@ resource "aws_iam_policy" "this_execution" {
         "logs:PutLogEvents",
         "elasticfilesystem:ClientRootAccess",
         "elasticfilesystem:ClientMount",
-        "elasticfilesystem:ClientWrite"
+        "elasticfilesystem:ClientWrite",
+        "secretsmanager:GetSecretValue"
       ],
       "Resource": "*"
     }

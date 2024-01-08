@@ -62,7 +62,7 @@ module "example_client_app" {
       },
       {
         name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
+        value = "https://localhost:1234"
       }
     ]
     portMappings = [
@@ -142,6 +142,7 @@ resource "aws_lb_target_group" "example_client_app" {
   deregistration_delay = 10
   health_check {
     path                = "/health"
+    protocol            = "HTTP"
     healthy_threshold   = 2
     unhealthy_threshold = 10
     timeout             = 30
