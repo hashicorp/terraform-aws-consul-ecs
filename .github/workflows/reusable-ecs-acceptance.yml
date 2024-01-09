@@ -92,7 +92,7 @@ jobs:
         mkdir -p "$TEST_RESULTS"
         cd tests/
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+    - uses: actions/upload-artifact@v3 # v4.0.0
       if: always()
       with:
         name: acceptance-test-results
