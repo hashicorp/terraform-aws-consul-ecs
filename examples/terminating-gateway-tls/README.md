@@ -28,7 +28,7 @@ Clone this repository:
 ```console
 $ git clone https://github.com/hashicorp/terraform-aws-consul-ecs.git
 $ git checkout tags/<latest-version>
-$ cd terraform-aws-consul-ecs/examples/terminating-gateway
+$ cd terraform-aws-consul-ecs/examples/terminating-gateway-tls
 ```
 
 This module contains everything needed to spin up the example. The only
