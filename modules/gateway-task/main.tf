@@ -46,7 +46,7 @@ locals {
   mount_points = var.tls ? [
     for volume in var.volumes : {
       sourceVolume  = volume["name"]
-      containerPath =  lookup(volume, "host_path", null)
+      containerPath = lookup(volume, "host_path", null)
       readOnly      = lookup(volume, "read_only", true)
     }
   ] : []
@@ -75,8 +75,7 @@ resource "aws_ecs_task_definition" "this" {
   dynamic "volume" {
     for_each = var.volumes
     content {
-      name      = volume.value["name"]
-#      host_path = lookup(volume.value, "host_path", null)
+      name = volume.value["name"]
 
       dynamic "docker_volume_configuration" {
         for_each = contains(keys(volume.value), "docker_volume_configuration") ? [
