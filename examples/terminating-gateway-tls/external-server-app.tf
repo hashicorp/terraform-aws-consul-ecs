@@ -68,40 +68,40 @@ resource "aws_ecs_task_definition" "this" {
 
   container_definitions = jsonencode(concat(
     [{
-      name  = "import-cert-container"
-      image = var.consul_image
+      name             = "import-cert-container"
+      image            = var.consul_image
       logConfiguration = local.example_server_app_log_config
-      essential = false
+      essential        = false
 
       entryPoint = ["/bin/sh", "-ec"]
 
       secrets = [{
-        name = "TGW_EXTERNAL_APP_CA_CERT"
+        name      = "TGW_EXTERNAL_APP_CA_CERT"
         valueFrom = aws_secretsmanager_secret_version.tgw_external_app_ca_cert.arn
-      },
+        },
         {
-          name = "TGW_EXTERNAL_APP_CERT"
+          name      = "TGW_EXTERNAL_APP_CERT"
           valueFrom = aws_secretsmanager_secret_version.tgw_external_app_cert.arn
         },
         {
-          name = "TGW_EXTERNAL_APP_KEY"
+          name      = "TGW_EXTERNAL_APP_KEY"
           valueFrom = aws_secretsmanager_secret_version.tgw_external_app_key.arn
         }
       ]
 
       mountPoints = [{
-        sourceVolume = "certs-efs",
+        sourceVolume  = "certs-efs",
         containerPath = "/efs"
-        readOnly = false
+        readOnly      = false
       }]
 
       command = [local.copy_cert_command]
     }],
     [{
-      name      = "example-server-app"
-      image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+      name             = "example-server-app"
+      image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
       logConfiguration = local.example_server_app_log_config
-      essential = true
+      essential        = true
       dependsOn = [{
         containerName = "import-cert-container"
         condition     = "SUCCESS"
@@ -241,7 +241,7 @@ resource "aws_lb_listener" "example_server_app" {
   load_balancer_arn = aws_lb.example_server_app.arn
   port              = 9090
   protocol          = "HTTPS"
-  ssl_policy = "ELBSecurityPolicy-2016-08"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
   certificate_arn   = aws_acm_certificate.tgw_external_app_cert.arn
   default_action {
     type             = "forward"

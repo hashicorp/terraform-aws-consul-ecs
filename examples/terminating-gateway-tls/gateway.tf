@@ -24,16 +24,16 @@ module "terminating_gateway" {
   tls                           = true
   consul_ca_cert_arn            = module.dc1.dev_consul_server.ca_cert_arn
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
-  volumes = var.volumes
+  volumes                       = var.volumes
 
   acls                     = true
   lb_create_security_group = false
 }
 
 resource "consul_config_entry" "terminating_gateway" {
-  count = var.tgw_certs_enabled ? 1 : 0
-  name = "${var.name}-terminating-gateway"
-  kind = "terminating-gateway"
+  count      = var.tgw_certs_enabled ? 1 : 0
+  name       = "${var.name}-terminating-gateway"
+  kind       = "terminating-gateway"
   depends_on = [module.terminating_gateway]
 
   config_json = jsonencode({
@@ -42,7 +42,7 @@ resource "consul_config_entry" "terminating_gateway" {
       CAFile   = "${var.certs_mount_path}/ca.cert"
       KeyFile  = "${var.certs_mount_path}/gateway.key"
       CertFile = "${var.certs_mount_path}/gateway.cert"
-      SNI = "*"
+      SNI      = "*"
     }]
   })
   provider = consul.dc1-cluster

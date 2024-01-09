@@ -17,6 +17,6 @@ output "certs_efs_file_system_address" {
   value = aws_efs_file_system.certs_efs.id
 }
 
- output "non_mesh_server_lb_dns_name" {
-   value = aws_lb.example_server_app.dns_name
- }
+output "non_mesh_server_lb_dns_name" {
+  value = aws_lb.example_server_app.dns_name
+}

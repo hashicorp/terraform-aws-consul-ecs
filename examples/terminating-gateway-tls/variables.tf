@@ -19,9 +19,9 @@ variable "lb_ingress_ip" {
 }
 
 variable "consul_image" {
-  type = string
+  type        = string
   description = "hashicorp alpine image"
-  default = "hashicorp/consul:1.17.0"
+  default     = "hashicorp/consul:1.17.0"
 }
 
 variable "tgw_certs_enabled" {
@@ -38,29 +38,29 @@ variable "certs_mount_path" {
 
 variable "cert_paths" {
   description = "paths of the certs mounted"
-    type        = object({
-      cert_path = string
-      key_path = string
-      ca_path = string
-    })
-    default     = {
-      cert_path = "/efs/gateway.cert"
-      key_path = "/efs/gateway.key"
-      ca_path = "/efs/ca.cert"
-    }
+  type = object({
+    cert_path = string
+    key_path  = string
+    ca_path   = string
+  })
+  default = {
+    cert_path = "/efs/gateway.cert"
+    key_path  = "/efs/gateway.key"
+    ca_path   = "/efs/ca.cert"
+  }
 }
 
 variable "volumes" {
   description = "List of volumes to include in the aws_ecs_task_definition resource."
   type        = any
-  default     = [
-#    {
-#      name =      "certs-efs"
-#      host_path =  "/efs/certs"
-#      efs_volume_configuration = {
-#          file_system_id = "fs-0dc6a2495461a06f7"
-#          root_directory = "/"
-#        }
-#    }
+  default = [
+    #    {
+    #      name =      "certs-efs"
+    #      host_path =  "/efs/certs"
+    #      efs_volume_configuration = {
+    #          file_system_id = "fs-0dc6a2495461a06f7"
+    #          root_directory = "/"
+    #        }
+    #    }
   ]
 }

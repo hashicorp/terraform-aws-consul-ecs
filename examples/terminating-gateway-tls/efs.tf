@@ -4,16 +4,16 @@ resource "aws_security_group" "efs" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -40,12 +40,12 @@ resource "aws_efs_mount_target" "efs_mt" {
 
 # generate ca cert and key
 resource "tls_private_key" "tgw_external_app_ca_key" {
-  algorithm = "ECDSA"
+  algorithm   = "ECDSA"
   ecdsa_curve = "P256"
 }
 
 resource "tls_self_signed_cert" "tgw_external_app_ca_cert" {
-  private_key_pem = tls_private_key.tgw_external_app_ca_key.private_key_pem
+  private_key_pem       = tls_private_key.tgw_external_app_ca_key.private_key_pem
   validity_period_hours = 43800
   allowed_uses = [
     "key_encipherment",
@@ -86,7 +86,7 @@ resource "aws_secretsmanager_secret_version" "tgw_external_app_ca_cert" {
 
 #generate cert and key for the gateway
 resource "tls_private_key" "tgw_external_app_private_key" {
-  algorithm = "ECDSA"
+  algorithm   = "ECDSA"
   ecdsa_curve = "P256"
 }
 
@@ -104,7 +104,7 @@ resource "tls_cert_request" "csr" {
 
 resource "tls_locally_signed_cert" "tgw_external_app_cert" {
   validity_period_hours = 168
-  early_renewal_hours = 24
+  early_renewal_hours   = 24
   allowed_uses = [
     "key_encipherment",
     "digital_signature",
