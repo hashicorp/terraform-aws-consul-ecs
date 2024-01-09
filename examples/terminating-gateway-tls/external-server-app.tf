@@ -140,7 +140,6 @@ resource "aws_ecs_task_definition" "this" {
         }
       ]
       healthCheck = {
-        #--cert ${var.cert_paths.cert_path} --key ${var.cert_paths.key_path} --cacert ${var.cert_paths.ca_path}
         command  = ["CMD-SHELL", "curl -k -f https://localhost:9090/health"]
         interval = 30
         retries  = 5
@@ -148,6 +147,16 @@ resource "aws_ecs_task_definition" "this" {
       }
     }]
   ))
+}
+
+resource "consul_config_entry" "example_server_app_defaults" {
+  kind     = "service-defaults"
+  name     = "${var.name}-external-server-app"
+  provider = consul.dc1-cluster
+
+  config_json = jsonencode({
+    Protocol = "http"
+  })
 }
 
 resource "aws_lb" "example_server_app" {

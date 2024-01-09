@@ -4,7 +4,7 @@ This example demonstrates accessing non mesh destinations services from mesh tas
 
 There are instructions below on how to interact with this setup.
 
-![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/terminating-gateway-arch.png?raw=true)
+![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/terminating-gateway-external-server-tls.png?raw=true)
 
 ## Requirements
 

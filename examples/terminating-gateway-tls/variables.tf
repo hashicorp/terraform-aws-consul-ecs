@@ -27,13 +27,13 @@ variable "consul_image" {
 variable "tgw_certs_enabled" {
   description = "Whether to enable the TGW certs or not."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "certs_mount_path" {
   description = "Path to mount the EFS volume on the EC2 container."
   type        = string
-  default     = "/etc/certs"
+  default     = "/efs/certs"
 }
 
 variable "cert_paths" {
@@ -54,13 +54,13 @@ variable "volumes" {
   description = "List of volumes to include in the aws_ecs_task_definition resource."
   type        = any
   default     = [
-    {
-      name =      "certs-efs"
-      host_path =  "/etc/certs"
-      efs_volume_configuration = {
-          file_system_id = "fs-0ba09c0bef071476d"
-          root_directory = "/"
-        }
-    }
+#    {
+#      name =      "certs-efs"
+#      host_path =  "/efs/certs"
+#      efs_volume_configuration = {
+#          file_system_id = "fs-0dc6a2495461a06f7"
+#          root_directory = "/"
+#        }
+#    }
   ]
 }
