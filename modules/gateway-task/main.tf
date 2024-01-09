@@ -43,7 +43,7 @@ locals {
     [aws_security_group.this[0].id]
   ) : var.security_groups
 
-  mount_points = var.tls ? [
+  mount_points = length(var.volumes) > 0 ? [
     for volume in var.volumes : {
       sourceVolume  = volume["name"]
       containerPath = lookup(volume, "host_path", null)
@@ -166,8 +166,7 @@ resource "aws_ecs_task_definition" "this" {
                   containerPath = "/bin/consul-inject"
                   readOnly      = true
                 }
-              ],
-              local.mount_points
+              ]
             )
             cpu         = 0
             volumesFrom = []
@@ -254,8 +253,7 @@ resource "aws_ecs_task_definition" "this" {
             user             = "5996"
             portMappings     = []
             mountPoints = concat(
-              [local.consul_data_mount],
-              local.mount_points
+              [local.consul_data_mount]
             )
             dependsOn = [
               {

@@ -12,6 +12,10 @@ locals {
   }
 }
 
+data "aws_efs_file_system" "efs_id" {
+  file_system_id = aws_efs_file_system.certs_efs.id
+}
+
 module "terminating_gateway" {
   source                        = "../../modules/gateway-task"
   family                        = "${var.name}-terminating-gateway"
@@ -24,14 +28,22 @@ module "terminating_gateway" {
   tls                           = true
   consul_ca_cert_arn            = module.dc1.dev_consul_server.ca_cert_arn
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
-  volumes                       = var.volumes
+  volumes = [
+    {
+      name      = "certs-efs"
+      host_path = "/efs/certs"
+      efs_volume_configuration = {
+        file_system_id = data.aws_efs_file_system.efs_id.id
+        root_directory = "/"
+      }
+    }
+  ]
 
   acls                     = true
   lb_create_security_group = false
 }
 
 resource "consul_config_entry" "terminating_gateway" {
-  count      = var.tgw_certs_enabled ? 1 : 0
   name       = "${var.name}-terminating-gateway"
   kind       = "terminating-gateway"
   depends_on = [module.terminating_gateway]

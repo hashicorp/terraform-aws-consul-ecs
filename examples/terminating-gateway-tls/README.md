@@ -1,8 +1,15 @@
-# Terminating Gateways on ECS.
+# Terminating Gateways with mTLS on ECS.
 
-This example demonstrates accessing non mesh destinations services from mesh tasks with the help of terminating gateways deployed as ECS tasks.
+This example demonstrates accessing non mesh destinations services from mesh tasks with the help of terminating gateways deployed as ECS tasks over TLS/mTLS.
 
-There are instructions below on how to interact with this setup.
+For the terminating gateway to be able to use TLS/mTLS, certificates trusted by the external server application must be uploaded to the gateway volume. 
+After the volume mount is successful, a `consul_config_entry` needs to be created to tell the gateway when to use the certs.
+If CA cert is configured in the `consul_config_entry`, then the gateway will use mTLS to communicate with the external server application otherwise it will use TLS.
+The certs need to be present in the external server application's task as well. So, that it can verify the gateway's identity.
+After this setup is complete, any http calls originating from the client application (inside the mesh) to external service will go through the terminating gateway.
+The terminating gateway will then forward the request to the external server application's task over TLS/mTLS, using the certs configured earlier.
+
+[Terminating Gateway & TLS](https://developer.hashicorp.com/consul/docs/connect/gateways/terminating-gateway)
 
 ![Example architecture](https://github.com/hashicorp/terraform-aws-consul-ecs/blob/main/_docs/terminating-gateway-external-server-tls.png?raw=true)
 
@@ -64,28 +71,6 @@ Changes to Outputs:
 
 Type `yes` to apply the changes.
 
-once the apply is complete, certs would have been uploaded to the efs volume.
-change the `variables.tf` file to point to the correct efs volume id.
-
-Add the following to the `variables.tf` file
-```variable "volumes" {
-description = "List of volumes to include in the aws_ecs_task_definition resource."
-type        = any
-default     = [
-    {
-      name =      "certs-efs"
-      host_path =  "<mount_path_inside_container>"
-      efs_volume_configuration = {
-          file_system_id = "<your_file_system_id>"
-          root_directory = "<path_inside_file_system_where_certs_are_present>"
-          iam = "ENABLED"
-        }
-    }
-]
-}
-```
-and set `tgw_certs_enabled = true` in `variables.tf` file.
-
 Then apply the Terraform passing in a name and your IP again.
 
 ```shell
@@ -104,6 +89,8 @@ Outputs:
 consul_server_bootstrap_token = <sensitive>
 consul_server_lb_address = "http://consul-ecs-consul-server-1772347952.us-east-1.elb.amazonaws.com:8500"
 mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east-1.elb.amazonaws.com:9090/ui"
+certs_efs_file_system_address = "fs-12345678"
+non_mesh_server_lb_dns_name = "consul-ecs-external-server-app-111111111.us-east-1.elb.amazonaws.com"
 ```
 
 ### Explore
