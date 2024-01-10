@@ -31,7 +31,7 @@ module "terminating_gateway" {
   volumes = [
     {
       name      = "certs-efs"
-      host_path = "/efs/certs"
+      host_path = "/efs"
       efs_volume_configuration = {
         file_system_id = data.aws_efs_file_system.efs_id.id
         root_directory = "/"
@@ -47,7 +47,6 @@ resource "consul_config_entry" "terminating_gateway" {
   name       = "${var.name}-terminating-gateway"
   kind       = "terminating-gateway"
   depends_on = [module.terminating_gateway]
-
   config_json = jsonencode({
     Services = [{
       Name     = "${var.name}-external-server-app"

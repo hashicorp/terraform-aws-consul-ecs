@@ -27,20 +27,18 @@ variable "consul_image" {
 variable "certs_mount_path" {
   description = "Path to mount the EFS volume on the EC2 container."
   type        = string
-  default     = "/efs/certs"
+  default     = "/efs/tgw"
 }
 
 variable "cert_paths" {
   description = "paths of the certs mounted"
   type = object({
-    cert_path = string
-    key_path  = string
-    ca_path   = string
+    key_path = string
+    ca_path  = string
   })
   default = {
-    cert_path = "/efs/gateway.cert"
-    key_path  = "/efs/gateway.key"
-    ca_path   = "/efs/ca.cert"
+    key_path = "/efs/external-app/ca.key"
+    ca_path  = "/efs/external-app/ca.cert"
   }
 }
 

@@ -11,15 +11,29 @@ locals {
     }
   }
 
-  copy_cert_command = <<EOF
+  external_server_copy_cert_command = <<EOF
 cd /efs
+mkdir -p external-app
+cd external-app
 rm -rf *.cert
 rm -rf *.key
-echo "$TGW_EXTERNAL_APP_CA_CERT" > ./ca.cert
-echo "$TGW_EXTERNAL_APP_CERT" > ./gateway.cert
-echo "$TGW_EXTERNAL_APP_KEY" > ./gateway.key
+echo "$EXTERNAL_APP_CA_CERT" > ./ca.cert
+echo "$EXTERNAL_APP_CA_KEY" > ./ca.key
 chmod go-wx *.key
 chmod go-wx *.cert
+echo "Copied certs to /efs/external-app, contents:"
+ls -la
+cd ..
+mkdir -p tgw
+cd tgw
+echo "$EXTERNAL_APP_CA_CERT" > ./ca.cert
+echo "$TGW_APP_CERT" > ./gateway.cert
+echo "$TGW_CERT_KEY" > ./gateway.key
+chmod go-wx *.key
+chmod go-wx *.cert
+echo "Copied certs to /efs/tgw, contents:"
+ls -la
+cd ..
 echo "Copied certs to /efs, contents:"
 ls -la
 EOF
@@ -76,26 +90,30 @@ resource "aws_ecs_task_definition" "this" {
       entryPoint = ["/bin/sh", "-ec"]
 
       secrets = [{
-        name      = "TGW_EXTERNAL_APP_CA_CERT"
-        valueFrom = aws_secretsmanager_secret_version.tgw_external_app_ca_cert.arn
+        name      = "EXTERNAL_APP_CA_CERT"
+        valueFrom = aws_secretsmanager_secret_version.external_app_ca_cert.arn
         },
         {
-          name      = "TGW_EXTERNAL_APP_CERT"
-          valueFrom = aws_secretsmanager_secret_version.tgw_external_app_cert.arn
+          name      = "EXTERNAL_APP_CA_KEY"
+          valueFrom = aws_secretsmanager_secret_version.external_app_ca_key.arn
         },
         {
-          name      = "TGW_EXTERNAL_APP_KEY"
-          valueFrom = aws_secretsmanager_secret_version.tgw_external_app_key.arn
+          name      = "TGW_APP_CERT"
+          valueFrom = aws_secretsmanager_secret_version.tgw_cert.arn
+        },
+        {
+          name      = "TGW_CERT_KEY"
+          valueFrom = aws_secretsmanager_secret_version.tgw_private_key.arn
         }
       ]
 
       mountPoints = [{
         sourceVolume  = "certs-efs",
-        containerPath = "/efs"
         readOnly      = false
+        containerPath = "/efs"
       }]
 
-      command = [local.copy_cert_command]
+      command = [local.external_server_copy_cert_command]
     }],
     [{
       name             = "example-server-app"
@@ -113,7 +131,7 @@ resource "aws_ecs_task_definition" "this" {
         },
         {
           name  = "TLS_CERT_LOCATION"
-          value = var.cert_paths.cert_path
+          value = var.cert_paths.ca_path
         },
         {
           name  = "TLS_KEY_LOCATION"
@@ -173,9 +191,9 @@ resource "aws_security_group" "example_server_app_alb" {
 
   ingress {
     description = "Access to example server application."
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -196,22 +214,31 @@ resource "aws_security_group_rule" "ingress_from_server_service_alb_to_ecs" {
   security_group_id        = data.aws_security_group.vpc_default.id
 }
 
-resource "aws_security_group_rule" "ingress_from_server_service_alb_to_efs" {
+resource "aws_security_group_rule" "ingress_from_client_alb_to_server_alb" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 9090
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.example_client_app_alb.id
+  security_group_id        = aws_security_group.example_server_app_alb.id
+}
+
+resource "aws_security_group_rule" "ingress_from_lb_ingress_to_server_alb" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 9090
+  protocol          = "tcp"
+  cidr_blocks       = ["${var.lb_ingress_ip}/32"]
+  security_group_id = aws_security_group.example_server_app_alb.id
+}
+
+resource "aws_security_group_rule" "egress_from_server_service_alb_to_efs" {
   type                     = "egress"
   from_port                = 2049
   to_port                  = 2049
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.example_server_app_alb.id
   security_group_id        = data.aws_security_group.vpc_default.id
-}
-
-resource "aws_security_group_rule" "ingress_from_efs_to_server_service_alb" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.efs.id
-  security_group_id        = aws_security_group.example_server_app_alb.id
 }
 
 resource "aws_lb_target_group" "example_server_app" {
@@ -231,10 +258,10 @@ resource "aws_lb_target_group" "example_server_app" {
   }
 }
 
-resource "aws_acm_certificate" "tgw_external_app_cert" {
-  certificate_body  = tls_locally_signed_cert.tgw_external_app_cert.cert_pem
-  private_key       = tls_private_key.tgw_external_app_private_key.private_key_pem
-  certificate_chain = tls_self_signed_cert.tgw_external_app_ca_cert.cert_pem
+resource "aws_acm_certificate" "external_app_cert" {
+  certificate_body  = tls_locally_signed_cert.external_app_cert.cert_pem
+  private_key       = tls_private_key.external_app_private_key.private_key_pem
+  certificate_chain = tls_self_signed_cert.external_app_ca_cert.cert_pem
 }
 
 resource "aws_lb_listener" "example_server_app" {
@@ -242,7 +269,7 @@ resource "aws_lb_listener" "example_server_app" {
   port              = 9090
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate.tgw_external_app_cert.arn
+  certificate_arn   = aws_acm_certificate.external_app_cert.arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.example_server_app.arn
@@ -414,7 +441,7 @@ EOF
 }
 
 resource "aws_iam_role" "this_execution" {
-  name = "${var.name}-external-server-app-execution"
+  name = "${var.name}-ext-server-app-exec"
   path = "/ecs/"
 
   assume_role_policy = <<EOF
