@@ -67,6 +67,8 @@ Changes to Outputs:
   + consul_server_bootstrap_token = (known after apply)
   + consul_server_lb_address      = (known after apply)
   + mesh_client_lb_address        = (known after apply)
+  + certs_efs_file_system_address = (known after apply)
+  + non_mesh_server_lb_dns_name = (known after apply)
 ```
 
 Type `yes` to apply the changes.

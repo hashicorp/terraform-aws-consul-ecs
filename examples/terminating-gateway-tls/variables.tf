@@ -21,7 +21,7 @@ variable "lb_ingress_ip" {
 variable "consul_image" {
   type        = string
   description = "hashicorp consul image"
-  default     = "hashicorp/consul:latest"
+  default     = "hashicorp/consul:1.17.1"
 }
 
 variable "certs_mount_path" {
@@ -40,10 +40,4 @@ variable "cert_paths" {
     key_path = "/efs/external-app/ca.key"
     ca_path  = "/efs/external-app/ca.cert"
   }
-}
-
-variable "volumes" {
-  description = "List of volumes to include in the aws_ecs_task_definition resource."
-  type        = any
-  default     = []
 }

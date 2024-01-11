@@ -214,24 +214,6 @@ resource "aws_security_group_rule" "ingress_from_server_service_alb_to_ecs" {
   security_group_id        = data.aws_security_group.vpc_default.id
 }
 
-resource "aws_security_group_rule" "ingress_from_client_alb_to_server_alb" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 9090
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.example_client_app_alb.id
-  security_group_id        = aws_security_group.example_server_app_alb.id
-}
-
-resource "aws_security_group_rule" "ingress_from_lb_ingress_to_server_alb" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 9090
-  protocol          = "tcp"
-  cidr_blocks       = ["${var.lb_ingress_ip}/32"]
-  security_group_id = aws_security_group.example_server_app_alb.id
-}
-
 resource "aws_security_group_rule" "egress_from_server_service_alb_to_efs" {
   type                     = "egress"
   from_port                = 2049
@@ -380,36 +362,6 @@ resource "aws_iam_role" "this_task" {
       },
     ]
   })
-
-  inline_policy {
-    name = "exec"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel",
-            "ssm:StartSession",
-            "ssm:GetConnectionStatus",
-            "ssm:DescribeSessions",
-            "ssm:DescribeInstanceProperties",
-            "ssm:TerminateSession",
-            "elasticfilesystem:ClientRootAccess",
-            "elasticfilesystem:ClientMount",
-            "elasticfilesystem:ClientWrite",
-            "ecs:ListTasks",
-            "ecs:DescribeTasks",
-            "secretsmanager:GetSecretValue",
-          ]
-          Resource = "*"
-        },
-      ]
-    })
-  }
 }
 
 
@@ -428,6 +380,10 @@ resource "aws_iam_policy" "this_execution" {
       "Action": [
         "logs:CreateLogStream",
         "logs:PutLogEvents",
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel",
         "elasticfilesystem:ClientRootAccess",
         "elasticfilesystem:ClientMount",
         "elasticfilesystem:ClientWrite",

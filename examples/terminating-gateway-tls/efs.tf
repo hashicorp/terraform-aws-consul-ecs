@@ -10,7 +10,10 @@ resource "aws_security_group" "efs" {
     from_port   = 2049
     to_port     = 2049
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [
+      data.aws_security_group.vpc_default.id,
+      aws_security_group.example_server_app_alb.id,
+    ]
   }
 
   egress {

@@ -43,13 +43,13 @@ locals {
     [aws_security_group.this[0].id]
   ) : var.security_groups
 
-  mount_points = length(var.volumes) > 0 ? [
+  mount_points = [
     for volume in var.volumes : {
       sourceVolume  = volume["name"]
       containerPath = lookup(volume, "host_path", null)
       readOnly      = lookup(volume, "read_only", true)
     }
-  ] : []
+  ]
 
   https_ca_cert_arn = var.consul_https_ca_cert_arn != "" ? var.consul_https_ca_cert_arn : var.consul_ca_cert_arn
   grpc_ca_cert_arn  = var.consul_grpc_ca_cert_arn != "" ? var.consul_grpc_ca_cert_arn : var.consul_ca_cert_arn
@@ -158,16 +158,14 @@ resource "aws_ecs_task_definition" "this" {
             essential        = false
             logConfiguration = var.log_configuration
             command          = ["mesh-init"]
-            mountPoints = concat(
-              [
-                local.consul_data_mount_read_write,
-                {
-                  sourceVolume  = local.consul_binary_volume_name
-                  containerPath = "/bin/consul-inject"
-                  readOnly      = true
-                }
-              ]
-            )
+            mountPoints = [
+              local.consul_data_mount_read_write,
+              {
+                sourceVolume  = local.consul_binary_volume_name
+                containerPath = "/bin/consul-inject"
+                readOnly      = true
+              }
+            ]
             cpu         = 0
             volumesFrom = []
             environment = [
@@ -252,9 +250,7 @@ resource "aws_ecs_task_definition" "this" {
             command          = ["health-sync"]
             user             = "5996"
             portMappings     = []
-            mountPoints = concat(
-              [local.consul_data_mount]
-            )
+            mountPoints      = [local.consul_data_mount]
             dependsOn = [
               {
                 containerName = "consul-ecs-mesh-init"
