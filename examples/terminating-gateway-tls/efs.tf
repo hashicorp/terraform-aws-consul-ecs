@@ -7,9 +7,9 @@ resource "aws_security_group" "efs" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port   = 2049
-    to_port     = 2049
-    protocol    = "tcp"
+    from_port = 2049
+    to_port   = 2049
+    protocol  = "tcp"
     security_groups = [
       data.aws_security_group.vpc_default.id,
       aws_security_group.example_server_app_alb.id,
