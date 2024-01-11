@@ -13,7 +13,7 @@ output "mesh_client_lb_address" {
   value = "http://${aws_lb.example_client_app.dns_name}:9090/ui"
 }
 
-output "certs_efs_file_system_address" {
+output "certs_efs_file_system_id" {
   value = aws_efs_file_system.certs_efs.id
 }
 

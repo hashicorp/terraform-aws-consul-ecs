@@ -67,7 +67,7 @@ Changes to Outputs:
   + consul_server_bootstrap_token = (known after apply)
   + consul_server_lb_address      = (known after apply)
   + mesh_client_lb_address        = (known after apply)
-  + certs_efs_file_system_address = (known after apply)
+  + certs_efs_file_system_id = (known after apply)
   + non_mesh_server_lb_dns_name = (known after apply)
 ```
 
@@ -91,7 +91,7 @@ Outputs:
 consul_server_bootstrap_token = <sensitive>
 consul_server_lb_address = "http://consul-ecs-consul-server-1772347952.us-east-1.elb.amazonaws.com:8500"
 mesh_client_lb_address = "http://consul-ecs-example-client-app-111111111.us-east-1.elb.amazonaws.com:9090/ui"
-certs_efs_file_system_address = "fs-12345678"
+certs_efs_file_system_id = "fs-12345678"
 non_mesh_server_lb_dns_name = "consul-ecs-external-server-app-111111111.us-east-1.elb.amazonaws.com"
 ```
 
