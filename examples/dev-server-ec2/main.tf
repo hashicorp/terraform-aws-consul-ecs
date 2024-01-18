@@ -55,11 +55,14 @@ module "example_client_app" {
   requires_compatibilities = ["EC2"]
   memory                   = 256
   port                     = 9090
-  enable_transparent_proxy = var.enable_transparent_proxy
-  enable_consul_dns        = var.enable_transparent_proxy
-  exclude_inbound_ports    = var.enable_transparent_proxy ? [9090] : []
-  upstreams                = var.enable_transparent_proxy ? [] : local.client_app_upstreams
-  log_configuration        = local.example_client_app_log_config
+  enable_transparent_proxy = false
+  upstreams = [
+    {
+      destinationName = "${var.name}-example-server-app"
+      localBindPort   = 1234
+    }
+  ]
+  log_configuration = local.example_client_app_log_config
   container_definitions = [{
     name             = "example-client-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -72,7 +75,7 @@ module "example_client_app" {
       },
       {
         name  = "UPSTREAM_URIS"
-        value = local.server_upstream_uri
+        value = "http://localhost:1234"
       }
     ]
     portMappings = [
@@ -111,7 +114,7 @@ module "example_server_app" {
   memory                   = 256
   port                     = 9090
   log_configuration        = local.example_server_app_log_config
-  enable_transparent_proxy = var.enable_transparent_proxy
+  enable_transparent_proxy = false
   container_definitions = [{
     name             = "example-server-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -222,14 +225,4 @@ locals {
       awslogs-stream-prefix = "client"
     }
   }
-
-  client_app_upstreams = [
-    {
-      destinationName = "${var.name}-example-server-app"
-      localBindPort   = 1234
-    }
-  ]
-
-  # Assign the consul DNS name of the server app when transparent proxy is enabled.
-  server_upstream_uri = var.enable_transparent_proxy ? "http://${var.name}-example-server-app.service.consul" : "http://localhost:1234"
 }

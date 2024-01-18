@@ -52,6 +52,8 @@ module "test_client_create_new_roles" {
   consul_server_hosts   = "consul.dc1"
   outbound_only         = true
 
+  enable_transparent_proxy = false
+
   // Roles are not passed. This tests the default values for create_task_role,
   // create_execution_role, task_role, and execution_role.
 }
@@ -68,6 +70,8 @@ module "test_client_pass_existing_roles" {
   create_execution_role = false
   task_role             = data.aws_iam_role.task
   execution_role        = data.aws_iam_role.execution
+
+  enable_transparent_proxy = false
 }
 
 data "aws_iam_role" "task" {

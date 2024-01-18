@@ -55,4 +55,6 @@ module "execution_role_test" {
     id  = "my-task-role"
     arn = "arn:aws:iam::000000000000:role/some-role"
   }
+
+  enable_transparent_proxy = false
 }

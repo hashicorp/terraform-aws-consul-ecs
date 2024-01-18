@@ -18,4 +18,6 @@ module "test_client" {
   consul_server_hosts        = "consul.dc1"
   outbound_only              = true
   envoy_public_listener_port = var.envoy_public_listener_port
+
+  enable_transparent_proxy = false
 }

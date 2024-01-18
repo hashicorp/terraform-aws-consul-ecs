@@ -19,4 +19,6 @@ module "test_client" {
   consul_server_hosts = "consul.dc1"
 
   iam_role_path = var.iam_role_path
+
+  enable_transparent_proxy = false
 }

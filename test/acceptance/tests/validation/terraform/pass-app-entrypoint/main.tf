@@ -22,4 +22,6 @@ module "test_client" {
   outbound_only       = true
 
   application_shutdown_delay_seconds = var.application_shutdown_delay_seconds
+
+  enable_transparent_proxy = false
 }

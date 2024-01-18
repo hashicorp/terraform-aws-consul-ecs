@@ -500,7 +500,7 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 		"invalid-config": {
 			configFile: "test-invalid-config.json",
 			errors: []string{
-				"Only the 'service', 'proxy', and 'consulLogin' fields are allowed in consul_ecs_config.",
+				"Only the 'service', 'proxy', 'transparentProxy' and 'consulLogin' fields are allowed in consul_ecs_config.",
 				"Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service.",
 				"Only the 'meshGateway', 'expose', and 'config' fields are allowed in consul_ecs_config.proxy.",
 				"Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway.",
@@ -1138,5 +1138,4 @@ func TestValidation_TProxyEC2(t *testing.T) {
 			}
 		})
 	}
-
 }
