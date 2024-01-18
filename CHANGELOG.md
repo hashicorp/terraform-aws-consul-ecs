@@ -4,9 +4,7 @@ BREAKING CHANGES
 * Following are the changes made to the task definitions for `mesh-task` and `gateway-task` submodules to react to the changes made in [this](https://github.com/hashicorp/consul-ecs/pull/211) PR.
   - Removes the `consul-ecs-control-plane` container from the task definition and adds a new `consul-ecs-mesh-init` container which will be responsible for setting up mesh on ECS.
   - Adds a new container named `consul-ecs-health-sync` to the task definition which will be responsible for syncing back ECS container health checks into Consul. This container will wait for a successful exit of `consul-ecs-mesh-init` container before starting.
-
-FEATURES
-* Add support for transparent proxy in ECS tasks based on EC2 launch types. Following are the changes made to the `mesh-task` submodule [[GH-264](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/264)]
+* Add support for transparent proxy in ECS tasks based on EC2 launch types. This feature automatically routes outgoing/incoming traffic to/from the application container to the sidecar proxy container deployed in the same task. Following are the changes made to the `mesh-task` submodule [[GH-264](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/264)]
   - Adds the following variables [[GH-209](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/209)]
     - `enable_transparent_proxy` - Defaults to `true`. Fargate based tasks should explicitly pass `false` to avoid validation errors during terraform planning phase.
     - `enable_consul_dns` - Defaults to `false`. Indicates whether Consul DNS should be configured for this task. Enabling this makes Consul dataplane start up a proxy DNS server that forwards requests to the Consul DNS server. `var.enable_transparent_proxy` should be `true` to enable this setting.
@@ -18,6 +16,7 @@ FEATURES
   - `mesh-init` container is run as a `root` user.
   - Assign a UID of `5995` for the `consul-dataplane` container and `5996` for the `health-sync` container. This is done to selectively exclude the traffic flowing through these containers from the redirection rules.
 
+FEATURES
 * Add support for provisioning API gateways as ECS tasks [[GH-234](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/234)]
   - Add `api-gateway` as an acceptable `kind` input.
   - Add `custom_load_balancer_config` input variable which can be used to feed in custom load balancer target group config that can be attached to the gateway's ECS task.
@@ -27,6 +26,7 @@ FEATURES
   - Add `terminating-gateway` as an acceptable `kind` input for the gateway submodule.
 * examples/api-gateway: Add example terraform to demonstrate exposing mesh tasks in ECS via Consul API gateway deployed as an ECS task. [[GH-235]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/235)
 * examples/terminating-gateway: Add example terraform to demonstrate the use of terminating gateways deployed as ECS tasks to facilitate communication between mesh and non mesh services. [[GH-238]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/238)
+* examples/dev-server-ec2-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature for services deployed in ECS EC2 launch type tasks. [[GH-265](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/265)]
 
 ## 0.7.1 (Dec 19, 2023)
 
