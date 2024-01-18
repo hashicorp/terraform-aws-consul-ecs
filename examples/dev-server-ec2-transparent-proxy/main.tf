@@ -47,8 +47,8 @@ module "example_client_app" {
   enable_transparent_proxy = true
   enable_consul_dns        = true
   exclude_inbound_ports    = [9090]
-  tls  = true
-  acls = true
+  tls                      = true
+  acls                     = true
   consul_ca_cert_arn       = module.dc1.dev_consul_server.ca_cert_arn
   log_configuration        = local.example_client_app_log_config
   container_definitions = [{
@@ -105,8 +105,8 @@ module "example_server_app" {
   port                     = 9090
   log_configuration        = local.example_server_app_log_config
   enable_transparent_proxy = true
-  tls  = true
-  acls = true
+  tls                      = true
+  acls                     = true
   consul_ca_cert_arn       = module.dc1.dev_consul_server.ca_cert_arn
   container_definitions = [{
     name             = "example-server-app"
@@ -208,8 +208,8 @@ resource "consul_config_entry" "client_server_app_intention" {
   config_json = jsonencode({
     Sources = [
       {
-        Name          = "${var.name}-example-client-app"
-        Action        = "allow"
+        Name   = "${var.name}-example-client-app"
+        Action = "allow"
       }
     ]
   })

@@ -3,7 +3,7 @@
 
 module "ecs_controller" {
   depends_on = [module.dc1]
-  source = "../../modules/controller"
+  source     = "../../modules/controller"
 
   name_prefix         = var.name
   ecs_cluster_arn     = aws_ecs_cluster.this.arn
