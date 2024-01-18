@@ -91,14 +91,14 @@ locals {
 }
 
 module "consul_server" {
-  source          = "../../../../../modules/dev-server"
-  lb_enabled      = true
+  source                      = "../../../../../modules/dev-server"
+  lb_enabled                  = true
   lb_subnets                  = var.public_subnets
   lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
-  ecs_cluster_arn = var.ecs_cluster_arn
-  subnet_ids      = var.private_subnets
-  vpc_id          = var.vpc_id
-  name            = "consul-server-${var.suffix}"
+  ecs_cluster_arn             = var.ecs_cluster_arn
+  subnet_ids                  = var.private_subnets
+  vpc_id                      = var.vpc_id
+  name                        = "consul-server-${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -140,9 +140,9 @@ resource "aws_security_group_rule" "consul_server_ingress" {
 }
 
 module "ecs_controller" {
-  depends_on = [ module.consul_server ]
-  count  = var.secure ? 1 : 0
-  source = "../../../../../modules/controller"
+  depends_on = [module.consul_server]
+  count      = var.secure ? 1 : 0
+  source     = "../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -181,8 +181,8 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  depends_on = [ module.consul_server ]
-  source = "../../../../../modules/mesh-task"
+  depends_on = [module.consul_server]
+  source     = "../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
   family                   = "Test_Client_${var.suffix}"
   enable_transparent_proxy = true
@@ -243,7 +243,7 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  depends_on = [ module.consul_server ]
+  depends_on               = [module.consul_server]
   source                   = "../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
   consul_service_name      = "${var.server_service_name}_${var.suffix}"
