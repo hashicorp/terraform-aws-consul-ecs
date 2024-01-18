@@ -26,4 +26,6 @@ module "test_client" {
 
   consul_partition = var.partition
   consul_namespace = var.namespace
+
+  enable_transparent_proxy = false
 }

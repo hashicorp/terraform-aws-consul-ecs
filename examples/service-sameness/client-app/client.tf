@@ -15,14 +15,15 @@ locals {
 
 
 module "example_client_app" {
-  source              = "../../../modules/mesh-task"
-  family              = local.example_client_app_name
-  consul_service_name = "${var.name}-example-client-app"
-  port                = var.port
-  acls                = true
-  consul_server_hosts = var.consul_server_address
-  tls                 = true
-  consul_ca_cert_arn  = var.consul_server_ca_cert_arn
+  source                   = "../../../modules/mesh-task"
+  family                   = local.example_client_app_name
+  consul_service_name      = "${var.name}-example-client-app"
+  port                     = var.port
+  acls                     = true
+  consul_server_hosts      = var.consul_server_address
+  tls                      = true
+  consul_ca_cert_arn       = var.consul_server_ca_cert_arn
+  enable_transparent_proxy = false
   upstreams = [
     {
       destinationName = "${var.name}-example-server-app"

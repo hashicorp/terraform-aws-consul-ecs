@@ -54,7 +54,8 @@ module "example_client_app" {
   family                   = "${var.name}-example-client-app"
   requires_compatibilities = ["EC2"]
   memory                   = 256
-  port                     = "9090"
+  port                     = 9090
+  enable_transparent_proxy = false
   upstreams = [
     {
       destinationName = "${var.name}-example-server-app"
@@ -111,8 +112,9 @@ module "example_server_app" {
   family                   = "${var.name}-example-server-app"
   requires_compatibilities = ["EC2"]
   memory                   = 256
-  port                     = "9090"
+  port                     = 9090
   log_configuration        = local.example_server_app_log_config
+  enable_transparent_proxy = false
   container_definitions = [{
     name             = "example-server-app"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

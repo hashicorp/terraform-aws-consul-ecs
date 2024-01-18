@@ -15,13 +15,14 @@ locals {
 
 
 module "example_client_app" {
-  source              = "../../modules/mesh-task"
-  family              = local.example_client_app_name
-  port                = "9090"
-  acls                = true
-  consul_server_hosts = module.dc1.dev_consul_server.server_dns
-  tls                 = true
-  consul_ca_cert_arn  = module.dc1.dev_consul_server.ca_cert_arn
+  source                   = "../../modules/mesh-task"
+  family                   = local.example_client_app_name
+  port                     = "9090"
+  acls                     = true
+  enable_transparent_proxy = false
+  consul_server_hosts      = module.dc1.dev_consul_server.server_dns
+  tls                      = true
+  consul_ca_cert_arn       = module.dc1.dev_consul_server.ca_cert_arn
   upstreams = [
     {
       destinationName = "example-server-app"

@@ -335,10 +335,10 @@ variable "consul_ecs_config" {
   EOT
 
   validation {
-    error_message = "Only the 'service', 'proxy', and 'consulLogin' fields are allowed in consul_ecs_config."
+    error_message = "Only the 'service', 'proxy', 'transparentProxy' and 'consulLogin' fields are allowed in consul_ecs_config."
     condition = alltrue([
       for key in keys(var.consul_ecs_config) :
-      contains(["service", "proxy", "consulLogin"], key)
+      contains(["service", "proxy", "consulLogin", "transparentProxy"], key)
     ])
   }
 
@@ -420,6 +420,23 @@ variable "consul_ecs_config" {
     ]))
   }
 
+  validation {
+    error_message = "Only the 'enabled','excludeInboundPorts','excludeOutboundPorts','excludeOutboundCIDRs', 'excludeUIDs' and 'consulDNS' fields are allowed in consul_ecs_config.transparentProxy."
+    condition = alltrue([
+      for key in keys(lookup(var.consul_ecs_config, "transparentProxy", {})) :
+      contains(["enabled", "excludeInboundPorts", "excludeOutboundPorts", "excludeUIDs", "excludeOutboundCIDRs", "consulDNS"], key)
+    ])
+  }
+
+  validation {
+    error_message = "Only the 'enabled' field is allowed in consul_ecs_config.transparentProxy.consulDNS."
+    condition = alltrue(flatten([
+      for tproxy in [lookup(var.consul_ecs_config, "transparentProxy", {})] : [
+        for key in keys(lookup(tproxy, "consulDNS", {})) :
+        contains(["enabled"], key)
+      ]
+    ]))
+  }
 }
 
 variable "http_config" {
@@ -456,4 +473,40 @@ variable "grpc_config" {
       contains(["port", "tls", "tlsServerName", "caCertFile"], key)
     ])
   }
+}
+
+variable "enable_transparent_proxy" {
+  description = "Whether transparent proxy should be enabled for this task. Defaults to true"
+  type        = bool
+  default     = true
+}
+
+variable "enable_consul_dns" {
+  description = "Whether Consul DNS should be configured for this task. This rewrites the /etc/resolv.conf file to point to the Consul dataplane's DNS server as the primary nameserver. Defaults to false"
+  type        = bool
+  default     = false
+}
+
+variable "exclude_inbound_ports" {
+  description = "List of inbound ports to exclude from traffic redirection."
+  type        = list(number)
+  default     = []
+}
+
+variable "exclude_outbound_ports" {
+  description = "List of outbound ports to exclude from traffic redirection."
+  type        = list(number)
+  default     = []
+}
+
+variable "exclude_outbound_cidrs" {
+  description = "List of additional IP CIDRs to exclude from outbound traffic redirection."
+  type        = list(string)
+  default     = []
+}
+
+variable "exclude_uids" {
+  description = "List of additional UIDs to exclude from outbound traffic redirection."
+  type        = list(string)
+  default     = []
 }

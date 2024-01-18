@@ -14,15 +14,16 @@ locals {
 }
 
 module "example_server_app" {
-  source              = "../../../modules/mesh-task"
-  family              = local.example_server_app_name
-  consul_service_name = local.example_server_app_name
-  port                = var.port
-  acls                = true
-  consul_server_hosts = var.consul_server_hosts
-  tls                 = true
-  consul_ca_cert_arn  = var.consul_ca_cert_arn
-  log_configuration   = local.example_server_app_log_config
+  source                   = "../../../modules/mesh-task"
+  family                   = local.example_server_app_name
+  consul_service_name      = local.example_server_app_name
+  enable_transparent_proxy = false
+  port                     = var.port
+  acls                     = true
+  consul_server_hosts      = var.consul_server_hosts
+  tls                      = true
+  consul_ca_cert_arn       = var.consul_ca_cert_arn
+  log_configuration        = local.example_server_app_log_config
   container_definitions = [{
     name             = local.example_server_app_name
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

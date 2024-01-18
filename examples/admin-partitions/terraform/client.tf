@@ -91,7 +91,8 @@ module "example_client" {
       awslogs-stream-prefix = "example_client_${local.client_suffix}"
     }
   }
-  outbound_only = true
+  outbound_only            = true
+  enable_transparent_proxy = false
 
   tls                    = true
   acls                   = true

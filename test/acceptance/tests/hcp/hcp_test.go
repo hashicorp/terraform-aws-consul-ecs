@@ -121,7 +121,7 @@ func TestHCP(t *testing.T) {
 
 	// Check that the connection between apps is unsuccessful without an intention.
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
-	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
+	expectCurlOutput(t, clientTask, "", `curl: (52) Empty reply from server`)
 
 	// Create an intention.
 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
@@ -129,7 +129,7 @@ func TestHCP(t *testing.T) {
 
 	// Now check that the connection succeeds.
 	logger.Log(t, "checking that the connection succeeds with an intention")
-	expectCurlOutput(t, clientTask, `"code": 200`)
+	expectCurlOutput(t, clientTask, "", `"code": 200`)
 
 	// Check that the ACL tokens for services are deleted
 	// when services are destroyed.
@@ -207,7 +207,7 @@ func TestNamespaces(t *testing.T) {
 
 	// Check that the connection between apps is unsuccessful without an intention.
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
-	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
+	expectCurlOutput(t, clientTask, "", `curl: (52) Empty reply from server`)
 
 	// Create an intention.
 	upsertIntention(t, consulClient, api.IntentionActionAllow, clientTask, serverTask)
@@ -215,7 +215,7 @@ func TestNamespaces(t *testing.T) {
 
 	// Now check that the connection succeeds.
 	logger.Log(t, "checking that the connection succeeds with an intention")
-	expectCurlOutput(t, clientTask, `"code": 200`)
+	expectCurlOutput(t, clientTask, "", `"code": 200`)
 
 	logger.Log(t, "Test successful!")
 }
@@ -273,14 +273,14 @@ func TestAdminPartitions(t *testing.T) {
 	waitForTasks(t, clientTask, serverTask)
 
 	logger.Log(t, "checking that the connection is refused without an `exported-services` config entry")
-	expectCurlOutput(t, clientTask, `Connection refused`)
+	expectCurlOutput(t, clientTask, "", `Connection refused`)
 
 	// Create an exported-services config entry for the server
 	upsertExportedServices(t, consulClient, clientTask, serverTask)
 	t.Cleanup(func() { deleteExportedServices(t, consulClient, serverTask) })
 
 	logger.Log(t, "checking that the connection between apps is unsuccessful without an intention")
-	expectCurlOutput(t, clientTask, `curl: (52) Empty reply from server`)
+	expectCurlOutput(t, clientTask, "", `curl: (52) Empty reply from server`)
 
 	// Create an intention.
 	logger.Log(t, "upserting intention")
@@ -288,7 +288,7 @@ func TestAdminPartitions(t *testing.T) {
 	t.Cleanup(func() { deleteIntention(t, consulClient, serverTask) })
 
 	logger.Log(t, "checking that the connection succeeds with an exported-services and intention")
-	expectCurlOutput(t, clientTask, `"code": 200`)
+	expectCurlOutput(t, clientTask, "", `"code": 200`)
 
 	logger.Log(t, "Test successful!")
 }
@@ -343,9 +343,14 @@ func waitForTasks(t *testing.T, tasks ...*helpers.MeshTask) {
 	}))
 }
 
-func expectCurlOutput(t *testing.T, task *helpers.MeshTask, expected string) {
+func expectCurlOutput(t *testing.T, task *helpers.MeshTask, curlArgs, expected string) {
+	command := `/bin/sh -c "curl localhost:1234"`
+	if curlArgs != "" {
+		command = curlArgs
+	}
+
 	require.NoError(t, retryFunc(meshTaskTimeout, t, func() error {
-		curlOut, err := task.ExecuteCommand("basic", `/bin/sh -c "curl localhost:1234"`)
+		curlOut, err := task.ExecuteCommand("basic", command)
 		if err != nil {
 			return fmt.Errorf("failed to execute command: %w", err)
 		}

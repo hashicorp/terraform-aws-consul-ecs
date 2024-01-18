@@ -58,8 +58,9 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_client_${var.suffix_1}"
+  source                   = "../../../../../../modules/mesh-task"
+  family                   = "test_client_${var.suffix_1}"
+  enable_transparent_proxy = false
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -157,8 +158,9 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  source = "../../../../../../modules/mesh-task"
-  family = "test_server_${var.suffix_2}"
+  source                   = "../../../../../../modules/mesh-task"
+  family                   = "test_server_${var.suffix_2}"
+  enable_transparent_proxy = false
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"

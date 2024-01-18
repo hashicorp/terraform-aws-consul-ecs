@@ -9,15 +9,15 @@ locals {
   ecs_cluster_arn = var.ecs_cluster_arns[0]
 }
 
-// Create ECS controller
-module "ecs_controller" {
+// Create ACL controller
+module "controller" {
   source = "../../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul-acl-controller-${var.suffix}"
+      awslogs-stream-prefix = "consul-ecs-controller-${var.suffix}"
     }
   }
   launch_type                       = var.launch_type
@@ -58,28 +58,26 @@ resource "aws_ecs_service" "test_client" {
 module "test_client" {
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_client_${var.suffix}"
-  enable_transparent_proxy = false
+  enable_transparent_proxy = true
+  requires_compatibilities = ["EC2"]
+  enable_consul_dns        = true
   container_definitions = [{
-    name      = "basic"
-    image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
-    essential = true
-    environment = [
-      {
-        name  = "UPSTREAM_URIS"
-        value = "http://localhost:1234"
-      }
-    ]
+    name        = "basic"
+    image       = "docker.mirror.hashicorp.services/buildpack-deps:jammy-curl"
+    essential   = true
+    environment = []
+    command     = ["/bin/sh", "-c", "--", "while true; do sleep 100000; done;"]
+    healthCheck = {
+      command  = ["CMD-SHELL", "echo 1"]
+      interval = 30
+      retries  = 3
+      timeout  = 5
+    }
     linuxParameters = {
       initProcessEnabled = true
     }
   }]
   consul_server_hosts = var.consul_server_address
-  upstreams = [
-    {
-      destinationName = "test_server_${var.suffix}"
-      localBindPort   = 1234
-    }
-  ]
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -93,8 +91,10 @@ module "test_client" {
   tls              = true
   acls             = true
   consul_ecs_image = var.consul_ecs_image
-  consul_namespace = "default"
+  consul_namespace = var.client_namespace
   consul_partition = "default"
+
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
   http_config = {
     port = var.http_port
@@ -102,8 +102,6 @@ module "test_client" {
   grpc_config = {
     port = var.grpc_port
   }
-
-  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
 // Create server.
@@ -125,7 +123,8 @@ resource "aws_ecs_service" "test_server" {
 module "test_server" {
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
-  enable_transparent_proxy = false
+  enable_transparent_proxy = true
+  requires_compatibilities = ["EC2"]
   container_definitions = [{
     name      = "basic"
     image     = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -152,15 +151,16 @@ module "test_server" {
   acls             = true
   consul_ecs_image = var.consul_ecs_image
   consul_partition = "default"
-  consul_namespace = "default"
+  consul_namespace = var.server_namespace
+
+  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+
   http_config = {
     port = var.http_port
   }
   grpc_config = {
     port = var.grpc_port
   }
-
-  additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 }
 
 resource "aws_iam_policy" "execute_command" {

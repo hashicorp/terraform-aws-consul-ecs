@@ -91,7 +91,7 @@ locals {
 }
 
 module "consul_server" {
-  source                      = "../../../../../../modules/dev-server"
+  source                      = "../../../../../modules/dev-server"
   lb_enabled                  = true
   lb_subnets                  = var.public_subnets
   lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
@@ -141,9 +141,8 @@ resource "aws_security_group_rule" "consul_server_ingress" {
 
 module "ecs_controller" {
   depends_on = [module.consul_server]
-
-  count  = var.secure ? 1 : 0
-  source = "../../../../../../modules/controller"
+  count      = var.secure ? 1 : 0
+  source     = "../../../../../modules/controller"
   log_configuration = {
     logDriver = "awslogs"
     options = {
@@ -183,67 +182,34 @@ resource "aws_ecs_service" "test_client" {
 
 module "test_client" {
   depends_on = [module.consul_server]
-
-  source = "../../../../../../modules/mesh-task"
+  source     = "../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
   family                   = "Test_Client_${var.suffix}"
-  enable_transparent_proxy = false
+  enable_transparent_proxy = true
+  enable_consul_dns        = true
+  requires_compatibilities = ["EC2"]
   container_definitions = [
     {
       name             = "basic"
-      image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
+      image            = "docker.mirror.hashicorp.services/buildpack-deps:jammy-curl"
       essential        = true
       logConfiguration = local.test_client_log_configuration
-      environment = [
-        {
-          name  = "UPSTREAM_URIS"
-          value = "http://localhost:1234"
-        }
-      ]
+      environment      = []
       linuxParameters = {
         initProcessEnabled = true
       }
-      command = ["/app/fake-service"]
+      command = ["/bin/sh", "-c", "--", "while true; do sleep 100000; done;"]
       healthCheck = {
         command  = ["CMD-SHELL", "echo 1"]
         interval = 30
         retries  = 3
         timeout  = 5
       }
-    },
-    {
-      # Inject an additional container to monitor apps during task shutdown.
-      name             = "shutdown-monitor"
-      image            = "docker.mirror.hashicorp.services/golang:1.17-alpine"
-      essential        = false
-      logConfiguration = local.test_client_log_configuration
-      # AWS: "We do not enforce a size limit on the environment variables..."
-      # Then, the max environment var length is ~32k
-      environment = [{
-        name  = "GOLANG_MAIN_B64"
-        value = base64encode(file("${path.module}/shutdown-monitor.go"))
-      }]
-      linuxParameters = {
-        initProcessEnabled = true
-      }
-      # NOTE: `go run <file>` signal handling is different: https://github.com/golang/go/issues/40467
-      entryPoint = ["/bin/sh", "-c", <<EOT
-echo "$GOLANG_MAIN_B64" | base64 -d > main.go
-go build main.go
-exec ./main
-EOT
-      ]
     }
   ]
   consul_server_hosts = module.consul_server.server_dns
-  upstreams = [
-    {
-      destinationName = "${var.server_service_name}_${var.suffix}"
-      localBindPort   = 1234
-    }
-  ]
-  log_configuration = local.test_client_log_configuration
-  outbound_only     = true
+  log_configuration   = local.test_client_log_configuration
+  outbound_only       = true
   // This keeps the application running for 10 seconds.
   application_shutdown_delay_seconds = 10
   // Test with a port other than the default of 20000.
@@ -277,12 +243,13 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  depends_on = [module.consul_server]
-
-  source                   = "../../../../../../modules/mesh-task"
+  depends_on               = [module.consul_server]
+  source                   = "../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
   consul_service_name      = "${var.server_service_name}_${var.suffix}"
-  enable_transparent_proxy = false
+  enable_transparent_proxy = true
+  enable_consul_dns        = true
+  requires_compatibilities = ["EC2"]
   container_definitions = [{
     name             = "basic"
     image            = "docker.mirror.hashicorp.services/nicholasjackson/fake-service:v0.21.0"
@@ -386,9 +353,6 @@ resource "aws_iam_policy" "execute-command" {
   ]
 }
 EOF
-
-  # TODO: don't have permission to add tags
-  # tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "execute-command" {

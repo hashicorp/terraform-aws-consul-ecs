@@ -18,4 +18,6 @@ module "test_client" {
   consul_server_hosts = "consul.dc1"
   outbound_only       = true
   upstreams           = jsondecode(file("${path.module}/${var.upstreams_file}"))
+
+  enable_transparent_proxy = false
 }

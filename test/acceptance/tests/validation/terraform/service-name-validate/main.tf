@@ -18,4 +18,6 @@ module "test_client" {
   consul_server_hosts = "consul.dc1"
   outbound_only       = true
   consul_service_name = var.consul_service_name
+
+  enable_transparent_proxy = false
 }

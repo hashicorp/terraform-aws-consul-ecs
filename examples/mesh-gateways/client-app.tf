@@ -35,7 +35,8 @@ module "example_client_app" {
       }
     }
   ]
-  log_configuration = local.example_client_app_log_config
+  log_configuration        = local.example_client_app_log_config
+  enable_transparent_proxy = false
   container_definitions = [
     {
       name             = "example-client-app"
