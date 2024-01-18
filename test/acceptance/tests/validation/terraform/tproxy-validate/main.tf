@@ -10,6 +10,18 @@ variable "requires_compatibilities" {
   type        = list(string)
 }
 
+variable "enable_transparent_proxy" {
+  description = "Whether to enable or disable transparent proxy for the task"
+  type        = bool
+  default     = true
+}
+
+variable "enable_consul_dns" {
+  description = "Whether to enable or disable Consul DNS for the task"
+  type        = bool
+  default     = true
+}
+
 module "test_client" {
   source = "../../../../../../modules/mesh-task"
   family = "family"
@@ -19,5 +31,6 @@ module "test_client" {
   outbound_only            = true
   consul_server_hosts      = "consul.dc1.host"
   requires_compatibilities = var.requires_compatibilities
-  enable_transparent_proxy = true
+  enable_transparent_proxy = var.enable_transparent_proxy
+  enable_consul_dns        = var.enable_consul_dns
 }

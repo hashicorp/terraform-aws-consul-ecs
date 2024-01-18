@@ -1090,12 +1090,14 @@ func TestValidation_TerminatingGateway(t *testing.T) {
 	}
 }
 
-func TestValidation_TProxyEC2(t *testing.T) {
+func TestValidation_TProxy(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
 		requiresCompatibilities []string
+		disableTProxy           bool
 		error                   bool
+		errorStr                string
 	}{
 		"only EC2": {
 			requiresCompatibilities: []string{"EC2"},
@@ -1103,15 +1105,23 @@ func TestValidation_TProxyEC2(t *testing.T) {
 		"only Fargate": {
 			requiresCompatibilities: []string{"FARGATE"},
 			error:                   true,
+			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
 		},
 		"both Fargate and EC2": {
 			requiresCompatibilities: []string{"FARGATE", "EC2"},
 			error:                   true,
+			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
+		},
+		"Consul DNS does not work without enabling tproxy": {
+			requiresCompatibilities: []string{"FARGATE", "EC2"},
+			disableTProxy:           true,
+			error:                   true,
+			errorStr:                "var.enable_transparent_proxy must be set to true for Consul DNS to be enabled.",
 		},
 	}
 
 	terraformOptions := &terraform.Options{
-		TerraformDir: "./terraform/tproxy-ec2-validate",
+		TerraformDir: "./terraform/tproxy-validate",
 		NoColor:      true,
 	}
 	terraform.Init(t, terraformOptions)
@@ -1122,17 +1132,22 @@ func TestValidation_TProxyEC2(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
+			vars := map[string]interface{}{
+				"requires_compatibilities": c.requiresCompatibilities,
+			}
+			if c.disableTProxy {
+				vars["enable_transparent_proxy"] = false
+			}
+
 			out, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
-				Vars: map[string]interface{}{
-					"requires_compatibilities": c.requiresCompatibilities,
-				},
+				Vars:         vars,
 			})
 
 			if c.error {
 				require.Error(t, err)
-				require.Regexp(t, "transparent proxy is supported only in ECS EC2 mode.", out)
+				require.Regexp(t, c.errorStr, out)
 			} else {
 				require.NoError(t, err)
 			}

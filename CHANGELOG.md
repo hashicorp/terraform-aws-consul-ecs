@@ -6,6 +6,18 @@ BREAKING CHANGES
   - Adds a new container named `consul-ecs-health-sync` to the task definition which will be responsible for syncing back ECS container health checks into Consul. This container will wait for a successful exit of `consul-ecs-mesh-init` container before starting.
 
 FEATURES
+* Add support for transparent proxy in ECS tasks based on EC2 launch types. Following are the changes made to the `mesh-task` submodule [[GH-264](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/264)]
+  - Adds the following variables [[GH-209](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/209)]
+    - `enable_transparent_proxy` - Defaults to `true`. Fargate based tasks should explicitly pass `false` to avoid validation errors during terraform planning phase.
+    - `enable_consul_dns` - Defaults to `false`. Indicates whether Consul DNS should be configured for this task. Enabling this makes Consul dataplane start up a proxy DNS server that forwards requests to the Consul DNS server. `var.enable_transparent_proxy` should be `true` to enable this setting.
+    - `exclude_inbound_ports` - List of inbound ports to exclude from traffic redirection.
+    - `exclude_outbound_ports` - List of outbound ports to exclude from traffic redirection.
+    - `exclude_outbound_cidrs` - List of additional IP CIDRs to exclude from outbound traffic redirection.
+    - `exclude_outbound_uids` - List of additional process UIDs to exclude from traffic redirection.
+  - Adds the `CAP_NET_ADMIN` linux capability to the `mesh-init` container when `var.enable_transaparent_proxy` is set to `true`. This is needed to modify iptable rules within the ECS task.
+  - `mesh-init` container is run as a `root` user.
+  - Assign a UID of `5995` for the `consul-dataplane` container and `5996` for the `health-sync` container. This is done to selectively exclude the traffic flowing through these containers from the redirection rules.
+
 * Add support for provisioning API gateways as ECS tasks [[GH-234](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/234)]
   - Add `api-gateway` as an acceptable `kind` input.
   - Add `custom_load_balancer_config` input variable which can be used to feed in custom load balancer target group config that can be attached to the gateway's ECS task.

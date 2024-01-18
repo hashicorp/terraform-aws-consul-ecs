@@ -9,4 +9,5 @@ locals {
   require_no_additional_task_policies_with_passed_role      = (!var.create_task_role && length(var.additional_task_role_policies) > 0) ? file("ERROR: cannot set additional_task_role_policies when create_task_role=false") : null
   require_no_additional_execution_policies_with_passed_role = (!var.create_execution_role && length(var.additional_execution_role_policies) > 0) ? file("ERROR: cannot set additional_execution_role_policies when create_execution_role=false") : null
   require_ec2_compability_for_tproxy_support                = var.enable_transparent_proxy && (length(var.requires_compatibilities) != 1 || var.requires_compatibilities[0] != "EC2") ? file("ERROR: transparent proxy is supported only in ECS EC2 mode") : null
+  require_tproxy_enabled_for_consul_dns                     = var.enable_consul_dns && !var.enable_transparent_proxy ? file("ERROR: var.enable_transparent_proxy must be set to true for Consul DNS to be enabled") : null
 }
