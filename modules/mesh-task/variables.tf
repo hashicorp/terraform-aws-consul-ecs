@@ -145,7 +145,7 @@ variable "outbound_only" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "ganeshrockz/ecs-tproxy"
+  default     = "ganeshrockz/tproxy-ecs"
 }
 
 variable "consul_dataplane_image" {

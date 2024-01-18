@@ -11,9 +11,14 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "subnets" {
+variable "private_subnets" {
   type        = list(string)
-  description = "Subnets to deploy into."
+  description = "Private subnets to deploy into."
+}
+
+variable "public_subnets" {
+  type        = list(string)
+  description = "Public subnets to deploy into."
 }
 
 variable "suffix" {
@@ -64,7 +69,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "ganeshrockz/ecs-tproxy:latest"
+  default     = "hashicorppreview/consul-ecs:0.8.0-dev"
 }
 
 variable "server_service_name" {
@@ -87,17 +92,19 @@ locals {
 
 module "consul_server" {
   source          = "../../../../../modules/dev-server"
-  lb_enabled      = false
+  lb_enabled      = true
+  lb_subnets                  = var.public_subnets
+  lb_ingress_rule_cidr_blocks = ["0.0.0.0/0"]
   ecs_cluster_arn = var.ecs_cluster_arn
-  subnet_ids      = var.subnets
+  subnet_ids      = var.private_subnets
   vpc_id          = var.vpc_id
-  name            = "consul_server_${var.suffix}"
+  name            = "consul-server-${var.suffix}"
   log_configuration = {
     logDriver = "awslogs"
     options = {
       awslogs-group         = var.log_group_name
       awslogs-region        = var.region
-      awslogs-stream-prefix = "consul_server_${var.suffix}"
+      awslogs-stream-prefix = "consul-server-${var.suffix}"
     }
   }
   launch_type = var.launch_type
@@ -133,6 +140,7 @@ resource "aws_security_group_rule" "consul_server_ingress" {
 }
 
 module "ecs_controller" {
+  depends_on = [ module.consul_server ]
   count  = var.secure ? 1 : 0
   source = "../../../../../modules/controller"
   log_configuration = {
@@ -150,7 +158,7 @@ module "ecs_controller" {
   consul_https_ca_cert_arn          = module.consul_server.ca_cert_arn
   ecs_cluster_arn                   = var.ecs_cluster_arn
   region                            = var.region
-  subnets                           = var.subnets
+  subnets                           = var.private_subnets
   name_prefix                       = var.suffix
   consul_ecs_image                  = var.consul_ecs_image
   consul_partitions_enabled         = local.enterprise_enabled
@@ -163,7 +171,7 @@ resource "aws_ecs_service" "test_client" {
   task_definition = module.test_client.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.private_subnets
   }
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
@@ -173,6 +181,7 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
+  depends_on = [ module.consul_server ]
   source = "../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
   family                   = "Test_Client_${var.suffix}"
@@ -224,7 +233,7 @@ resource "aws_ecs_service" "test_server" {
   task_definition = module.test_server.task_definition_arn
   desired_count   = 1
   network_configuration {
-    subnets = var.subnets
+    subnets = var.private_subnets
   }
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
@@ -234,6 +243,7 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
+  depends_on = [ module.consul_server ]
   source                   = "../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
   consul_service_name      = "${var.server_service_name}_${var.suffix}"
