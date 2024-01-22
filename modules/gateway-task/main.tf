@@ -106,7 +106,7 @@ resource "aws_ecs_task_definition" "this" {
             }
             healthCheck = {
               command  = ["CMD-SHELL", "curl -f localhost:10000/consul-ecs/health"] # consul-ecs-control-plane exposes a listener on 10000 to indicate it's readiness
-              interval = 30
+              interval = 5
               retries  = 10
               timeout  = 5
             }
@@ -158,8 +158,8 @@ resource "aws_ecs_task_definition" "this" {
             ]
             healthCheck = {
               command  = ["/consul/consul-ecs", "net-dial", format("127.0.0.1:%d", var.envoy_readiness_port)]
-              interval = 30
-              retries  = 3
+              interval = 5
+              retries  = 10
               timeout  = 5
             }
             cpu         = 0
