@@ -1,3 +1,8 @@
+## Unreleased
+
+IMPROVEMENTS
+* Improve bootstrap time of mesh-task/gateway-task containers by reducing the health check interval defined in the container definition. [[GH-267](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/267)]
+
 ## 0.7.1 (Dec 19, 2023)
 
 IMPROVEMENTS
