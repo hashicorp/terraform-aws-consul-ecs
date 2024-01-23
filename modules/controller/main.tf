@@ -62,7 +62,7 @@ resource "aws_ecs_task_definition" "this" {
           value = local.encoded_config
         }
       ]
-      readonlyRootFilesystem = true
+      readonlyRootFilesystem = false
     },
   ])
 }
