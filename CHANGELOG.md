@@ -2,6 +2,7 @@
 
 IMPROVEMENTS
 * Improve bootstrap time of mesh-task/gateway-task containers by reducing the health check interval defined in the container definition. [[GH-267](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/267)]
+* Add `consul.hashicorp.com.gateway-kind` as a tag to the gateway task's IAM Role. This field will hold the type of the gateway that is getting deployed to the ECS task and will be used by the configured IAM auth method to mint tokens with appropriate permissions when individual tasks perform a Consul login.
 
 ## 0.7.1 (Dec 19, 2023)
 
