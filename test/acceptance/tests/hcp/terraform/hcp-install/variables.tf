@@ -65,7 +65,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.1"
+  default     = "hashicorppreview/consul-ecs:0.7.2-dev"
 }
 
 variable "consul_server_address" {
