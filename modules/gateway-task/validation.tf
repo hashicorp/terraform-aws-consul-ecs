@@ -10,5 +10,7 @@ locals {
   create_xor_modify_security_group = var.lb_create_security_group && var.lb_modify_security_group ? file("ERROR: Only one of lb_create_security_group or lb_modify_security_group may be true") : null
   require_sg_id_for_modify         = var.lb_modify_security_group && var.lb_modify_security_group_id == "" ? file("ERROR: lb_modify_security_group_id is required when lb_modify_security_group is true") : null
 
-  custom_lb_config_check = var.lb_enabled && length(var.custom_load_balancer_config) > 0 ? file("ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false") : null
+  custom_lb_config_check                     = var.lb_enabled && length(var.custom_load_balancer_config) > 0 ? file("ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false") : null
+  require_ec2_compability_for_tproxy_support = var.enable_transparent_proxy && (length(var.requires_compatibilities) != 1 || var.requires_compatibilities[0] != "EC2") ? file("ERROR: transparent proxy is supported only in ECS EC2 mode") : null
+  require_tproxy_enabled_for_consul_dns      = var.enable_consul_dns && !var.enable_transparent_proxy ? file("ERROR: var.enable_transparent_proxy must be set to true for Consul DNS to be enabled") : null
 }

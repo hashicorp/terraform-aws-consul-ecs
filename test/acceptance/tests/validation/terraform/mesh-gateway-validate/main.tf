@@ -71,6 +71,7 @@ module "test_gateway" {
   ecs_cluster_arn                    = "cluster"
   subnets                            = ["subnets"]
   security_groups                    = var.security_groups
+  enable_transparent_proxy           = false
   kind                               = var.kind
   gateway_count                      = var.gateway_count
   consul_server_hosts                = "localhost:8500"
