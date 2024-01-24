@@ -17,6 +17,7 @@ import (
 	apigateway "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/api-gateway"
 	clusterpeering "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/cluster-peering"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
+	ec2tproxy "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2-tproxy"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
 	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
@@ -94,6 +95,7 @@ func setupScenarios() scenarios.ScenarioRegistry {
 	localityawarerouting.RegisterScenario(reg)
 	apigateway.RegisterScenario(reg)
 	terminatinggateway.RegisterScenario(reg)
+	ec2tproxy.RegisterScenario(reg)
 
 	return reg
 }
