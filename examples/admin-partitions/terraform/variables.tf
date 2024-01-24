@@ -20,7 +20,7 @@ variable "tags" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.1"
+  default     = "hashicorppreview/consul-ecs:0.7.2-dev"
 }
 
 variable "consul_dataplane_image" {
