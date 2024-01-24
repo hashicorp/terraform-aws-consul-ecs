@@ -118,7 +118,7 @@ If you navigate to the same URL without `/ui`, you'll see the raw requests:
       "uri": "http://consul-ecs-example-server-app.virtual.consul",
       "type": "HTTP",
       "ip_addresses": [
-        "169.254.172.2",
+        "123.234.456.210",
         "10.0.3.91"
       ],
       "start_time": "2024-01-18T17:09:20.958409",

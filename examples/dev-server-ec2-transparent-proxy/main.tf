@@ -233,11 +233,4 @@ locals {
       awslogs-stream-prefix = "client"
     }
   }
-
-  client_app_upstreams = [
-    {
-      destinationName = "${var.name}-example-server-app"
-      localBindPort   = 1234
-    }
-  ]
 }

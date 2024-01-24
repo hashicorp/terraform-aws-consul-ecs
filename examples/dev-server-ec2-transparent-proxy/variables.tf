@@ -19,7 +19,7 @@ variable "lb_ingress_ip" {
 }
 
 variable "public_ssh_key" {
-  description = "Local file path of a public ssh key. If specified, a bastion server (jump host) is created on order to login to container instances."
+  description = "Local file path of a public ssh key. If specified, a bastion server (jump host) is created in order to login to container instances."
   type        = string
   default     = null
 }
