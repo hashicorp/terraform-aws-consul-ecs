@@ -1,0 +1,39 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: go-fmt-and-lint-acceptance
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: "Golang version to be used by this workflow"
+        required: true
+        type: string
+
+jobs:
+  go-fmt-and-lint-acceptance:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    steps:
+    - name: Checkout
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - name: Setup Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache-dependency-path: ./test/acceptance/go.sum
+    - name: Go CI lint
+      uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3.7.0
+      with:
+        args: "--verbose --enable gofmt"
+        only-new-issues: false
+        skip-pkg-cache: true
+        skip-build-cache: true
+        working-directory: ./test/acceptance
+    - name: Lint Consul retry
+      run: |
+        go install github.com/hashicorp/lint-consul-retry@v1.3.0
+        lint-consul-retry

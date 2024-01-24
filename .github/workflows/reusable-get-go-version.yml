@@ -1,0 +1,28 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: get-go-version
+
+on:
+  workflow_call:
+    outputs:
+      go-version:
+        description: "The Go version detected by this workflow"
+        value: ${{ jobs.get-go-version.outputs.go-version }}
+
+jobs:
+  get-go-version:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./test/acceptance
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - name: Determine Go version
+      id: get-go-version
+      run: |
+        echo "Building with Go $(cat .go-version)"
+        echo "go-version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
