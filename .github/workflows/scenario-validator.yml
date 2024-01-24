@@ -1,0 +1,36 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# Runs scenario tests for a given scenario
+name: Scenario validator
+on:
+  workflow_dispatch:
+    inputs:
+      scenario_name:
+        description: 'Name of the scenario to test'
+        required: true
+
+jobs:
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+      
+  go-fmt-and-lint-acceptance:
+    needs:
+    - get-go-version
+    uses: ./.github/workflows/reusable-go-fmt-and-lint.yml
+    with:
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+    
+  terraform-fmt:
+    uses: ./.github/workflows/reusable-terraform-fmt.yml
+  validate-scenario:
+    needs:
+    - terraform-fmt
+    - go-fmt-and-lint-acceptance
+    - get-go-version
+    uses: ./.github/workflows/reusable-ecs-example-validator.yml
+    with:
+      name: 'Scenario validator'
+      scenario: ${{ inputs.scenario_name }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+    secrets: inherit
