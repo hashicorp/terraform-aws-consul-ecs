@@ -28,6 +28,15 @@ FEATURES
 * examples/terminating-gateway: Add example terraform to demonstrate the use of terminating gateways deployed as ECS tasks to facilitate communication between mesh and non mesh services. [[GH-238]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/238)
 * examples/dev-server-ec2-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature for services deployed in ECS EC2 launch type tasks. [[GH-265](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/265)]
 
+## 0.7.2 (Jan 25, 2024)
+
+IMPROVEMENTS
+* Improve bootstrap time of mesh-task/gateway-task containers by reducing the health check interval defined in the container definition. [[GH-267](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/267)]
+* Add `consul.hashicorp.com.gateway-kind` as a tag to the gateway task's IAM Role. This field will hold the type of the gateway that is getting deployed to the ECS task and will be used by the configured IAM auth method to mint tokens with appropriate permissions when individual tasks perform a Consul login.
+* Bump Consul ECS image version to 0.7.2
+* Bump Consul Dataplane's image version to 1.3.2
+* Bump Consul image version to 1.17.2
+
 ## 0.7.1 (Dec 19, 2023)
 
 IMPROVEMENTS
