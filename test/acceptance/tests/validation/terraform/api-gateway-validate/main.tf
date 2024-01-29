@@ -49,4 +49,5 @@ module "test_gateway" {
   lb_subnets                  = var.lb_subnets
   custom_load_balancer_config = var.custom_lb_config
   lb_create_security_group    = var.lb_enabled
+  enable_transparent_proxy    = false
 }

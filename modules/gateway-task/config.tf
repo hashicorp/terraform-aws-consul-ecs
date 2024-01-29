@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 locals {
-  loginExtra = lookup(var.consul_ecs_config, "consulLogin", {})
+  loginExtra  = lookup(var.consul_ecs_config, "consulLogin", {})
+  tProxyExtra = lookup(var.consul_ecs_config, "transparentProxy", {})
 
   consulLogin = var.acls ? {
     enabled = var.acls
@@ -32,6 +33,17 @@ locals {
     },
     var.grpc_config
   )
+
+  transparentProxy = {
+    enabled              = var.enable_transparent_proxy
+    excludeInboundPorts  = var.exclude_inbound_ports
+    excludeOutboundPorts = var.exclude_outbound_ports
+    excludeOutboundCIDRs = var.exclude_outbound_cidrs
+    excludeUIDs          = var.exclude_uids
+    consulDNS = {
+      enabled = var.enable_consul_dns
+    }
+  }
 
   config = {
     consulLogin = merge(local.consulLogin, local.loginExtra)
@@ -63,6 +75,7 @@ locals {
       http = local.httpSettings
       grpc = local.grpcSettings
     }
+    transparentProxy = merge(local.tProxyExtra, local.transparentProxy)
   }
 
   encoded_config = jsonencode(local.config)
