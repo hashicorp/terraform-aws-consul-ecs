@@ -38,6 +38,7 @@ FEATURES
 * examples/api-gateway: Add example terraform to demonstrate exposing mesh tasks in ECS via Consul API gateway deployed as an ECS task. [[GH-235]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/235)
 * examples/terminating-gateway: Add example terraform to demonstrate the use of terminating gateways deployed as ECS tasks to facilitate communication between mesh and non mesh services. [[GH-238]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/238)
 * examples/dev-server-ec2-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature for services deployed in ECS EC2 launch type tasks. [[GH-265](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/265)]
+* examples/terminating-gateway-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature along with terminating gateways to access services that are present outside the mesh from mesh based services. [[GH-279](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/279)]
 
 ## 0.7.2 (Jan 25, 2024)
 
