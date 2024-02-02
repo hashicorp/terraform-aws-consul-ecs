@@ -46,6 +46,22 @@ variable "lb_subnets" {
   default     = null
 }
 
+variable "custom_load_balancer_config" {
+  description = <<-EOT
+  Load balancer config that will applied to the ECS service backing the gateway task.
+  The gateway submodule by default creates an NLB with backing listeners that attach the LB
+  to the gateway ECS task. When configuring API gateways, users might need to deploy an ALB
+  and add listeners that target the API gateway's ECS task. This field can be used to supply
+  target group related configuration for such use cases.
+  EOT
+  type = list(object({
+    target_group_arn = string
+    container_name   = string
+    container_port   = number
+  }))
+  default = []
+}
+
 variable "lb_ingress_rule_cidr_blocks" {
   description = "CIDR blocks that are allowed access to the load balancer."
   type        = list(string)

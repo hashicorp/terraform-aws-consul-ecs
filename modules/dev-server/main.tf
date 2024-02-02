@@ -15,7 +15,7 @@ locals {
     target_group_arn = aws_lb_target_group.this[0].arn
     container_name   = "consul-server"
     container_port   = 8500
-  }] : []
+  }] : var.custom_load_balancer_config
 
   // Setup Consul server options
   consul_enterprise_enabled          = var.consul_license != ""
