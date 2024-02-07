@@ -85,6 +85,7 @@ module "example_client_app" {
   }]
   consul_server_hosts           = module.dc1.dev_consul_server.server_dns
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
+  enable_transparent_proxy      = false
 }
 
 resource "aws_lb" "example_client_app" {
