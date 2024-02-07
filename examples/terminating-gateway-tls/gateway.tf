@@ -19,6 +19,7 @@ data "aws_efs_file_system" "efs_id" {
 module "terminating_gateway" {
   source                        = "../../modules/gateway-task"
   family                        = "${var.name}-terminating-gateway"
+  enable_transparent_proxy      = false
   ecs_cluster_arn               = aws_ecs_cluster.cluster_one.arn
   subnets                       = module.vpc.private_subnets
   security_groups               = [module.vpc.default_security_group_id]
