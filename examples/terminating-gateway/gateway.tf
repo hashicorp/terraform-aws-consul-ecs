@@ -22,6 +22,7 @@ module "terminating_gateway" {
   consul_server_hosts           = module.dc1.dev_consul_server.server_dns
   kind                          = "terminating-gateway"
   tls                           = true
+  enable_transparent_proxy      = false
   consul_ca_cert_arn            = module.dc1.dev_consul_server.ca_cert_arn
   additional_task_role_policies = [aws_iam_policy.execute_command.arn]
 
