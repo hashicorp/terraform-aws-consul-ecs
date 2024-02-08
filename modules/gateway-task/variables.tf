@@ -108,7 +108,7 @@ variable "skip_server_watch" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.8.0-rc1"
+  default     = "hashicorp/consul-ecs:0.8.0-rc1"
 }
 
 variable "consul_dataplane_image" {
