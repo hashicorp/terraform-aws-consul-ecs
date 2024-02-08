@@ -24,6 +24,7 @@ module "mesh_gateway" {
   tls                           = true
   consul_ca_cert_arn            = var.ca_cert_arn
   additional_task_role_policies = var.additional_task_role_policies
+  enable_transparent_proxy      = false
 
   acls = true
 
