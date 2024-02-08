@@ -56,12 +56,16 @@ jobs:
         name:
           - API Gateway
           - Terminating Gateway
+          - Terminating Gateway Transparent Proxy
         include:
           - name: API Gateway
             scenario: API_GATEWAY
 
           - name: Terminating Gateway
             scenario: TERMINATING_GATEWAY
+          
+          - name: Terminating Gateway Transparent Proxy
+            scenario: TERMINATING_GATEWAY_TPROXY
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
