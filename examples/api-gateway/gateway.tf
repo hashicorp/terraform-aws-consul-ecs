@@ -28,6 +28,7 @@ module "api_gateway" {
   acls = true
 
   lb_create_security_group = false
+  enable_transparent_proxy = false
 
   custom_load_balancer_config = [{
     container_name   = "consul-dataplane"
