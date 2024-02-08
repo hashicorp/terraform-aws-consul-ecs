@@ -32,5 +32,6 @@ module "mesh_gateway" {
   lb_subnets = var.public_subnets
   lb_vpc_id  = var.vpc.vpc_id
 
-  consul_ecs_image = var.consul_ecs_image
+  enable_transparent_proxy = false
+  consul_ecs_image         = var.consul_ecs_image
 }
