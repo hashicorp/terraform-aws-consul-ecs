@@ -61,7 +61,7 @@ variable "lb_ingress_rule_security_groups" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorp/consul:1.17.2"
+  default     = "hashicorp/consul:1.17.3"
 }
 
 variable "consul_license" {

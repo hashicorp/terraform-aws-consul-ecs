@@ -91,7 +91,7 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorp/consul:1.17.2"
+  default     = "hashicorp/consul:1.17.3"
 }
 
 variable "consul_server_hosts" {
@@ -108,13 +108,13 @@ variable "skip_server_watch" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.2"
+  default     = "hashicorppreview/consul-ecs:0.7.3-dev"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:1.3.2"
+  default     = "hashicorp/consul-dataplane:1.3.3"
 }
 
 variable "envoy_readiness_port" {
