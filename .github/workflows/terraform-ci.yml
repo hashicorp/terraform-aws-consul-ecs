@@ -103,6 +103,7 @@ jobs:
       # We have a limit of 6 HCP Consul clusters.
       # The following controls whether to enable HCP when testing release branches.
       # HCP is always disabled for tests on PRs.
+      fail-fast: false
       matrix:
         name:
           - acceptance-1.15-FARGATE-HCP
