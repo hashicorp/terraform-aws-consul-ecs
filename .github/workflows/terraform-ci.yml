@@ -113,12 +113,12 @@ jobs:
           - acceptance-1.13-EC2-HCP
         include:
           - name: acceptance-1.15-FARGATE-HCP
-            consul-version: '1.15.4'
+            consul-version: '1.15.10'
             enable-hcp: true
             launch-type: FARGATE
 
           - name: acceptance-1.14-FARGATE-HCP
-            consul-version: '1.14.7'
+            consul-version: '1.14.11'
             enable-hcp: true
             launch-type: FARGATE
 
@@ -128,17 +128,17 @@ jobs:
             launch-type: FARGATE
 
           - name: acceptance-1.15-EC2
-            consul-version: '1.15.4'
+            consul-version: '1.15.10'
             enable-hcp: false
             launch-type: EC2
 
           - name: acceptance-1.14-EC2
-            consul-version: '1.14.8'
+            consul-version: '1.14.11'
             enable-hcp: false
             launch-type: EC2
 
           - name: acceptance-1.13-EC2-HCP
-            consul-version: '1.13.8'
+            consul-version: '1.13.9'
             enable-hcp: true
             launch-type: EC2
 

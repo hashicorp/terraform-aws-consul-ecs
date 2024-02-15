@@ -31,7 +31,7 @@ variable "lb_ingress_ip" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use in all tasks."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.5.0"
+  default     = "hashicorppreview/consul-ecs:0.6.2-dev"
 }
 
 variable "consul_server_startup_timeout" {
