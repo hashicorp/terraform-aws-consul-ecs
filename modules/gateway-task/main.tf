@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.7.3"
+  version_string = "0.7.4-dev"
 
   consul_data_volume_name = "consul_data"
   consul_data_mount = {
