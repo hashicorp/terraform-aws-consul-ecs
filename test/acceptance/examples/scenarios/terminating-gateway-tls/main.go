@@ -35,7 +35,7 @@ func RegisterScenario(r scenarios.ScenarioRegistry) {
 func getTerraformVars(tfResName string) scenarios.TerraformInputVarsHook {
 	return func() (map[string]interface{}, error) {
 		vars := map[string]interface{}{
-			"region": "us-west-1",
+			"region": "us-west-2",
 			"name":   tfResName,
 		}
 
