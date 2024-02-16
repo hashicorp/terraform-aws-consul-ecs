@@ -43,7 +43,7 @@ module "example_client_app" {
   upstreams = [
     {
       destinationName = "${var.name}-external-server-app"
-      localBindPort   = 12345
+      localBindPort   = 1234
     }
   ]
   acls               = true
@@ -62,7 +62,7 @@ module "example_client_app" {
       },
       {
         name  = "UPSTREAM_URIS"
-        value = "http://localhost:12345"
+        value = "http://localhost:1234"
       }
     ]
     portMappings = [
