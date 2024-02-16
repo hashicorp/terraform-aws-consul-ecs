@@ -39,6 +39,11 @@ variable "instance_type" {
   default     = "t3a.micro"
 }
 
+variable "hcp_project_id" {
+  description = "ID of the HCP project where the Consul specific resources will be created."
+  type        = string
+}
+
 variable "consul_version" {
   description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
   type        = string
