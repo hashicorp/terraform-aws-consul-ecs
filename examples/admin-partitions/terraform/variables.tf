@@ -20,13 +20,13 @@ variable "tags" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorp/consul-ecs:0.7.2"
+  default     = "hashicorppreview/consul-ecs:0.7.3"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:1.3.2"
+  default     = "hashicorp/consul-dataplane:1.3.3"
 }
 
 variable "client_partition" {
