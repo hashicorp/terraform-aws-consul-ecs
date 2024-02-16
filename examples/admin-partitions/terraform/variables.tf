@@ -21,7 +21,7 @@ variable "consul_image" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.6.2"
+  default     = "hashicorp/consul-ecs:0.6.2"
 }
 
 variable "client_partition" {
