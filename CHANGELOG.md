@@ -1,3 +1,9 @@
+## 0.6.2 (Feb 16, 2024)
+
+IMPROVEMENTS
+* Bump Consul image to `1.15.10`[[GH-289](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/289)]
+* Bump Consul ECS image to `0.6.2` [[GH-292](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/292)]
+
 ## 0.6.1 (Aug 1, 2023)
 
 IMPROVEMENTS
