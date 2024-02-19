@@ -40,6 +40,19 @@ FEATURES
 * examples/dev-server-ec2-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature for services deployed in ECS EC2 launch type tasks. [[GH-265](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/265)]
 * examples/terminating-gateway-transparent-proxy: Add example terraform to demonstrate Consul's transparent proxy feature along with terminating gateways to access services that are present outside the mesh from mesh based services. [[GH-279](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/279)]
 
+## 0.7.3 (Feb 16, 2024)
+
+IMPROVEMENTS
+* Bump Consul image to `1.17.3`[[GH-290](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/290)]
+* Bump Consul Dataplane image to `1.3.3` [[GH-290](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/290)]
+* Bump Consul ECS image to `0.7.3` [[GH-291](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/291)]
+
+## 0.6.2 (Feb 16, 2024)
+
+IMPROVEMENTS
+* Bump Consul image to `1.15.10`[[GH-289](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/289)]
+* Bump Consul ECS image to `0.6.2` [[GH-292](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/292)]
+
 ## 0.7.2 (Jan 25, 2024)
 
 IMPROVEMENTS
