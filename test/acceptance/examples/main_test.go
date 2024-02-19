@@ -23,6 +23,7 @@ import (
 	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
 	sameness "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/service-sameness"
 	terminatinggateway "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/terminating-gateway"
+	terminatinggatewaytls "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/terminating-gateway-tls"
 	terminatinggatewaytproxy "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/terminating-gateway-tproxy"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/wan-federation"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/framework/logger"
@@ -96,6 +97,7 @@ func setupScenarios() scenarios.ScenarioRegistry {
 	localityawarerouting.RegisterScenario(reg)
 	apigateway.RegisterScenario(reg)
 	terminatinggateway.RegisterScenario(reg)
+	terminatinggatewaytls.RegisterScenario(reg)
 	terminatinggatewaytproxy.RegisterScenario(reg)
 	ec2tproxy.RegisterScenario(reg)
 

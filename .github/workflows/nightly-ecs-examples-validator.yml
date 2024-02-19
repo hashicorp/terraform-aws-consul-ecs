@@ -66,6 +66,9 @@ jobs:
           
           - name: Terminating Gateway Transparent Proxy
             scenario: TERMINATING_GATEWAY_TPROXY
+          
+          - name: Terminating Gateway TLS
+            scenario: TERMINATING_GATEWAY_TLS
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-example-validator.yml
     with:
