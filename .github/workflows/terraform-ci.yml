@@ -48,13 +48,14 @@ jobs:
       matrix:
         name:
           - acceptance-1.17-FARGATE-HCP
-          - acceptance-1.17-FARGATE
+          - acceptance-1.18-FARGATE
         include:
           - name: acceptance-1.17-FARGATE-HCP
             enable-hcp: true
             launch-type: FARGATE
+            consul-version: 1.17.1
 
-          - name: acceptance-1.17-FARGATE
+          - name: acceptance-1.18-FARGATE
             enable-hcp: false
             launch-type: FARGATE
       fail-fast: false
@@ -76,13 +77,14 @@ jobs:
       matrix:
         name:
           - acceptance-1.17-EC2-HCP
-          - acceptance-1.17-EC2
+          - acceptance-1.18-EC2
         include:
           - name: acceptance-1.17-EC2-HCP
             enable-hcp: true
             launch-type: EC2
+            consul-version: 1.17.1
 
-          - name: acceptance-1.17-EC2
+          - name: acceptance-1.18-EC2
             enable-hcp: false
             launch-type: EC2
       fail-fast: false

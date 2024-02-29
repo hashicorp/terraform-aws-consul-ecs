@@ -1,4 +1,4 @@
-## Unreleased
+## 0.8.0 (Feb 29, 2024)
 
 BREAKING CHANGES
 * Following are the changes made to the task definitions for `mesh-task` and `gateway-task` submodules to react to the changes made in [this](https://github.com/hashicorp/consul-ecs/pull/211) PR.
