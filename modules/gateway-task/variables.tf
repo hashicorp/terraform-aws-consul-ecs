@@ -439,4 +439,5 @@ variable "exclude_uids" {
 variable "extra_container_definitions" {
   type        = any
   description = "Any extra containers to add to the gateway task"
+  default     = []
 }
