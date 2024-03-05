@@ -206,6 +206,7 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = jsonencode(
     flatten(
       concat(
+        var.extra_container_definitions,
         [
           local.finalized_mesh_init_container_definition,
           {
