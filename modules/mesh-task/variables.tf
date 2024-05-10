@@ -145,7 +145,7 @@ variable "outbound_only" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorp/consul-ecs:0.8.0"
+  default     = "hashicorp/consul-ecs:0.8.1-dev"
 }
 
 variable "consul_dataplane_image" {
