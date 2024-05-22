@@ -96,7 +96,10 @@ locals {
     ]
     linuxParameters = {
       initProcessEnabled = true
-      capabilities       = var.enable_transparent_proxy ? { add = ["NET_ADMIN"] } : {}
+      capabilities       =  { 
+        add = var.enable_transparent_proxy ? ["NET_ADMIN"] : []
+        drop = []
+      }
     }
     secrets = flatten(
       concat(

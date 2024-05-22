@@ -1,3 +1,8 @@
+## Unreleased
+
+BUG FIXES
+* modules/mesh-task and modules/gateway-task: Fixes a perpetual drift in terraform when enable_transparent_proxy is false. [[GH-318]](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/318)
+
 ## 0.8.0 (Feb 29, 2024)
 
 BREAKING CHANGES
