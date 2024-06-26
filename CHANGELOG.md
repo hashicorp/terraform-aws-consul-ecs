@@ -1,3 +1,10 @@
+## 0.8.1 (July 5, 2024)
+
+IMPROVEMENTS
+* Bump Consul image to `1.18.2`[[GH-320](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/320)]
+* Bump Consul Dataplane image to `1.4.2` [[GH-320](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/320)]
+* Bump Consul ECS image to `0.8.1` [[GH-320](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/320)]
+
 ## 0.8.0 (Feb 29, 2024)
 
 BREAKING CHANGES
