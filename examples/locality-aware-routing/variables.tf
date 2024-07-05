@@ -38,5 +38,5 @@ variable "consul_server_startup_timeout" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorp/consul-enterprise:1.17.0-ent"
+  default     = "hashicorppreview/consul-enterprise:1.19.0-ent"
 }
