@@ -69,7 +69,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.8.0-dev"
+  default     = "hashicorppreview/consul-ecs:0.9.0-dev"
 }
 
 variable "server_service_name" {
