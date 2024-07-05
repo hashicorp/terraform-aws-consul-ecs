@@ -58,7 +58,7 @@ jobs:
           - name: acceptance-1.18-FARGATE
             enable-hcp: false
             launch-type: FARGATE
-            consul-version: 1.18.0
+            consul-version: 1.18.2
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
@@ -89,7 +89,7 @@ jobs:
           - name: acceptance-1.18-EC2
             enable-hcp: false
             launch-type: EC2
-            consul-version: 1.18.0
+            consul-version: 1.18.2
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
