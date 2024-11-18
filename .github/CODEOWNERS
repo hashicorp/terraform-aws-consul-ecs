@@ -3,5 +3,3 @@
 
 
 @hashicorp/consul-ecs
-
-/.github/workflows/* @hashicorp/release-engineering @hashicorp/consul-ecs
