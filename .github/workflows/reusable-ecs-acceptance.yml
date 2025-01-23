@@ -31,7 +31,7 @@ on:
 
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: 1.8.0
+  GOTESTSUM_VERSION: 1.12.0
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
   HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
@@ -77,6 +77,8 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
     - name: terraform init & apply
       run: |
         cd setup-terraform/
