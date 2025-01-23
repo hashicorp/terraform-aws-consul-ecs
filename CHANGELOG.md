@@ -1,3 +1,10 @@
+## 0.9.0 (January 23, 2025)
+
+IMPROVEMENTS
+* Bump Consul image to `1.20.2`[[GH-328](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/328)]
+* Bump Consul Dataplane image to `1.6.2` [[GH-320](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/328)]
+* Bump Consul ECS image to `0.9.0` [[GH-320](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/328)]
+
 ## 0.8.1 (July 5, 2024)
 
 IMPROVEMENTS

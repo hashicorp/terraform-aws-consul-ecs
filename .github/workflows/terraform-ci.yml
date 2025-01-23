@@ -48,15 +48,17 @@ jobs:
       matrix:
         name:
           - acceptance-1.17-FARGATE-HCP
-          - acceptance-1.17-FARGATE
+          - acceptance-1.20-FARGATE
         include:
           - name: acceptance-1.17-FARGATE-HCP
             enable-hcp: true
             launch-type: FARGATE
+            consul-version: 1.17.1
 
-          - name: acceptance-1.17-FARGATE
+          - name: acceptance-1.20-FARGATE
             enable-hcp: false
             launch-type: FARGATE
+            consul-version: 1.20.2
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
@@ -64,6 +66,7 @@ jobs:
       name: ${{ matrix.name }}
       launch-type: ${{ matrix.launch-type }}
       enable-hcp: ${{ matrix.enable-hcp }}
+      consul-version: ${{ matrix.consul-version }}
     secrets: inherit
   acceptance-ec2:
     needs:
@@ -76,15 +79,17 @@ jobs:
       matrix:
         name:
           - acceptance-1.17-EC2-HCP
-          - acceptance-1.17-EC2
+          - acceptance-1.20-EC2
         include:
           - name: acceptance-1.17-EC2-HCP
             enable-hcp: true
             launch-type: EC2
+            consul-version: 1.17.1
 
-          - name: acceptance-1.17-EC2
+          - name: acceptance-1.20-EC2
             enable-hcp: false
             launch-type: EC2
+            consul-version: 1.20.2
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
@@ -92,4 +97,5 @@ jobs:
       name: ${{ matrix.name }}
       launch-type: ${{ matrix.launch-type }}
       enable-hcp: ${{ matrix.enable-hcp }}
+      consul-version: ${{ matrix.consul-version }}
     secrets: inherit
