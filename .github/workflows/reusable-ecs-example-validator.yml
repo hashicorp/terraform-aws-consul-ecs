@@ -59,7 +59,7 @@ jobs:
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
     - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
+      uses: aws-actions/configure-aws-credentials@4fc4975a852c8cd99761e2de1f4ba73402e44dd9 # v4.0.3
       with:
         role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_ECS_REGION }}
