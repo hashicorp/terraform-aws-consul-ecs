@@ -82,6 +82,12 @@ locals {
     }
     secrets = flatten(
       concat(
+        [
+          {
+            name      = "CONSUL_HTTP_TOKEN"
+            valueFrom = var.consul_mesh_task_token_secret_arn
+          }
+        ],
         var.tls ? [
           concat(
             local.https_ca_cert_arn != "" ? [
@@ -243,6 +249,12 @@ resource "aws_ecs_task_definition" "this" {
             cpu         = 0
             volumesFrom = []
             environment = []
+            secrets = [
+              {
+                name      = "CONSUL_HTTP_TOKEN"
+                valueFrom = var.consul_mesh_task_token_secret_arn
+              }
+            ]
             ulimits = [{
               name = "nofile"
               // Note: 2^20 (1048576) is the maximum.

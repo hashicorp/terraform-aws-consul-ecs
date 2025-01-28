@@ -303,6 +303,12 @@ variable "consul_https_ca_cert_arn" {
   default     = ""
 }
 
+variable "consul_mesh_task_token_secret_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Consul token to be used by all tasks. This token must have the permissions required for all mesh tasks."
+  type        = string
+  default     = ""
+}
+
 variable "acls" {
   description = "Whether to enable ACLs for the mesh task."
   type        = bool
