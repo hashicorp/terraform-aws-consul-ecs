@@ -258,12 +258,13 @@ resource "aws_ecs_task_definition" "this" {
             }
             cpu         = 0
             volumesFrom = []
-            environment = []
-            secrets = [
+            environment = [
               {
                 name      = "DP_CREDENTIAL_TYPE"
                 value     = "static"
-              },
+              }
+            ]
+            secrets = [
               {
                 name      = "DP_CREDENTIAL_STATIC_TOKEN"
                 valueFrom = var.consul_mesh_task_token_secret_arn
