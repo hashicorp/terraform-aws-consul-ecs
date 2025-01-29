@@ -53,6 +53,7 @@ resource "aws_iam_policy" "task" {
         "secretsmanager:GetSecretValue"
       ],
       "Resource": "${var.consul_mesh_task_token_secret_arn}"
+    }
   ]
 }
 EOF
