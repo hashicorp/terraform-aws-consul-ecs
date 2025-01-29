@@ -261,7 +261,11 @@ resource "aws_ecs_task_definition" "this" {
             environment = []
             secrets = [
               {
-                name      = "CONSUL_HTTP_TOKEN"
+                name      = "DP_CREDENTIAL_TYPE"
+                value     = "static"
+              },
+              {
+                name      = "DP_CREDENTIAL_STATIC_TOKEN"
                 valueFrom = var.consul_mesh_task_token_secret_arn
               }
             ]
@@ -304,6 +308,12 @@ resource "aws_ecs_task_definition" "this" {
             }
             secrets = flatten(
               concat(
+                [
+                  {
+                    name      = "CONSUL_HTTP_TOKEN"
+                    valueFrom = var.consul_mesh_task_token_secret_arn
+                  }
+                ],
                 var.tls ? [
                   concat(
                     local.https_ca_cert_arn != "" ? [
