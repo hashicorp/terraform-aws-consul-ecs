@@ -26,7 +26,7 @@ jobs:
         go-version: ${{ inputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
     - name: Go CI lint
-      uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804 # v3.7.1
+      uses: golangci/golangci-lint-action@2226d7cb06a077cd73e56eedd38eecad18e5d837 # v3.7.1
       with:
         args: "--verbose --enable gofmt"
         only-new-issues: false
