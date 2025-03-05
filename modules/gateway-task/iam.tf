@@ -134,6 +134,13 @@ resource "aws_iam_policy" "execution" {
         "logs:PutLogEvents"
       ],
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchImportUpstreamImage"
+      ],
+      "Resource": "arn:aws:ecr:us-east-1:582238161847:repository/ecr-public/hashicorp/consul*"
     }
   ]
 }

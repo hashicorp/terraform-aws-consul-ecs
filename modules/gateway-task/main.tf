@@ -78,8 +78,10 @@ locals {
     ]
     linuxParameters = {
       initProcessEnabled = true
-      capabilities       = var.enable_transparent_proxy ? { add = ["NET_ADMIN"] } : {}
-    }
+      capabilities = {
+        add  = var.enable_transparent_proxy ? ["NET_ADMIN"] : []
+        drop = []
+    } }
     secrets = flatten(
       concat(
         var.tls ? [
@@ -206,6 +208,7 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = jsonencode(
     flatten(
       concat(
+        var.additional_container_definitions,
         [
           local.finalized_mesh_init_container_definition,
           {
@@ -254,7 +257,7 @@ resource "aws_ecs_task_definition" "this" {
           {
             name             = "consul-ecs-health-sync"
             image            = var.consul_ecs_image
-            essential        = false
+            essential        = true
             logConfiguration = var.log_configuration
             command          = ["health-sync"]
             user             = "5996"
@@ -327,6 +330,18 @@ resource "aws_ecs_service" "this" {
   launch_type            = var.launch_type
   propagate_tags         = "TASK_DEFINITION"
   enable_execute_command = true
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 }
 
 resource "aws_lb" "this" {
