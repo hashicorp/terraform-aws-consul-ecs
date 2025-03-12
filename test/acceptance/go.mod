@@ -9,6 +9,7 @@ require (
 	github.com/gruntwork-io/terratest v0.34.6
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/hashicorp/consul/sdk v0.9.0
+	github.com/hashicorp/serf v0.9.6
 	github.com/stretchr/testify v1.4.0
 )
 
@@ -37,7 +38,6 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/hashicorp/hcl/v2 v2.8.2 // indirect
-	github.com/hashicorp/serf v0.9.6 // indirect
 	github.com/hashicorp/terraform-json v0.9.0 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -48,9 +48,9 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.2.1 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
