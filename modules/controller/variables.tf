@@ -1,6 +1,10 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+variable "alternate_name" {
+  defautl = "consul-ecs-controller"
+}
+
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string

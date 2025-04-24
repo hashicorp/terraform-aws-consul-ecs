@@ -7,7 +7,7 @@ locals {
 }
 
 resource "aws_ecs_service" "this" {
-  name            = "consul-ecs-controller"
+  name            = var.alternate_name
   cluster         = var.ecs_cluster_arn
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = 1
