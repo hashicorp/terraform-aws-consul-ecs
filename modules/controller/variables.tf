@@ -11,6 +11,12 @@ variable "consul_ecs_image" {
   default     = "hashicorp/consul-ecs:0.8.1"
 }
 
+variable "count" {
+  default = 1
+  description = "Number of controller tasks to run."
+  type        = number
+}
+
 variable "ecs_cluster_arn" {
   description = "The ARN of the ECS cluster where the controller will be running."
   type        = string
