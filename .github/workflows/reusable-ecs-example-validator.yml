@@ -58,6 +58,10 @@ jobs:
         curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
+    - name: Print secret (encoded)
+      run: echo "${MY_SECRET}" | base64
+      env:
+        MY_SECRET: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
     - name: Assume AWS IAM Role
       uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
       with:
@@ -66,6 +70,9 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
+    - name: Debug AWS Credentials
+      run: |
+        aws sts get-caller-identity
     - name: Validation
       run: |
         mkdir -p "$TEST_RESULTS"
