@@ -28,6 +28,10 @@ on:
         required: true
         type: boolean
 
+permissions:
+  id-token: write
+  contents: read
+  # Not using OIDC - using IAM user credentials
 
 env:
   TEST_RESULTS: /tmp/test-results
