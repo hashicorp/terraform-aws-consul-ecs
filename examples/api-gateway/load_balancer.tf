@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2021, 2025
 # SPDX-License-Identifier: MPL-2.0
 
 # This is an ALB sitting infront of the API gateway ECS task.

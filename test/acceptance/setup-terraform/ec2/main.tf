@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2021, 2025
 # SPDX-License-Identifier: MPL-2.0
 
 // Setup EC2 container instances for EC2 launch type tests
