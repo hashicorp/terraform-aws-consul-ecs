@@ -114,12 +114,12 @@ module "consul_server" {
   tls  = var.secure
   acls = var.secure
 
-  service_discovery_namespace = var.consul_datacenter
-  datacenter                  = var.consul_datacenter
-  consul_image                = var.consul_image
-  consul_license              = var.consul_license
-  consul_server_startup_timeout = 900  # 15 minutes
-  wait_for_steady_state       = true
+  service_discovery_namespace   = var.consul_datacenter
+  datacenter                    = var.consul_datacenter
+  consul_image                  = var.consul_image
+  consul_license                = var.consul_license
+  consul_server_startup_timeout = 900 # 15 minutes
+  wait_for_steady_state         = true
 }
 
 data "aws_security_group" "vpc_default" {
