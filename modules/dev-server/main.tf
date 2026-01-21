@@ -164,6 +164,16 @@ resource "aws_ecs_task_definition" "this" {
         linuxParameters = {
           initProcessEnabled = true
         }
+        healthCheck = {
+          command = [
+            "CMD-SHELL",
+            "consul members -http-addr=http://localhost:8500 || exit 1"
+          ]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 60
+        }
         dependsOn = var.tls ? [
           {
             containerName = "tls-init"
