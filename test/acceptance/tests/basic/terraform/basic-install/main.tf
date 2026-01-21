@@ -182,7 +182,7 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  depends_on = [module.consul_server]
+  depends_on = var.secure ? [module.consul_server, module.ecs_controller[0]] : [module.consul_server]
 
   source = "../../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
@@ -277,7 +277,7 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  depends_on = [module.consul_server]
+  depends_on = var.secure ? [module.consul_server, module.ecs_controller[0]] : [module.consul_server]
 
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
