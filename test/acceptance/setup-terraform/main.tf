@@ -5,10 +5,6 @@ provider "aws" {
   region = var.region
 }
 
-provider "hcp" {
-  project_id = var.hcp_project_id
-}
-
 locals {
   name   = "consul-ecs-${random_string.suffix.result}"
   suffix = random_string.suffix.result
@@ -107,14 +103,4 @@ module "ec2" {
 resource "aws_cloudwatch_log_group" "log_group" {
   name = local.name
   tags = var.tags
-}
-
-module "hcp" {
-  count  = var.enable_hcp ? 1 : 0
-  source = "./hcp"
-
-  region         = var.region
-  suffix         = local.suffix
-  vpc            = module.vpc
-  consul_version = var.consul_version
 }

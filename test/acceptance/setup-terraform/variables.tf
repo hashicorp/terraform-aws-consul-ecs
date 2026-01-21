@@ -22,11 +22,6 @@ variable "launch_type" {
   description = "The ECS launch type for the cluster. Either EC2 or FARGATE."
 }
 
-variable "enable_hcp" {
-  description = "Whether to spin up an HCP Consul cluster."
-  type        = bool
-}
-
 variable "instance_count" {
   description = "Number of EC2 instances to create for the EC2 launch type (if enabled)."
   type        = number
@@ -47,9 +42,4 @@ variable "consul_version" {
     condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
     error_message = "Must a valid MAJOR.MINOR.PATCH version string."
   }
-}
-
-variable "hcp_project_id" {
-  description = "ID of the HCP project where the Consul specific resources will be created."
-  type        = string
 }
