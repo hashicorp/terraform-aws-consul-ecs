@@ -732,7 +732,7 @@ func TestValidation_RolePath(t *testing.T) {
 	}{
 		{"", true},
 		{"test", true},
-		{"/test", false},
+		{"/test", true},
 		{"/test/", false},
 	}
 	for _, c := range cases {
@@ -754,7 +754,7 @@ func TestValidation_RolePath(t *testing.T) {
 			_, err := terraform.PlanE(t, applyOpts)
 			if c.expError {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), "iam_role_path must begin with '/'")
+				require.Contains(t, err.Error(), "The iam_role_path must begin and end with '/'")
 			} else {
 				require.NoError(t, err)
 			}

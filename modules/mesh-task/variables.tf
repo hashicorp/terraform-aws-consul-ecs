@@ -107,8 +107,8 @@ variable "iam_role_path" {
   default     = "/consul-ecs/"
 
   validation {
-    error_message = "The iam_role_path must begin with '/'."
-    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/"
+    error_message = "The iam_role_path must begin and end with '/'."
+    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/" && substr(var.iam_role_path, -1, 1) == "/"
   }
 }
 
