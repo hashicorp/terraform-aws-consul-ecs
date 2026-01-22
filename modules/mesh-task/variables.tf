@@ -167,7 +167,14 @@ variable "envoy_public_listener_port" {
   validation {
     error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
+      8300,  // consul server rpc
+      8301,  // consul serf lan
+      8302,  // consul serf wan
+      8500,  // consul http
+      8501,  // consul https
+      8502,  // consul grpc
       8600,  // consul dns
+      10000, // envoy listener
       19000, // envoy admin port
     ], var.envoy_public_listener_port)
   }
