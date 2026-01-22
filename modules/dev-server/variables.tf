@@ -216,7 +216,7 @@ variable "replication_token" {
 }
 
 locals {
-  retry_join_wan_xor_primary_gateways = length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0 ? error("Only one of retry_join_wan or primary_gateways may be provided.") : null
+  retry_join_wan_xor_primary_gateways = !(length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0) ? null : assert(false, "Only one of retry_join_wan or primary_gateways may be provided.")
 }
 
 variable "consul_server_startup_timeout" {
