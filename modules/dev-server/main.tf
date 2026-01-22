@@ -119,7 +119,9 @@ resource "aws_ecs_service" "this" {
   wait_for_steady_state  = var.wait_for_steady_state
 
   depends_on = [
-    aws_iam_role.this_task
+    aws_iam_role.this_task,
+    aws_iam_role_policy_attachment.this_execution,
+    aws_security_group.ecs_service
   ]
 }
 
@@ -167,12 +169,12 @@ resource "aws_ecs_task_definition" "this" {
         healthCheck = {
           command = [
             "CMD-SHELL",
-            "consul members -http-addr=http://localhost:8500 || exit 1"
+            var.tls ? "consul members -http-addr=https://localhost:8501 -ca-file=/consul/consul-agent-ca.pem || consul members -http-addr=http://localhost:8500 || exit 1" : "consul members -http-addr=http://localhost:8500 || exit 1"
           ]
           interval    = 30
-          timeout     = 5
-          retries     = 3
-          startPeriod = 60
+          timeout     = 10
+          retries     = 5
+          startPeriod = 120
         }
         dependsOn = var.tls ? [
           {
@@ -507,8 +509,8 @@ resource "aws_lb_target_group" "this" {
     path                = "/v1/status/leader"
     healthy_threshold   = 2
     unhealthy_threshold = 10
-    timeout             = 30
-    interval            = 60
+    timeout             = 29
+    interval            = 90
   }
 }
 
@@ -592,12 +594,27 @@ resource "null_resource" "wait_for_consul_server" {
   }
   provisioner "local-exec" {
     command = <<EOT
+echo "Waiting for Consul server to be available via ALB..."
+echo "ALB DNS: ${aws_lb.this[0].dns_name}:8500"
+echo "Timeout: ${var.consul_server_startup_timeout} seconds"
 stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
+attempt=0 ; \
 while [ $(date +%s) -lt $stopTime ] ; do \
-  sleep 10 ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services)
-  [ $statusCode -eq 200 ] && break; \
-done
+  attempt=$((attempt + 1)) ; \
+  echo "Attempt $attempt: Checking Consul server health..." ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services) ; \
+  echo "Status code: $statusCode" ; \
+  if [ $statusCode -eq 200 ]; then \
+    echo "Consul server is ready!" ; \
+    break ; \
+  fi ; \
+  sleep 15 ; \
+done ; \
+if [ $(date +%s) -ge $stopTime ]; then \
+  echo "Timeout waiting for Consul server to become available" ; \
+  echo "Last status code: $statusCode" ; \
+  exit 1 ; \
+fi
 EOT
   }
 }

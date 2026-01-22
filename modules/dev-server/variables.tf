@@ -216,7 +216,7 @@ variable "replication_token" {
 }
 
 variable "consul_server_startup_timeout" {
-  description = "The number of seconds to wait for the Consul server to become available via its ALB before continuing. The default is 300s (5m), which should be enough in most cases."
+  description = "The number of seconds to wait for the Consul server to become available via its ALB before continuing. The default is 600s (10m), which should be enough in most cases."
   type        = number
-  default     = 300
+  default     = 600
 }

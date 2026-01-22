@@ -118,7 +118,7 @@ module "consul_server" {
   datacenter                    = var.consul_datacenter
   consul_image                  = var.consul_image
   consul_license                = var.consul_license
-  consul_server_startup_timeout = 900 # 15 minutes
+  consul_server_startup_timeout = 1200 # 20 minutes
   wait_for_steady_state         = true
 }
 
