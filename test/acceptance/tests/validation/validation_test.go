@@ -938,7 +938,7 @@ func TestValidation_APIGateway(t *testing.T) {
 	}{
 		"kind is required": {
 			kind:     "",
-			expError: `variable "kind" is not set`,
+			expError: `The root module input variable "kind" is not set, and has no default value`,
 		},
 		"kind must be api-gateway": {
 			kind:     "not-api-gateway",

@@ -229,7 +229,7 @@ variable "upstreams" {
   }
 
   validation {
-    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationPartition', 'destinationName', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
+    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationPartition', 'destinationName', 'destinationPeer', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
     condition = alltrue(flatten([
       for upstream in var.upstreams : [
         for key in keys(upstream) : contains(
