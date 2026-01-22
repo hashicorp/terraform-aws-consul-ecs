@@ -215,10 +215,6 @@ variable "replication_token" {
   default     = ""
 }
 
-locals {
-  retry_join_wan_xor_primary_gateways = !(length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0) ? null : assert(false, "Only one of retry_join_wan or primary_gateways may be provided.")
-}
-
 variable "consul_server_startup_timeout" {
   description = "The number of seconds to wait for the Consul server to become available via its ALB before continuing. The default is 300s (5m), which should be enough in most cases."
   type        = number

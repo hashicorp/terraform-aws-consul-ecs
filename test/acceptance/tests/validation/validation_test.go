@@ -967,7 +967,7 @@ func TestValidation_APIGateway(t *testing.T) {
 					"container_port":   9090,
 				},
 			},
-			expError: "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false",
+			expError: "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled\nis false",
 		},
 		"custom_lb_config passed with lb_enabled as false": {
 			kind:      "api-gateway",

@@ -196,6 +196,13 @@ resource "aws_ecs_task_definition" "this" {
         )
       }
   ]))
+
+  lifecycle {
+    precondition {
+      condition     = !(length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0)
+      error_message = "Only one of 'retry_join_wan' or 'primary_gateways' may be provided, not both."
+    }
+  }
 }
 
 resource "aws_iam_policy" "this_execution" {
