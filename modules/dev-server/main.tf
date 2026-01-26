@@ -115,8 +115,9 @@ resource "aws_ecs_service" "this" {
       container_port   = load_balancer.value["container_port"]
     }
   }
-  enable_execute_command = true
-  wait_for_steady_state  = var.wait_for_steady_state
+  enable_execute_command          = true
+  wait_for_steady_state           = var.wait_for_steady_state
+  health_check_grace_period_seconds = var.lb_enabled ? 300 : null
 
   depends_on = [
     aws_iam_role.this_task,
@@ -176,6 +177,12 @@ resource "aws_ecs_task_definition" "this" {
           retries     = 5
           startPeriod = 120
         }
+        environment = var.acls ? [
+          {
+            name  = "CONSUL_HTTP_TOKEN"
+            value = local.bootstrap_token
+          },
+        ] : []
         dependsOn = var.tls ? [
           {
             containerName = "tls-init"
@@ -506,11 +513,13 @@ resource "aws_lb_target_group" "this" {
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
-    path                = "/v1/status/leader"
+    enabled             = true
     healthy_threshold   = 2
     unhealthy_threshold = 10
     timeout             = 29
     interval            = 90
+    protocol            = "HTTP"
+    path                = "/v1/status/leader"
   }
 }
 
@@ -592,6 +601,11 @@ resource "null_resource" "wait_for_consul_server" {
     // Trigger update when Consul server ALB DNS name changes.
     consul_server_lb_dns_name = "${aws_lb.this[0].dns_name}"
   }
+  
+  depends_on = [
+    aws_ecs_service.this
+  ]
+  
   provisioner "local-exec" {
     command = <<EOT
 echo "Waiting for Consul server to be available via ALB..."
@@ -602,9 +616,9 @@ attempt=0 ; \
 while [ $(date +%s) -lt $stopTime ] ; do \
   attempt=$((attempt + 1)) ; \
   echo "Attempt $attempt: Checking Consul server health..." ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 %{if var.acls}-H "X-Consul-Token: ${local.bootstrap_token}" %{endif}http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services) ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 %{if var.acls}-H "X-Consul-Token: ${local.bootstrap_token}" %{endif}http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services 2>&1 || echo "000") ; \
   echo "Status code: $statusCode" ; \
-  if [ $statusCode -eq 200 ]; then \
+  if [ "$statusCode" = "200" ]; then \
     echo "Consul server is ready!" ; \
     break ; \
   fi ; \
