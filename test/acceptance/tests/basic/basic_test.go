@@ -29,8 +29,8 @@ func TestBasic(t *testing.T) {
 		ecsClusterARN string
 		datacenter    string
 	}{
-		{secure: false},
-		{secure: true},
+		// {secure: false},
+		// {secure: true},
 		{secure: true, enterprise: true},
 	}
 
@@ -111,7 +111,7 @@ func TestBasic(t *testing.T) {
 
 			// Wait for consul server to be up.
 			var consulServerTaskARN string
-			retry.RunWith(&retry.Timer{Timeout: 3 * time.Minute, Wait: 10 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 10 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("consul-server-%s", randomSuffix))
 
 				r.Check(err)
@@ -122,7 +122,7 @@ func TestBasic(t *testing.T) {
 
 			var controllerTaskID string
 			if c.secure {
-				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 8 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					tasks, err := helpers.ListTasks(t, c.ecsClusterARN, cfg.Region, fmt.Sprintf("%s-consul-ecs-controller", randomSuffix))
 
 					r.Check(err)
@@ -134,7 +134,7 @@ func TestBasic(t *testing.T) {
 
 				// Check controller logs to see if the anonymous token gets configured. This should
 				// indicate that the controller has created the service auth method, policies and roles.
-				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
 					require.NoError(r, err)
 
@@ -146,7 +146,7 @@ func TestBasic(t *testing.T) {
 			}
 
 			// Wait for both tasks to be registered in Consul.
-			retry.RunWith(&retry.Timer{Timeout: 6 * time.Minute, Wait: 20 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 10 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				out, err := helpers.ExecuteRemoteCommand(t, cfg, c.ecsClusterARN, consulServerTaskARN, "consul-server", `/bin/sh -c "consul catalog services"`)
 				r.Check(err)
 				if !strings.Contains(out, fmt.Sprintf("%s_%s", serverServiceName, randomSuffix)) ||

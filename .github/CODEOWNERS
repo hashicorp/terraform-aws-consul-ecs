@@ -4,4 +4,4 @@
 
 * @hashicorp/consul-selfmanage-maintainers
 
-/.github/workflows/* @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
+/.github/workflows/* @hashicorp/consul-selfmanage-maintainers
