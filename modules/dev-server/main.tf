@@ -177,12 +177,6 @@ resource "aws_ecs_task_definition" "this" {
           retries     = 5
           startPeriod = 120
         }
-        environment = var.acls ? [
-          {
-            name  = "CONSUL_HTTP_TOKEN"
-            value = local.bootstrap_token
-          },
-        ] : []
         dependsOn = var.tls ? [
           {
             containerName = "tls-init"
