@@ -602,7 +602,7 @@ attempt=0 ; \
 while [ $(date +%s) -lt $stopTime ] ; do \
   attempt=$((attempt + 1)) ; \
   echo "Attempt $attempt: Checking Consul server health..." ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services) ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 %{if var.acls}-H "X-Consul-Token: ${local.bootstrap_token}" %{endif}http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services) ; \
   echo "Status code: $statusCode" ; \
   if [ $statusCode -eq 200 ]; then \
     echo "Consul server is ready!" ; \
