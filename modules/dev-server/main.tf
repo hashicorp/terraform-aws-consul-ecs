@@ -117,12 +117,13 @@ resource "aws_ecs_service" "this" {
   }
   enable_execute_command            = true
   wait_for_steady_state             = var.wait_for_steady_state
-  health_check_grace_period_seconds = var.lb_enabled ? 300 : null
+  health_check_grace_period_seconds = var.lb_enabled ? 600 : null
 
   depends_on = [
     aws_iam_role.this_task,
     aws_iam_role_policy_attachment.this_execution,
-    aws_security_group.ecs_service
+    aws_security_group.ecs_service,
+    aws_lb_target_group.this,
   ]
 }
 
