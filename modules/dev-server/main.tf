@@ -115,8 +115,8 @@ resource "aws_ecs_service" "this" {
       container_port   = load_balancer.value["container_port"]
     }
   }
-  enable_execute_command          = true
-  wait_for_steady_state           = var.wait_for_steady_state
+  enable_execute_command            = true
+  wait_for_steady_state             = var.wait_for_steady_state
   health_check_grace_period_seconds = var.lb_enabled ? 300 : null
 
   depends_on = [
@@ -601,11 +601,11 @@ resource "null_resource" "wait_for_consul_server" {
     // Trigger update when Consul server ALB DNS name changes.
     consul_server_lb_dns_name = "${aws_lb.this[0].dns_name}"
   }
-  
+
   depends_on = [
     aws_ecs_service.this
   ]
-  
+
   provisioner "local-exec" {
     command = <<EOT
 echo "Waiting for Consul server to be available via ALB..."
