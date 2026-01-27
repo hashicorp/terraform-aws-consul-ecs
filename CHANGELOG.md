@@ -1,3 +1,11 @@
+## 0.9.3 (Jan 27, 2026)
+
+IMPROVEMENTS
+* Bump Consul image to `1.22.2`
+* Bump Consul Dataplane image to `1.9.2`
+* Bump Consul ECS image to `0.9.3` 
+* Bumps actions/setup-go to `6.0.0`
+
 ## 0.8.1 (July 5, 2024)
 
 IMPROVEMENTS
