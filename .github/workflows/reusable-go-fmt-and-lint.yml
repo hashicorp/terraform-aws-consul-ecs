@@ -28,11 +28,9 @@ jobs:
     - name: Go CI lint
       uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
       with:
-        args: "--verbose --enable gofmt"
-        only-new-issues: false
-        skip-pkg-cache: true
-        skip-build-cache: true
+        version: v2.8.0
         working-directory: ./test/acceptance
+        args: --timeout=5m --config=.golangci.yml
     - name: Lint Consul retry
       run: |
         go install github.com/hashicorp/lint-consul-retry@v1.3.0
