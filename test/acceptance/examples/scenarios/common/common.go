@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
-	"time"
 )
 
 const (
@@ -22,7 +21,9 @@ func GetPublicIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	ip, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -37,7 +38,6 @@ func GetPublicIP() (string, error) {
 //
 // Note: The resulting string is always lowercased.
 func GenerateRandomStr(length int) string {
-	rand.Seed(time.Now().UnixNano())
 	result := make([]byte, length)
 	for i := range result {
 		result[i] = characterSet[rand.Intn(len(characterSet))]

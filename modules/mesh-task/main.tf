@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.9.0-dev"
+  version_string = "0.9.3"
 
   consul_data_volume_name = "consul_data"
   consul_data_mount = {
@@ -317,4 +317,46 @@ resource "aws_ecs_task_definition" "this" {
       )
     )
   )
+
+  lifecycle {
+    precondition {
+      condition     = var.outbound_only || var.port != 0
+      error_message = "The 'port' variable must be set to a non-zero value if 'outbound_only' is false."
+    }
+
+    precondition {
+      condition     = var.envoy_public_listener_port != var.envoy_readiness_port
+      error_message = "The 'envoy_public_listener_port' should not conflict with 'envoy_readiness_port'."
+    }
+
+    precondition {
+      condition     = !(var.consul_partition != "" && var.consul_namespace == "")
+      error_message = "The 'consul_namespace' must be set if 'consul_partition' is set."
+    }
+
+    precondition {
+      condition     = !(var.consul_namespace != "" && var.consul_partition == "")
+      error_message = "The 'consul_partition' must be set if 'consul_namespace' is set."
+    }
+
+    precondition {
+      condition     = var.create_task_role || length(var.additional_task_role_policies) == 0
+      error_message = "Cannot set 'additional_task_role_policies' when 'create_task_role' is false."
+    }
+
+    precondition {
+      condition     = var.create_execution_role || length(var.additional_execution_role_policies) == 0
+      error_message = "Cannot set 'additional_execution_role_policies' when 'create_execution_role' is false."
+    }
+
+    precondition {
+      condition     = !(var.enable_transparent_proxy && (length(var.requires_compatibilities) != 1 || var.requires_compatibilities[0] != "EC2"))
+      error_message = "Transparent proxy (enable_transparent_proxy) is supported only when using ECS EC2 mode."
+    }
+
+    precondition {
+      condition     = !(var.enable_consul_dns && !var.enable_transparent_proxy)
+      error_message = "The 'enable_transparent_proxy' must be set to true for Consul DNS to be enabled."
+    }
+  }
 }

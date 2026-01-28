@@ -180,11 +180,11 @@ func TestValidation_AdditionalPolicies(t *testing.T) {
 	}{
 		"task": {
 			execution: false,
-			errMsg:    "ERROR: cannot set additional_task_role_policies when create_task_role=false",
+			errMsg:    "Cannot set 'additional_task_role_policies' when 'create_task_role' is false.",
 		},
 		"execution": {
 			execution: true,
-			errMsg:    "ERROR: cannot set additional_execution_role_policies when create_execution_role=false",
+			errMsg:    "Cannot set 'additional_execution_role_policies' when 'create_execution_role' is false.",
 		},
 	}
 	for name, c := range cases {
@@ -398,7 +398,7 @@ func TestValidation_EnvoyReadinessPort(t *testing.T) {
 		},
 		"conflicts-with-listener-port": {
 			port:  20000,
-			error: "envoy_public_listener_port should not conflict with envoy_readiness_port",
+			error: "The 'envoy_public_listener_port' should not conflict with 'envoy_readiness_port'.",
 		},
 	}
 
@@ -680,12 +680,12 @@ func TestValidation_NamespaceAndPartitionRequired(t *testing.T) {
 		"with partition, without namespace": {
 			partition: "default",
 			namespace: "",
-			errMsg:    "ERROR: consul_namespace must be set if consul_partition is set",
+			errMsg:    "The 'consul_namespace' must be set if 'consul_partition' is set.",
 		},
 		"without partition, with namespace": {
 			partition: "",
 			namespace: "default",
-			errMsg:    "ERROR: consul_partition must be set if consul_namespace is set",
+			errMsg:    "The 'consul_partition' must be set if 'consul_namespace' is set.",
 		},
 	}
 
@@ -732,7 +732,7 @@ func TestValidation_RolePath(t *testing.T) {
 	}{
 		{"", true},
 		{"test", true},
-		{"/test", false},
+		{"/test", true},
 		{"/test/", false},
 	}
 	for _, c := range cases {
@@ -754,7 +754,7 @@ func TestValidation_RolePath(t *testing.T) {
 			_, err := terraform.PlanE(t, applyOpts)
 			if c.expError {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), "iam_role_path must begin with '/'")
+				require.Contains(t, err.Error(), "The iam_role_path must begin and end with '/'")
 			} else {
 				require.NoError(t, err)
 			}
@@ -806,7 +806,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			kind:                    "mesh-gateway",
 			enableMeshGatewayWANFed: true,
 			tls:                     false,
-			expError:                "tls must be true when enable_mesh_gateway_wan_federation is true",
+			expError:                "TLS must be enabled (tls = true) when mesh gateway WAN federation is enabled.",
 		},
 		"mesh gateway WAN federation": {
 			kind:                    "mesh-gateway",
@@ -818,7 +818,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			enableMeshGatewayWANFed: false,
 			wanAddress:              "10.1.2.3",
 			lbEnabled:               true,
-			expError:                "Only one of wan_address or lb_enabled may be provided",
+			expError:                "Only one of 'wan_address' or 'lb_enabled' may be provided, not both.",
 		},
 		"lb_enabled": {
 			kind:      "mesh-gateway",
@@ -830,13 +830,13 @@ func TestValidation_MeshGateway(t *testing.T) {
 			kind:      "mesh-gateway",
 			lbEnabled: true,
 			lbVpcID:   "vpc",
-			expError:  "lb_subnets is required when lb_enabled is true",
+			expError:  "The 'lb_subnets' is required when 'lb_enabled' is true.",
 		},
 		"lb_enabled and no VPC": {
 			kind:      "mesh-gateway",
 			lbEnabled: true,
 			lbSubnets: []string{"subnet"},
-			expError:  "lb_vpc_id is required when lb_enabled is true",
+			expError:  "The 'lb_vpc_id' is required when 'lb_enabled' is true.",
 		},
 		"lb create security group and modify security group": {
 			kind:             "mesh-gateway",
@@ -846,7 +846,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			lbVpcID:          "vpc",
 			lbCreateSecGroup: true,
 			lbModifySecGroup: true,
-			expError:         "Only one of lb_create_security_group or lb_modify_security_group may be true",
+			expError:         "Only one of 'lb_create_security_group' or 'lb_modify_security_group' may be true, not both.",
 		},
 		"lb modify security group and no security group ID": {
 			kind:               "mesh-gateway",
@@ -857,7 +857,7 @@ func TestValidation_MeshGateway(t *testing.T) {
 			lbCreateSecGroup:   false,
 			lbModifySecGroup:   true,
 			lbModifySecGroupID: "",
-			expError:           "lb_modify_security_group_id is required when lb_modify_security_group is true",
+			expError:           "The 'lb_modify_security_group_id' is required when 'lb_modify_security_group' is true.",
 		},
 		"lb modify security group with security group ID": {
 			kind:               "mesh-gateway",
@@ -907,10 +907,12 @@ func TestValidation_MeshGateway(t *testing.T) {
 			})
 			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
 
-			_, err := terraform.PlanE(t, applyOpts)
+			out, err := terraform.PlanE(t, applyOpts)
 			if len(c.expError) > 0 {
+				// handle multiline error messages.
+				regex := strings.ReplaceAll(regexp.QuoteMeta(c.expError), " ", "\\s+")
 				require.Error(t, err)
-				require.Contains(t, err.Error(), c.expError)
+				require.Regexp(t, regex, out)
 			} else {
 				require.NoError(t, err)
 			}
@@ -938,7 +940,7 @@ func TestValidation_APIGateway(t *testing.T) {
 	}{
 		"kind is required": {
 			kind:     "",
-			expError: `variable "kind" is not set`,
+			expError: `The root module input variable "kind" is not set, and has no default value`,
 		},
 		"kind must be api-gateway": {
 			kind:     "not-api-gateway",
@@ -967,7 +969,7 @@ func TestValidation_APIGateway(t *testing.T) {
 					"container_port":   9090,
 				},
 			},
-			expError: "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false",
+			expError: "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled\nis false",
 		},
 		"custom_lb_config passed with lb_enabled as false": {
 			kind:      "api-gateway",
@@ -1105,18 +1107,18 @@ func TestValidation_TProxy(t *testing.T) {
 		"only Fargate": {
 			requiresCompatibilities: []string{"FARGATE"},
 			error:                   true,
-			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
+			errorStr:                "Transparent proxy \\(enable_transparent_proxy\\) is supported only when using ECS\\s+EC2 mode\\.",
 		},
 		"both Fargate and EC2": {
 			requiresCompatibilities: []string{"FARGATE", "EC2"},
 			error:                   true,
-			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
+			errorStr:                "Transparent proxy \\(enable_transparent_proxy\\) is supported only when using ECS\\s+EC2 mode\\.",
 		},
 		"Consul DNS does not work without enabling tproxy": {
 			requiresCompatibilities: []string{"FARGATE", "EC2"},
 			disableTProxy:           true,
 			error:                   true,
-			errorStr:                "var.enable_transparent_proxy must be set to true for Consul DNS to be enabled.",
+			errorStr:                "The 'enable_transparent_proxy' must be set to true for Consul DNS to be\\s+enabled\\.",
 		},
 	}
 
@@ -1170,18 +1172,18 @@ func TestValidation_TProxy_Gateway(t *testing.T) {
 		"only Fargate": {
 			requiresCompatibilities: []string{"FARGATE"},
 			error:                   true,
-			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
+			errorStr:                "Transparent proxy \\(enable_transparent_proxy\\) is supported only when using ECS\\s+EC2 mode\\.",
 		},
 		"both Fargate and EC2": {
 			requiresCompatibilities: []string{"FARGATE", "EC2"},
 			error:                   true,
-			errorStr:                "transparent proxy is supported only in ECS EC2 mode.",
+			errorStr:                "Transparent proxy \\(enable_transparent_proxy\\) is supported only when using ECS\\s+EC2 mode\\.",
 		},
 		"Consul DNS does not work without enabling tproxy": {
 			requiresCompatibilities: []string{"FARGATE", "EC2"},
 			disableTProxy:           true,
 			error:                   true,
-			errorStr:                "var.enable_transparent_proxy must be set to true for Consul DNS to be enabled.",
+			errorStr:                "The 'enable_transparent_proxy' must be set to true for Consul DNS to be\\s+enabled\\.",
 		},
 	}
 
