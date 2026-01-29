@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 
 locals {
   // Must be updated for each release, and after each release to return to a "-dev" version.
-  version_string = "0.9.0-dev"
+  version_string = "0.9.3"
 
   consul_data_volume_name = "consul_data"
   consul_data_mount = {
@@ -305,6 +305,53 @@ resource "aws_ecs_task_definition" "this" {
       )
     )
   )
+
+  lifecycle {
+    precondition {
+      condition     = !var.enable_mesh_gateway_wan_federation || var.tls
+      error_message = "TLS must be enabled (tls = true) when mesh gateway WAN federation is enabled."
+    }
+
+    precondition {
+      condition     = !(var.wan_address != "" && var.lb_enabled)
+      error_message = "Only one of 'wan_address' or 'lb_enabled' may be provided, not both."
+    }
+
+    precondition {
+      condition     = !(var.lb_enabled && length(var.lb_subnets) < 1)
+      error_message = "The 'lb_subnets' is required when 'lb_enabled' is true."
+    }
+
+    precondition {
+      condition     = !(var.lb_enabled && var.lb_vpc_id == "")
+      error_message = "The 'lb_vpc_id' is required when 'lb_enabled' is true."
+    }
+
+    precondition {
+      condition     = !(var.lb_create_security_group && var.lb_modify_security_group)
+      error_message = "Only one of 'lb_create_security_group' or 'lb_modify_security_group' may be true, not both."
+    }
+
+    precondition {
+      condition     = !(var.lb_modify_security_group && var.lb_modify_security_group_id == "")
+      error_message = "The 'lb_modify_security_group_id' is required when 'lb_modify_security_group' is true."
+    }
+
+    precondition {
+      condition     = !(var.lb_enabled && length(var.custom_load_balancer_config) > 0)
+      error_message = "ERROR: custom_load_balancer_config must only be supplied when var.lb_enabled is false"
+    }
+
+    precondition {
+      condition     = !(var.enable_transparent_proxy && (length(var.requires_compatibilities) != 1 || var.requires_compatibilities[0] != "EC2"))
+      error_message = "Transparent proxy (enable_transparent_proxy) is supported only when using ECS EC2 mode."
+    }
+
+    precondition {
+      condition     = !(var.enable_consul_dns && !var.enable_transparent_proxy)
+      error_message = "The 'enable_transparent_proxy' must be set to true for Consul DNS to be enabled."
+    }
+  }
 }
 
 resource "aws_ecs_service" "this" {

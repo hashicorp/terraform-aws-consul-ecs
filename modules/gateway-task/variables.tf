@@ -71,8 +71,8 @@ variable "iam_role_path" {
   default     = "/consul-ecs/"
 
   validation {
-    error_message = "The iam_role_path must begin with '/'."
-    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/"
+    error_message = "The iam_role_path must begin and end with '/'."
+    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/" && substr(var.iam_role_path, -1, 1) == "/"
   }
 }
 
@@ -91,7 +91,7 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorppreview/consul:1.19.0"
+  default     = "hashicorp/consul:1.22.2"
 }
 
 variable "consul_server_hosts" {
@@ -108,13 +108,13 @@ variable "skip_server_watch" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.9.0-dev"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.9.3"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorppreview/consul-dataplane:1.6.0-dev"
+  default     = "hashicorp/consul-dataplane:1.9.2"
 }
 
 variable "envoy_readiness_port" {
