@@ -22,7 +22,7 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.17.0"
+        default: "1.22.2"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
@@ -45,7 +45,7 @@ jobs:
         working-directory: ./test/acceptance
     steps:
     - name: Checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v6.0.2
     - name: Setup Go
       uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
       with:
@@ -69,6 +69,10 @@ jobs:
         curl -sSL "https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest" -o /usr/local/bin/ecs-cli
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "~1.5"
     - name: Assume AWS IAM Role
       uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
       with:
@@ -95,10 +99,10 @@ jobs:
         mkdir -p "$TEST_RESULTS"
         cd tests/
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       if: always()
       with:
-        name: acceptance-test-results
+        name: acceptance-test-results-${{ inputs.name }}
         path: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
     - name: terraform destroy
       if: always()
