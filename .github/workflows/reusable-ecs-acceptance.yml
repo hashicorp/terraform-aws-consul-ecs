@@ -70,7 +70,7 @@ jobs:
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
       with:
         terraform_version: "~1.5"
     - name: Assume AWS IAM Role
