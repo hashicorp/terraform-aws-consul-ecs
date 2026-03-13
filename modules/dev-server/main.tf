@@ -115,11 +115,15 @@ resource "aws_ecs_service" "this" {
       container_port   = load_balancer.value["container_port"]
     }
   }
-  enable_execute_command = true
-  wait_for_steady_state  = var.wait_for_steady_state
+  enable_execute_command            = true
+  wait_for_steady_state             = var.wait_for_steady_state
+  health_check_grace_period_seconds = var.lb_enabled ? 600 : null
 
   depends_on = [
-    aws_iam_role.this_task
+    aws_iam_role.this_task,
+    aws_iam_role_policy_attachment.this_execution,
+    aws_security_group.ecs_service,
+    aws_lb_target_group.this,
   ]
 }
 
@@ -164,6 +168,16 @@ resource "aws_ecs_task_definition" "this" {
         linuxParameters = {
           initProcessEnabled = true
         }
+        healthCheck = {
+          command = [
+            "CMD-SHELL",
+            var.tls ? "consul members -http-addr=https://localhost:8501 -ca-file=/consul/consul-agent-ca.pem || consul members -http-addr=http://localhost:8500 || exit 1" : "consul members -http-addr=http://localhost:8500 || exit 1"
+          ]
+          interval    = 30
+          timeout     = 10
+          retries     = 5
+          startPeriod = 120
+        }
         dependsOn = var.tls ? [
           {
             containerName = "tls-init"
@@ -186,6 +200,13 @@ resource "aws_ecs_task_definition" "this" {
         )
       }
   ]))
+
+  lifecycle {
+    precondition {
+      condition     = !(length(var.retry_join_wan) > 0 && length(var.primary_gateways) > 0)
+      error_message = "Only one of 'retry_join_wan' or 'primary_gateways' may be provided, not both."
+    }
+  }
 }
 
 resource "aws_iam_policy" "this_execution" {
@@ -487,11 +508,13 @@ resource "aws_lb_target_group" "this" {
   target_type          = "ip"
   deregistration_delay = 10
   health_check {
-    path                = "/v1/status/leader"
+    enabled             = true
     healthy_threshold   = 2
     unhealthy_threshold = 10
-    timeout             = 30
-    interval            = 60
+    timeout             = 29
+    interval            = 90
+    protocol            = "HTTP"
+    path                = "/v1/status/leader"
   }
 }
 
@@ -573,14 +596,34 @@ resource "null_resource" "wait_for_consul_server" {
     // Trigger update when Consul server ALB DNS name changes.
     consul_server_lb_dns_name = "${aws_lb.this[0].dns_name}"
   }
+
+  depends_on = [
+    aws_ecs_service.this
+  ]
+
   provisioner "local-exec" {
     command = <<EOT
+echo "Waiting for Consul server to be available via ALB..."
+echo "ALB DNS: ${aws_lb.this[0].dns_name}:8500"
+echo "Timeout: ${var.consul_server_startup_timeout} seconds"
 stopTime=$(($(date +%s) + ${var.consul_server_startup_timeout})) ; \
+attempt=0 ; \
 while [ $(date +%s) -lt $stopTime ] ; do \
-  sleep 10 ; \
-  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services)
-  [ $statusCode -eq 200 ] && break; \
-done
+  attempt=$((attempt + 1)) ; \
+  echo "Attempt $attempt: Checking Consul server health..." ; \
+  statusCode=$(curl -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 --max-time 30 %{if var.acls}-H "X-Consul-Token: ${local.bootstrap_token}" %{endif}http://${aws_lb.this[0].dns_name}:8500/v1/catalog/services 2>&1 || echo "000") ; \
+  echo "Status code: $statusCode" ; \
+  if [ "$statusCode" = "200" ]; then \
+    echo "Consul server is ready!" ; \
+    break ; \
+  fi ; \
+  sleep 15 ; \
+done ; \
+if [ $(date +%s) -ge $stopTime ]; then \
+  echo "Timeout waiting for Consul server to become available" ; \
+  echo "Last status code: $statusCode" ; \
+  exit 1 ; \
+fi
 EOT
   }
 }

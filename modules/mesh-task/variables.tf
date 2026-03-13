@@ -107,8 +107,8 @@ variable "iam_role_path" {
   default     = "/consul-ecs/"
 
   validation {
-    error_message = "The iam_role_path must begin with '/'."
-    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/"
+    error_message = "The iam_role_path must begin and end with '/'."
+    condition     = var.iam_role_path != "" && substr(var.iam_role_path, 0, 1) == "/" && substr(var.iam_role_path, -1, 1) == "/"
   }
 }
 
@@ -145,13 +145,13 @@ variable "outbound_only" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.9.0-dev"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.9.3"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorppreview/consul-dataplane:1.6.0-dev"
+  default     = "hashicorp/consul-dataplane:1.9.2"
 }
 
 variable "envoy_public_listener_port" {
@@ -167,7 +167,14 @@ variable "envoy_public_listener_port" {
   validation {
     error_message = "The envoy_public_listener_port must not conflict with the following ports that are reserved for Consul and Envoy: 8300, 8301, 8302, 8500, 8501, 8502, 8600, 10000, 19000."
     condition = !contains([
+      8300,  // consul server rpc
+      8301,  // consul serf lan
+      8302,  // consul serf wan
+      8500,  // consul http
+      8501,  // consul https
+      8502,  // consul grpc
       8600,  // consul dns
+      10000, // envoy listener
       19000, // envoy admin port
     ], var.envoy_public_listener_port)
   }
@@ -229,7 +236,7 @@ variable "upstreams" {
   }
 
   validation {
-    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationPartition', 'destinationName', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
+    error_message = "Upstream fields must be one of 'destinationType', 'destinationNamespace', 'destinationPartition', 'destinationName', 'destinationPeer', 'datacenter', 'localBindAddress', 'localBindPort', 'config', or 'meshGateway'."
     condition = alltrue(flatten([
       for upstream in var.upstreams : [
         for key in keys(upstream) : contains(

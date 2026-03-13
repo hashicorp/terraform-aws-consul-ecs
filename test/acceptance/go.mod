@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance
 
-go 1.19
+go 1.25.5
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.15.9
@@ -9,6 +9,7 @@ require (
 	github.com/gruntwork-io/terratest v0.34.6
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/hashicorp/consul/sdk v0.9.0
+	github.com/hashicorp/serf v0.9.6
 	github.com/stretchr/testify v1.4.0
 )
 
@@ -37,7 +38,6 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/hashicorp/hcl/v2 v2.8.2 // indirect
-	github.com/hashicorp/serf v0.9.6 // indirect
 	github.com/hashicorp/terraform-json v0.9.0 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect

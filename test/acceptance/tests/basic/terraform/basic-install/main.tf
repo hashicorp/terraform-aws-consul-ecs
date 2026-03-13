@@ -69,7 +69,7 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "hashicorppreview/consul-ecs:0.9.0-dev"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.9.3"
 }
 
 variable "server_service_name" {
@@ -114,10 +114,12 @@ module "consul_server" {
   tls  = var.secure
   acls = var.secure
 
-  service_discovery_namespace = var.consul_datacenter
-  datacenter                  = var.consul_datacenter
-  consul_image                = var.consul_image
-  consul_license              = var.consul_license
+  service_discovery_namespace   = var.consul_datacenter
+  datacenter                    = var.consul_datacenter
+  consul_image                  = var.consul_image
+  consul_license                = var.consul_license
+  consul_server_startup_timeout = 1200 # 20 minutes
+  wait_for_steady_state         = true
 }
 
 data "aws_security_group" "vpc_default" {
@@ -182,7 +184,10 @@ resource "aws_ecs_service" "test_client" {
 }
 
 module "test_client" {
-  depends_on = [module.consul_server]
+  depends_on = [
+    module.consul_server,
+    module.ecs_controller
+  ]
 
   source = "../../../../../../modules/mesh-task"
   // mesh-task will lower case this to `test_client_<suffix>` for the service name.
@@ -277,7 +282,10 @@ resource "aws_ecs_service" "test_server" {
 }
 
 module "test_server" {
-  depends_on = [module.consul_server]
+  depends_on = [
+    module.consul_server,
+    module.ecs_controller
+  ]
 
   source                   = "../../../../../../modules/mesh-task"
   family                   = "test_server_${var.suffix}"
