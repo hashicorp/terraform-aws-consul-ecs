@@ -384,7 +384,7 @@ variable "consul_ecs_config" {
       ]
     ]))
   }
-  
+
   validation {
     error_message = "Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway."
     condition = alltrue(flatten([
