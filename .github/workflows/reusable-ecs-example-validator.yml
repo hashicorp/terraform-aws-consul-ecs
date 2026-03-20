@@ -39,7 +39,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Setup Go
-      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v6.3.0
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       with:
         go-version: ${{ inputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
@@ -59,7 +59,7 @@ jobs:
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
     - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@cabfdba3510de1431bac9dba27511d97497fc100 # v6.0.0
+      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
       with:
         role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_ECS_REGION }}
@@ -70,7 +70,7 @@ jobs:
       run: |
         mkdir -p "$TEST_RESULTS"
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v7.0.0
+    - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       if: always()
       with:
         name: example-validation-test-results
