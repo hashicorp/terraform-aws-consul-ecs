@@ -48,7 +48,7 @@ resource "hcp_consul_cluster" "this" {
   hvn_id             = hcp_hvn.server.hvn_id
   tier               = "development"
   public_endpoint    = true
-  min_consul_version = var.consul_version
+  min_consul_version = var.consul_enterprise_version != "" ? var.consul_enterprise_version : var.consul_version
 }
 
 resource "aws_secretsmanager_secret" "bootstrap_token" {

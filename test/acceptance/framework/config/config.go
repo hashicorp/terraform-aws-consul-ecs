@@ -18,7 +18,11 @@ type TestConfig struct {
 	Tags               interface{}
 	ClientServiceName  string
 	ServerServiceName  string
-	ConsulVersion      string `json:"consul_version"`
+	// ConsulVersion is the default Consul version used when edition-specific versions are not set.
+	// Deprecated: Use ConsulCEVersion or ConsulEnterpriseVersion for edition-specific versions.
+	ConsulVersion           string `json:"consul_version"`
+	ConsulCEVersion         string `json:"consul_ce_version"`
+	ConsulEnterpriseVersion string `json:"consul_enterprise_version"`
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
@@ -48,9 +52,24 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 }
 
 // ConsulImageURI returns the Consul image URI for the configured consul version.
+// It uses edition-specific versions (ConsulCEVersion or ConsulEnterpriseVersion) if available,
+// falling back to the generic ConsulVersion for backward compatibility.
 func (t TestConfig) ConsulImageURI(enterprise bool) string {
+	var version string
 	if enterprise {
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + t.ConsulVersion + "-ent"
+		// Use Enterprise-specific version if set, otherwise fall back to ConsulVersion
+		if t.ConsulEnterpriseVersion != "" {
+			version = t.ConsulEnterpriseVersion
+		} else {
+			version = t.ConsulVersion
+		}
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
 	}
-	return "public.ecr.aws/hashicorp/consul:" + t.ConsulVersion
+	// Use CE-specific version if set, otherwise fall back to ConsulVersion
+	if t.ConsulCEVersion != "" {
+		version = t.ConsulCEVersion
+	} else {
+		version = t.ConsulVersion
+	}
+	return "public.ecr.aws/hashicorp/consul:" + version
 }

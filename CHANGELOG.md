@@ -1,3 +1,19 @@
+## 0.9.4 (March 18, 2026)
+
+FEATURES
+* Add support for separate version configuration for Consul Community Edition and Enterprise. The test framework now supports `consul_ce_version` and `consul_enterprise_version` variables, allowing different versions to be used for each edition. The original `consul_version` variable is maintained for backward compatibility.
+* Add validations for mesh-task module ecs-config for networkPartitionResilienceConfig. Existing Service defaults are merged to include passive health check if any doesn't exist, without modifying existing passive health check service defaults. [[GH-376](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/376)]
+
+IMPROVEMENTS
+* Bump Consul CE image to `1.21.5`
+* Bump Consul Enterprise image to `1.21.9-ent`
+* Bump Consul ECS image to `0.9.4`
+* Bump Consul Dataplane image to `1.8.19`
+* Bump `actions/setup-go` from `v6.0.0` to `v6.1.0`
+* Bump `golang.org/x/crypto` from `0.17.0` to `0.45.0`
+* Bump `golang.org/x/net` from `0.17.0` to `0.47.0`
+* Bump Go version to `1.25.8`
+
 ## 0.9.3 (Jan 27, 2026)
 
 IMPROVEMENTS

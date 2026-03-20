@@ -17,6 +17,18 @@ variable "vpc" {
 }
 
 variable "consul_version" {
-  description = "The Consul server version."
+  description = "The Consul server version. HCP Consul is Enterprise only."
   type        = string
+}
+
+variable "consul_ce_version" {
+  description = "The Consul Community Edition version (not used for HCP)."
+  type        = string
+  default     = ""
+}
+
+variable "consul_enterprise_version" {
+  description = "The Consul Enterprise version. If set, this will be used instead of consul_version for HCP."
+  type        = string
+  default     = ""
 }

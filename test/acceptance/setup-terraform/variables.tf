@@ -40,12 +40,35 @@ variable "instance_type" {
 }
 
 variable "consul_version" {
-  description = "The Consul version. Must a valid MAJOR.MINOR.PATCH version string."
+  description = "The default Consul version for both CE and Enterprise. Must be a valid MAJOR.MINOR.PATCH version string. This is used when edition-specific versions are not provided."
   type        = string
+  default     = ""
 
   validation {
-    condition     = can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
-    error_message = "Must a valid MAJOR.MINOR.PATCH version string."
+    condition     = var.consul_version == "" || can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_version))
+    error_message = "Must be a valid MAJOR.MINOR.PATCH version string or empty."
+  }
+}
+
+variable "consul_ce_version" {
+  description = "The Consul Community Edition version. Must be a valid MAJOR.MINOR.PATCH version string. If not set, consul_version will be used."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.consul_ce_version == "" || can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_ce_version))
+    error_message = "Must be a valid MAJOR.MINOR.PATCH version string or empty."
+  }
+}
+
+variable "consul_enterprise_version" {
+  description = "The Consul Enterprise version. Must be a valid MAJOR.MINOR.PATCH version string. If not set, consul_version will be used."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.consul_enterprise_version == "" || can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_enterprise_version))
+    error_message = "Must be a valid MAJOR.MINOR.PATCH version string or empty."
   }
 }
 
