@@ -171,7 +171,13 @@ resource "aws_ecs_task_definition" "this" {
         healthCheck = {
           command = [
             "CMD-SHELL",
-            var.tls ? "consul members -http-addr=https://localhost:8501 -ca-file=/consul/consul-agent-ca.pem || consul members -http-addr=http://localhost:8500 || exit 1" : "consul members -http-addr=http://localhost:8500 || exit 1"
+            var.acls && !local.is_consul_1_21_plus
+              ? var.tls
+                  ? "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: $CONSUL_HTTP_TOKEN\" https://localhost:8501/v1/status/leader --cacert /consul/consul-agent-ca.pem >/dev/null"
+                  : "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: $CONSUL_HTTP_TOKEN\" http://localhost:8500/v1/status/leader >/dev/null"
+              : var.tls
+                  ? "curl -fsS --connect-timeout 5 --max-time 10 https://localhost:8501/v1/status/leader --cacert /consul/consul-agent-ca.pem >/dev/null"
+                  : "curl -fsS --connect-timeout 5 --max-time 10 http://localhost:8500/v1/status/leader >/dev/null"
           ]
           interval    = 30
           timeout     = 10
