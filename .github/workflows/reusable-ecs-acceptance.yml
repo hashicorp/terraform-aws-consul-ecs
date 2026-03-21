@@ -81,6 +81,59 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ECS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
+    - name: Pre-cleanup orphaned VPCs
+      if: always()
+      run: |
+        set +e
+        echo "Checking for orphaned VPCs from previous test runs..."
+        
+        # List all VPCs
+        VPCS=$(aws ec2 describe-vpcs --query "Vpcs[*].[VpcId,Tags[?Key=='Name'].Value|[0]]" --output text 2>/dev/null || echo "")
+        
+        if [ -z "$VPCS" ]; then
+          echo "No VPCs found"
+          exit 0
+        fi
+        
+        echo "Found VPCs:"
+        echo "$VPCS"
+        
+        # Count current VPCs
+        VPC_COUNT=$(aws ec2 describe-vpcs --query "length(Vpcs)" --output text 2>/dev/null || echo "0")
+        echo "Current VPC count: $VPC_COUNT / 5 (AWS limit)"
+        
+        if [ "$VPC_COUNT" -ge 5 ]; then
+          echo "WARNING: At or near VPC limit ($VPC_COUNT/5), attempting cleanup of consul-ecs VPCs..."
+          
+          # Clean up consul-ecs VPCs that are likely from old test runs
+          for vpc_id in $(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=consul-ecs-*" --query "Vpcs[*].VpcId" --output text 2>/dev/null); do
+            echo "Cleaning up old test VPC: $vpc_id"
+            
+            # Get all resources associated with this VPC
+            SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc_id" --query "Subnets[*].SubnetId" --output text 2>/dev/null)
+            for subnet in $SUBNETS; do
+              echo "  - Deleting subnet: $subnet"
+              aws ec2 delete-subnet --subnet-id "$subnet" 2>/dev/null || true
+            done
+            
+            IGWs=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc_id" --query "InternetGateways[*].InternetGatewayId" --output text 2>/dev/null)
+            for igw in $IGWs; do
+              echo "  - Detaching IGW: $igw"
+              aws ec2 detach-internet-gateway --internet-gateway-id "$igw" --vpc-id "$vpc_id" 2>/dev/null || true
+              aws ec2 delete-internet-gateway --internet-gateway-id "$igw" 2>/dev/null || true
+            done
+            
+            RTBs=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc_id" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text 2>/dev/null)
+            for rtb in $RTBs; do
+              echo "  - Deleting route table: $rtb"
+              aws ec2 delete-route-table --route-table-id "$rtb" 2>/dev/null || true
+            done
+            
+            echo "  - Deleting VPC: $vpc_id"
+            aws ec2 delete-vpc --vpc-id "$vpc_id" 2>/dev/null || true
+          done
+        fi
+        set -e
     - name: terraform init & apply
       run: |
         cd setup-terraform/
@@ -121,33 +174,52 @@ jobs:
     - name: Cleanup AWS resources
       if: always()
       run: |
+        set +e
         echo "Cleaning up VPCs and related resources..."
         # Get all VPCs with the test tag
         BUILD_TAG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        for vpc_id in $(aws ec2 describe-vpcs --filters Name=tag:build_url,Values="$BUILD_TAG" --query "Vpcs[*].VpcId" --output text); do
+        
+        for vpc_id in $(aws ec2 describe-vpcs --filters Name=tag:build_url,Values="$BUILD_TAG" --query "Vpcs[*].VpcId" --output text 2>/dev/null); do
           echo "Found VPC: $vpc_id, attempting cleanup..."
           
           # Delete all route tables except default
-          for rtb in $(aws ec2 describe-route-tables --filters Name=vpc-id,Values="$vpc_id" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text); do
-            echo "Deleting route table: $rtb"
-            aws ec2 delete-route-table --route-table-id "$rtb" || true
+          for rtb in $(aws ec2 describe-route-tables --filters Name=vpc-id,Values="$vpc_id" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text 2>/dev/null); do
+            echo "  - Deleting route table: $rtb"
+            aws ec2 delete-route-table --route-table-id "$rtb" 2>/dev/null || true
           done
           
           # Detach and delete internet gateways
-          for igw in $(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values="$vpc_id" --query "InternetGateways[*].InternetGatewayId" --output text); do
-            echo "Detaching and deleting IGW: $igw"
-            aws ec2 detach-internet-gateway --internet-gateway-id "$igw" --vpc-id "$vpc_id" || true
-            aws ec2 delete-internet-gateway --internet-gateway-id "$igw" || true
+          for igw in $(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values="$vpc_id" --query "InternetGateways[*].InternetGatewayId" --output text 2>/dev/null); do
+            echo "  - Detaching IGW: $igw"
+            aws ec2 detach-internet-gateway --internet-gateway-id "$igw" --vpc-id "$vpc_id" 2>/dev/null || true
+            aws ec2 delete-internet-gateway --internet-gateway-id "$igw" 2>/dev/null || true
           done
           
           # Delete subnets
-          for subnet in $(aws ec2 describe-subnets --filters Name=vpc-id,Values="$vpc_id" --query "Subnets[*].SubnetId" --output text); do
-            echo "Deleting subnet: $subnet"
-            aws ec2 delete-subnet --subnet-id "$subnet" || true
+          for subnet in $(aws ec2 describe-subnets --filters Name=vpc-id,Values="$vpc_id" --query "Subnets[*].SubnetId" --output text 2>/dev/null); do
+            echo "  - Deleting subnet: $subnet"
+            aws ec2 delete-subnet --subnet-id "$subnet" 2>/dev/null || true
+          done
+          
+          # Delete security groups (except default)
+          for sg in $(aws ec2 describe-security-groups --filters Name=vpc-id,Values="$vpc_id" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text 2>/dev/null); do
+            echo "  - Deleting security group: $sg"
+            aws ec2 delete-security-group --group-id "$sg" 2>/dev/null || true
+          done
+          
+          # Delete network ACLs (except default)
+          for nacl in $(aws ec2 describe-network-acls --filters Name=vpc-id,Values="$vpc_id" --query "NetworkAcls[?IsDefault==\`false\`].NetworkAclId" --output text 2>/dev/null); do
+            echo "  - Deleting network ACL: $nacl"
+            aws ec2 delete-network-acl --network-acl-id "$nacl" 2>/dev/null || true
           done
           
           # Delete the VPC
-          echo "Deleting VPC: $vpc_id"
-          aws ec2 delete-vpc --vpc-id "$vpc_id" || true
+          echo "  - Deleting VPC: $vpc_id"
+          aws ec2 delete-vpc --vpc-id "$vpc_id" 2>/dev/null || true
         done
-        echo "Cleanup completed"
+        
+        # Final check: list remaining VPCs
+        echo ""
+        REMAINING_COUNT=$(aws ec2 describe-vpcs --query "length(Vpcs)" --output text 2>/dev/null || echo "unknown")
+        echo "VPC cleanup completed. Remaining VPCs: $REMAINING_COUNT/5"
+        set -e
