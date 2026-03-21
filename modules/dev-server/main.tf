@@ -27,8 +27,8 @@ locals {
   service_discovery_namespace = var.service_discovery_namespace != "" ? var.service_discovery_namespace : var.datacenter
 
   // Health check command for container - includes token for Consul 1.20.x with ACLs, omits it for 1.21+
-  health_check_cmd_https_with_token    = "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: $CONSUL_HTTP_TOKEN\" https://localhost:8501/v1/status/leader --cacert /consul/consul-agent-ca.pem >/dev/null"
-  health_check_cmd_http_with_token     = "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: $CONSUL_HTTP_TOKEN\" http://localhost:8500/v1/status/leader >/dev/null"
+  health_check_cmd_https_with_token    = "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: ${local.bootstrap_token}\" https://localhost:8501/v1/status/leader --cacert /consul/consul-agent-ca.pem >/dev/null"
+  health_check_cmd_http_with_token     = "curl -fsS --connect-timeout 5 --max-time 10 -H \"X-Consul-Token: ${local.bootstrap_token}\" http://localhost:8500/v1/status/leader >/dev/null"
   health_check_cmd_https_without_token = "curl -fsS --connect-timeout 5 --max-time 10 https://localhost:8501/v1/status/leader --cacert /consul/consul-agent-ca.pem >/dev/null"
   health_check_cmd_http_without_token  = "curl -fsS --connect-timeout 5 --max-time 10 http://localhost:8500/v1/status/leader >/dev/null"
 
