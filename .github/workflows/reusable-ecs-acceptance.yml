@@ -22,7 +22,7 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.20.6"
+        default: "1.22.5"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
@@ -116,4 +116,38 @@ jobs:
             main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
             *) VARS+=" -var enable_hcp=false";;
         esac
-        terraform destroy -auto-approve $VARS
+        terraform destroy -auto-approve -lock=false $VARS || echo "Terraform destroy encountered an error, attempting to continue..."
+        
+    - name: Cleanup AWS resources
+      if: always()
+      run: |
+        echo "Cleaning up VPCs and related resources..."
+        # Get all VPCs with the test tag
+        BUILD_TAG="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        for vpc_id in $(aws ec2 describe-vpcs --filters Name=tag:build_url,Values="$BUILD_TAG" --query 'Vpcs[*].VpcId' --output text); do
+          echo "Found VPC: $vpc_id, attempting cleanup..."
+          
+          # Delete all route tables except default
+          for rtb in $(aws ec2 describe-route-tables --filters Name=vpc-id,Values="$vpc_id" --query 'RouteTables[?Associations[0].Main!=`true`].RouteTableId' --output text); do
+            echo "Deleting route table: $rtb"
+            aws ec2 delete-route-table --route-table-id "$rtb" || true
+          done
+          
+          # Detach and delete internet gateways
+          for igw in $(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values="$vpc_id" --query 'InternetGateways[*].InternetGatewayId' --output text); do
+            echo "Detaching and deleting IGW: $igw"
+            aws ec2 detach-internet-gateway --internet-gateway-id "$igw" --vpc-id "$vpc_id" || true
+            aws ec2 delete-internet-gateway --internet-gateway-id "$igw" || true
+          done
+          
+          # Delete subnets
+          for subnet in $(aws ec2 describe-subnets --filters Name=vpc-id,Values="$vpc_id" --query 'Subnets[*].SubnetId' --output text); do
+            echo "Deleting subnet: $subnet"
+            aws ec2 delete-subnet --subnet-id "$subnet" || true
+          done
+          
+          # Delete the VPC
+          echo "Deleting VPC: $vpc_id"
+          aws ec2 delete-vpc --vpc-id "$vpc_id" || true
+        done
+        echo "Cleanup completed"
