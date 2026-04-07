@@ -5,20 +5,21 @@ package config
 
 // TestConfig holds configuration for the test suite.
 type TestConfig struct {
-	NoCleanupOnFailure bool
-	ECSClusterARNs     []string    `json:"ecs_cluster_arns"`
-	LaunchType         string      `json:"launch_type"`
-	PrivateSubnets     interface{} `json:"private_subnets"`
-	PublicSubnets      interface{} `json:"public_subnets"`
-	Suffix             string
-	Region             string   `json:"region"`
-	VpcID              string   `json:"vpc_id"`
-	RouteTableIDs      []string `json:"route_table_ids"`
-	LogGroupName       string   `json:"log_group_name"`
-	Tags               interface{}
-	ClientServiceName  string
-	ServerServiceName  string
-	ConsulVersion      string `json:"consul_version"`
+	NoCleanupOnFailure      bool
+	ECSClusterARNs          []string    `json:"ecs_cluster_arns"`
+	LaunchType              string      `json:"launch_type"`
+	PrivateSubnets          interface{} `json:"private_subnets"`
+	PublicSubnets           interface{} `json:"public_subnets"`
+	Suffix                  string
+	Region                  string   `json:"region"`
+	VpcID                   string   `json:"vpc_id"`
+	RouteTableIDs           []string `json:"route_table_ids"`
+	LogGroupName            string   `json:"log_group_name"`
+	Tags                    interface{}
+	ClientServiceName       string
+	ServerServiceName       string
+	ConsulVersion           string `json:"consul_version"`
+	ConsulEnterpriseVersion string `json:"consul_enterprise_version"`
 }
 
 func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
@@ -50,7 +51,12 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 // ConsulImageURI returns the Consul image URI for the configured consul version.
 func (t TestConfig) ConsulImageURI(enterprise bool) string {
 	if enterprise {
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + t.ConsulVersion + "-ent"
+		version := t.ConsulEnterpriseVersion
+		if version == "" {
+			version = t.ConsulVersion
+		}
+
+		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
 	}
 	return "public.ecr.aws/hashicorp/consul:" + t.ConsulVersion
 }

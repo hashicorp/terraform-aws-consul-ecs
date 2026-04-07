@@ -23,6 +23,10 @@ on:
         required: false
         type: string
         default: "1.21.5"
+      consul-enterprise-version:
+        required: false
+        type: string
+        default: "1.21.12"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
@@ -87,6 +91,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ inputs.launch-type }}'
         VARS+=' -var consul_version=${{ inputs.consul-version }}'
+        VARS+=' -var consul_enterprise_version=${{ inputs.consul-enterprise-version }}'
         VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
@@ -111,6 +116,7 @@ jobs:
         VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         VARS+=' -var launch_type=${{ inputs.launch-type }}'
         VARS+=' -var consul_version=${{ inputs.consul-version }}'
+        VARS+=' -var consul_enterprise_version=${{ inputs.consul-enterprise-version }}'
         VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
         case $GITHUB_REF_NAME in
             main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
