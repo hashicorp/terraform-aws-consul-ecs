@@ -49,6 +49,17 @@ variable "consul_version" {
   }
 }
 
+variable "consul_enterprise_version" {
+  description = "The Consul Enterprise version. If unset, enterprise tests use consul_version. Must be a valid MAJOR.MINOR.PATCH version string when set."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.consul_enterprise_version == "" || can(regex("^\\d+[.]\\d+[.]\\d+$", var.consul_enterprise_version))
+    error_message = "Must be empty or a valid MAJOR.MINOR.PATCH version string."
+  }
+}
+
 variable "hcp_project_id" {
   description = "ID of the HCP project where the Consul specific resources will be created."
   type        = string
