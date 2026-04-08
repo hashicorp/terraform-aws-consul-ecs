@@ -1,3 +1,10 @@
+## 0.9.4 (March 20, 2026)
+
+IMPROVEMENTS
+* Bump Consul image to `1.21.5` and `1.21.12-ent`
+* Bump Consul ECS image to `0.9.4`
+* Bump Go version to `1.25.8` 
+
 ## 0.9.3 (Jan 27, 2026)
 
 IMPROVEMENTS
