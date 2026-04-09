@@ -91,14 +91,15 @@ jobs:
       run: |
         set -euo pipefail
         cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=" -var launch_type=\"${{ inputs.launch-type }}\""
-        VARS+=" -var consul_version=\"${{ inputs.consul-version }}\""
-        VARS+=" -var consul_enterprise_version=\"${{ inputs.consul-enterprise-version }}\""
-        VARS+=" -var hcp_project_id=\"${{ secrets.HCP_PROJECT_ID }}\""
+        VARS=(
+          -var "launch_type=${{ inputs.launch-type }}"
+          -var "consul_version=${{ inputs.consul-version }}"
+          -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
+          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
+        )
         case "$GITHUB_REF_NAME" in
-            main | release/*) VARS+=" -var enable_hcp=\"${{ inputs.enable-hcp }}\"";;
-            *) VARS+=" -var enable_hcp=false";;
+            main | release/*) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
+            *) VARS+=( -var "enable_hcp=false" );;
         esac
 
         cleanup_stale_vpcs() {
@@ -145,7 +146,7 @@ jobs:
         }
 
         set +e
-        terraform apply -auto-approve "$VARS" 2>&1 | tee /tmp/terraform-apply.log
+        terraform apply -auto-approve "${VARS[@]}" 2>&1 | tee /tmp/terraform-apply.log
         APPLY_STATUS=${PIPESTATUS[0]}
         set -e
 
@@ -153,7 +154,7 @@ jobs:
           echo "VpcLimitExceeded detected, cleaning stale VPCs and retrying..."
           cleanup_stale_vpcs
           set +e
-          terraform apply -auto-approve "$VARS" 2>&1 | tee -a /tmp/terraform-apply.log
+          terraform apply -auto-approve "${VARS[@]}" 2>&1 | tee -a /tmp/terraform-apply.log
           APPLY_STATUS=${PIPESTATUS[0]}
           set -e
         fi
@@ -173,13 +174,14 @@ jobs:
       if: always()
       run: |
         cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=" -var launch_type=\"${{ inputs.launch-type }}\""
-        VARS+=" -var consul_version=\"${{ inputs.consul-version }}\""
-        VARS+=" -var consul_enterprise_version=\"${{ inputs.consul-enterprise-version }}\""
-        VARS+=" -var hcp_project_id=\"${{ secrets.HCP_PROJECT_ID }}\""
+        VARS=(
+          -var "launch_type=${{ inputs.launch-type }}"
+          -var "consul_version=${{ inputs.consul-version }}"
+          -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
+          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
+        )
         case "$GITHUB_REF_NAME" in
-            main | release/*) VARS+=" -var enable_hcp=\"${{ inputs.enable-hcp }}\"";;
-            *) VARS+=" -var enable_hcp=false";;
+            main | release/*) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
+            *) VARS+=( -var "enable_hcp=false" );;
         esac
-        terraform destroy -auto-approve "$VARS"
+        terraform destroy -auto-approve "${VARS[@]}"
