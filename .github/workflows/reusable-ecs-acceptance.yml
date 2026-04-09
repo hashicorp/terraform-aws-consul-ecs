@@ -102,6 +102,8 @@ jobs:
             *) VARS+=( -var "enable_hcp=false" );;
         esac
 
+        terraform init -input=false
+
         cleanup_stale_vpcs() {
           local deleted_count=0 MAX_VPCS=1
           mapfile -t candidate_vpcs < <(aws ec2 describe-vpcs \
@@ -184,4 +186,5 @@ jobs:
             main | release/*) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
             *) VARS+=( -var "enable_hcp=false" );;
         esac
+        terraform init -input=false
         terraform destroy -auto-approve "${VARS[@]}"
