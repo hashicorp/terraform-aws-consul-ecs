@@ -92,6 +92,7 @@ jobs:
         set -euo pipefail
         cd setup-terraform/
         VARS=(
+          -var "tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
           -var "launch_type=${{ inputs.launch-type }}"
           -var "consul_version=${{ inputs.consul-version }}"
           -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
@@ -102,7 +103,7 @@ jobs:
             *) VARS+=( -var "enable_hcp=false" );;
         esac
 
-        terraform init -input=false
+        terraform init
 
         cleanup_stale_vpcs() {
           local deleted_count=0 MAX_VPCS=1
@@ -177,6 +178,7 @@ jobs:
       run: |
         cd setup-terraform/
         VARS=(
+          -var "tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
           -var "launch_type=${{ inputs.launch-type }}"
           -var "consul_version=${{ inputs.consul-version }}"
           -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
@@ -186,5 +188,4 @@ jobs:
             main | release/*) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
             *) VARS+=( -var "enable_hcp=false" );;
         esac
-        terraform init -input=false
         terraform destroy -auto-approve "${VARS[@]}"
