@@ -42,18 +42,11 @@ jobs:
       - terraform-fmt
       - go-fmt-and-lint-acceptance
     strategy:
-      # We have a limit of 6 HCP Consul clusters.
-      # The following controls whether to enable HCP when testing release branches.
-      # HCP is always disabled for tests on PRs.
+      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
         name:
-          - acceptance-1.17-FARGATE-HCP
           - acceptance-1.17-FARGATE
         include:
-          - name: acceptance-1.17-FARGATE-HCP
-            enable-hcp: false
-            launch-type: FARGATE
-
           - name: acceptance-1.17-FARGATE
             enable-hcp: false
             launch-type: FARGATE
@@ -70,18 +63,11 @@ jobs:
       - get-go-version
       - acceptance-fargate
     strategy:
-      # We have a limit of 6 HCP Consul clusters.
-      # The following controls whether to enable HCP when testing release branches.
-      # HCP is always disabled for tests on PRs.
+      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
         name:
-          - acceptance-1.17-EC2-HCP
           - acceptance-1.17-EC2
         include:
-          - name: acceptance-1.17-EC2-HCP
-            enable-hcp: false
-            launch-type: EC2
-
           - name: acceptance-1.17-EC2
             enable-hcp: false
             launch-type: EC2
