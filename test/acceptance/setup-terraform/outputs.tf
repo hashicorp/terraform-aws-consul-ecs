@@ -77,3 +77,7 @@ output "consul_ca_cert_secret_arn" {
 output "consul_version" {
   value = var.consul_version
 }
+
+output "consul_enterprise_version" {
+  value = var.consul_enterprise_version
+}

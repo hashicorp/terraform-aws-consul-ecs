@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Lint workflow
         uses: docker://docker.mirror.hashicorp.services/rhysd/actionlint:latest
         with:
@@ -42,18 +42,11 @@ jobs:
       - terraform-fmt
       - go-fmt-and-lint-acceptance
     strategy:
-      # We have a limit of 6 HCP Consul clusters.
-      # The following controls whether to enable HCP when testing release branches.
-      # HCP is always disabled for tests on PRs.
+      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
         name:
-          - acceptance-1.17-FARGATE-HCP
           - acceptance-1.17-FARGATE
         include:
-          - name: acceptance-1.17-FARGATE-HCP
-            enable-hcp: true
-            launch-type: FARGATE
-
           - name: acceptance-1.17-FARGATE
             enable-hcp: false
             launch-type: FARGATE
@@ -70,18 +63,11 @@ jobs:
       - get-go-version
       - acceptance-fargate
     strategy:
-      # We have a limit of 6 HCP Consul clusters.
-      # The following controls whether to enable HCP when testing release branches.
-      # HCP is always disabled for tests on PRs.
+      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
         name:
-          - acceptance-1.17-EC2-HCP
           - acceptance-1.17-EC2
         include:
-          - name: acceptance-1.17-EC2-HCP
-            enable-hcp: true
-            launch-type: EC2
-
           - name: acceptance-1.17-EC2
             enable-hcp: false
             launch-type: EC2
