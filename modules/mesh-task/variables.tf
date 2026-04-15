@@ -353,7 +353,7 @@ variable "consul_ecs_config" {
     error_message = "Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service."
     condition = alltrue([
       for key in keys(lookup(var.consul_ecs_config, "service", {})) :
-      contains(["enableTagOverride", "weights"], key)
+      contains(["enableTagOverride", "weights", "networkResilienceConfig"], key)
     ])
   }
 
@@ -371,6 +371,16 @@ variable "consul_ecs_config" {
       for service in [lookup(var.consul_ecs_config, "service", {})] : [
         for key in keys(lookup(service, "weights", {})) :
         contains(["passing", "warning"], key)
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Only the 'interval', 'maxFailures', 'enforcingConsecutive5xx', and 'maxEjectionPercent' fields are allowed in consul_ecs_config.service.networkResilienceConfig.outlierDetection."
+    condition = alltrue(flatten([
+      for service in [lookup(var.consul_ecs_config, "service", {})] : [
+        for key in keys(lookup(lookup(service, "networkResilienceConfig", {}), "outlierDetection", {})) :
+        contains(["interval", "maxFailures", "enforcingConsecutive5xx", "maxEjectionPercent"], key)
       ]
     ]))
   }
