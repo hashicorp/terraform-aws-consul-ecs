@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance
 
-go 1.25.5
+go 1.25.8
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.15.9

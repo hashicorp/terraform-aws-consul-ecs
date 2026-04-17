@@ -22,7 +22,11 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.22.2"
+        default: "1.21.5"
+      consul-enterprise-version:
+        required: false
+        type: string
+        default: "1.21.12"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
@@ -45,9 +49,9 @@ jobs:
         working-directory: ./test/acceptance
     steps:
     - name: Checkout
-      uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v6.0.2
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Setup Go
-      uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       with:
         go-version: ${{ inputs.go-version }}
         cache-dependency-path: ./test/acceptance/go.sum
@@ -70,11 +74,11 @@ jobs:
         chmod +x /usr/local/bin/ecs-cli
         ecs-cli --version
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
       with:
         terraform_version: "~1.5"
     - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
       with:
         role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_ECS_REGION }}
@@ -82,24 +86,89 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_ECS_SECRET_ACCESS_KEY }}
         role-duration-seconds: 7200
     - name: terraform init & apply
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -euo pipefail
         cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ inputs.launch-type }}'
-        VARS+=' -var consul_version=${{ inputs.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
+        VARS=(
+          -var "tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+          -var "launch_type=${{ inputs.launch-type }}"
+          -var "consul_version=${{ inputs.consul-version }}"
+          -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
+          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
+        )
+        case "$GITHUB_REF_NAME" in
+          main) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
+            *) VARS+=( -var "enable_hcp=false" );;
         esac
+
         terraform init
-        terraform apply -auto-approve $VARS
+
+        cleanup_stale_vpcs() {
+          local deleted_count=0 MAX_VPCS=1
+          mapfile -t candidate_vpcs < <(aws ec2 describe-vpcs \
+            --region "$AWS_REGION" \
+            --filters "Name=tag-key,Values=build_url" "Name=tag:Name,Values=consul-ecs-*" \
+            --query "Vpcs[].VpcId" --output text)
+
+          [ "${#candidate_vpcs[@]}" -eq 0 ] && echo "No stale VPCs to clean" && return
+
+          for vpc_id in "${candidate_vpcs[@]}"; do
+            [ "$deleted_count" -ge "$MAX_VPCS" ] && break
+            echo "Cleaning stale VPC: $vpc_id"
+
+            mapfile -t instance_ids < <(aws ec2 describe-instances --region "$AWS_REGION" \
+              --filters "Name=vpc-id,Values=$vpc_id" "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+              --query "Reservations[].Instances[].InstanceId" --output text)
+            [ "${#instance_ids[@]}" -gt 0 ] && aws ec2 terminate-instances --region "$AWS_REGION" --instance-ids "${instance_ids[@]}" || true
+            aws ec2 wait instance-terminated --region "$AWS_REGION" --instance-ids "${instance_ids[@]}" || true
+
+            mapfile -t eni_ids < <(aws ec2 describe-network-interfaces --region "$AWS_REGION" \
+              --filters "Name=vpc-id,Values=$vpc_id" "Name=status,Values=available" \
+              --query "NetworkInterfaces[].NetworkInterfaceId" --output text)
+            for eni in "${eni_ids[@]}"; do
+              echo "Deleting ENI $eni"
+              aws ec2 delete-network-interface --region "$AWS_REGION" --network-interface-id "$eni" || true
+            done
+
+            mapfile -t subnet_ids < <(aws ec2 describe-subnets --region "$AWS_REGION" --filters "Name=vpc-id,Values=$vpc_id" --query "Subnets[].SubnetId" --output text)
+            for subnet in "${subnet_ids[@]}"; do
+              echo "Deleting Subnet $subnet"
+              aws ec2 delete-subnet --region "$AWS_REGION" --subnet-id "$subnet" || true
+            done
+
+            mapfile -t sg_ids < <(aws ec2 describe-security-groups --region "$AWS_REGION" --filters "Name=vpc-id,Values=$vpc_id" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+            for sg in "${sg_ids[@]}"; do
+              echo "Deleting SG $sg"
+              aws ec2 delete-security-group --region "$AWS_REGION" --group-id "$sg" || true
+            done
+
+            aws ec2 delete-vpc --region "$AWS_REGION" --vpc-id "$vpc_id" && deleted_count=$((deleted_count+1))
+          done
+        }
+
+        set +e
+        terraform apply -auto-approve "${VARS[@]}" 2>&1 | tee /tmp/terraform-apply.log
+        APPLY_STATUS=${PIPESTATUS[0]}
+        set -e
+
+        if grep -q "VpcLimitExceeded" /tmp/terraform-apply.log; then
+          echo "VpcLimitExceeded detected, cleaning stale VPCs and retrying..."
+          cleanup_stale_vpcs
+          set +e
+          terraform apply -auto-approve "${VARS[@]}" 2>&1 | tee -a /tmp/terraform-apply.log
+          APPLY_STATUS=${PIPESTATUS[0]}
+          set -e
+        fi
+
+        exit "$APPLY_STATUS"
     - name: Acceptance tests
       run: |
         mkdir -p "$TEST_RESULTS"
         cd tests/
         gotestsum --junitfile "$TEST_RESULTS/gotestsum-report.xml" --format standard-verbose -- ./... -p 1 -timeout 1h -v -failfast
-    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+    - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       if: always()
       with:
         name: acceptance-test-results-${{ inputs.name }}
@@ -108,12 +177,15 @@ jobs:
       if: always()
       run: |
         cd setup-terraform/
-        VARS="-var tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
-        VARS+=' -var launch_type=${{ inputs.launch-type }}'
-        VARS+=' -var consul_version=${{ inputs.consul-version }}'
-        VARS+=' -var hcp_project_id=${{ secrets.HCP_PROJECT_ID }}'
-        case $GITHUB_REF_NAME in
-            main | release/*) VARS+=" -var enable_hcp=${{ inputs.enable-hcp }}";;
-            *) VARS+=" -var enable_hcp=false";;
+        VARS=(
+          -var "tags={\"build_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+          -var "launch_type=${{ inputs.launch-type }}"
+          -var "consul_version=${{ inputs.consul-version }}"
+          -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
+          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
+        )
+        case "$GITHUB_REF_NAME" in
+          main) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
+            *) VARS+=( -var "enable_hcp=false" );;
         esac
-        terraform destroy -auto-approve $VARS
+        terraform destroy -auto-approve "${VARS[@]}"
