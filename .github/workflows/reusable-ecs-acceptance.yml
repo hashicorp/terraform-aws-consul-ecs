@@ -78,7 +78,7 @@ jobs:
       with:
         terraform_version: "~1.5"
     - name: Assume AWS IAM Role
-      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+      uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
       with:
         role-to-assume: ${{ secrets.AWS_ECS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_ECS_REGION }}
