@@ -64,7 +64,8 @@ func UnmarshalTF(tfDir string, cfg *HCPTestConfig) error {
 // the function will panic.
 func TFVars(i interface{}, ignoreVars ...string) map[string]interface{} {
 	v := reflect.ValueOf(i)
-	if v.Kind() == reflect.Ptr {
+	kind := v.Kind()
+	if kind == reflect.Ptr {
 		v = v.Elem()
 	}
 	t := v.Type()
@@ -85,7 +86,8 @@ func structVars(i interface{}, m map[string]interface{}) {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		if f.Type.Kind() == reflect.Ptr || f.Type.Kind() == reflect.Struct {
+		fieldKind := f.Type.Kind()
+		if fieldKind == reflect.Ptr || fieldKind == reflect.Struct {
 			// if the embedded field is a ptr or a struct recurse it
 			structVars(v.Field(i).Interface(), m)
 		} else {
