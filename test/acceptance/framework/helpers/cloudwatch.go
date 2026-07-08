@@ -25,6 +25,8 @@ func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.Test
 	}
 	out, err := shell.RunCommandAndGetOutputE(t, shell.Command{Command: args[0], Args: args[1:]})
 	if err != nil {
+		// Log stream may not exist yet if the container hasn't started logging.
+		// Callers inside retry.RunWith should use r.Check(err) so this is retried.
 		return nil, err
 	}
 

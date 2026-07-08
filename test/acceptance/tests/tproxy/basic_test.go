@@ -141,7 +141,7 @@ func TestTransparentProxy(t *testing.T) {
 				// indicate that the controller has created the service auth method, policies and roles.
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
-					require.NoError(r, err)
+					r.Check(err)
 
 					logMsg := "Successfully configured the anonymous token"
 					appLogs = appLogs.Filter(logMsg)
@@ -247,7 +247,7 @@ func TestTransparentProxy(t *testing.T) {
 			// Check that the Envoy entrypoint received the sigterm.
 			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-dataplane")
-				require.NoError(r, err)
+				r.Check(err)
 
 				logMsg := "consul-ecs: waiting for application container(s) to stop"
 				envoyLogs = envoyLogs.Filter(logMsg)
@@ -259,7 +259,7 @@ func TestTransparentProxy(t *testing.T) {
 				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					// Validate that the controller cleans up the token for the failed task
 					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
-					require.NoError(r, err)
+					r.Check(err)
 					syncLogs = syncLogs.Filter("token deleted successfully")
 					require.GreaterOrEqual(r, len(syncLogs), 1)
 				})
