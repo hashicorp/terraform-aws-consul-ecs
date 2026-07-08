@@ -15,10 +15,15 @@ import (
 
 // GetCloudWatchLogEvents fetches all log events for the given container.
 func GetCloudWatchLogEvents(t terratestTesting.TestingT, testConfig *config.TestConfig, clusterARN, taskId, containerName string) (LogMessages, error) {
+	// ecs-cli requires a cluster name, not an ARN.
+	clusterName := clusterARN
+	if idx := strings.LastIndex(clusterARN, "/"); idx >= 0 {
+		clusterName = clusterARN[idx+1:]
+	}
 	args := []string{
 		"ecs-cli", "logs",
 		"--region", testConfig.Region,
-		"--cluster", clusterARN,
+		"--cluster", clusterName,
 		"--task-id", taskId,
 		"--container-name", containerName,
 		"--timestamps",

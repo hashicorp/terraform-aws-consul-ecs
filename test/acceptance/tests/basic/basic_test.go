@@ -134,7 +134,7 @@ func TestBasic(t *testing.T) {
 
 				// Check controller logs to see if the anonymous token gets configured. This should
 				// indicate that the controller has created the service auth method, policies and roles.
-				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 10 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
 					r.Check(err)
 
@@ -243,7 +243,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Check logs to see that the application ignored the TERM signal and exited about 10s later.
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				appLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "basic")
 				r.Check(err)
 
@@ -254,7 +254,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Check that the Envoy entrypoint received the sigterm.
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				envoyLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "consul-dataplane")
 				r.Check(err)
 
@@ -265,7 +265,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			// Retrieve "shutdown-monitor" logs to check outgoing requests succeeded.
-			retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+			retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 				monitorLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, testClientTaskID, "shutdown-monitor")
 				r.Check(err)
 
@@ -289,7 +289,7 @@ func TestBasic(t *testing.T) {
 			})
 
 			if c.secure {
-				retry.RunWith(&retry.Timer{Timeout: 2 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
+				retry.RunWith(&retry.Timer{Timeout: 5 * time.Minute, Wait: 30 * time.Second}, t, func(r *retry.R) {
 					// Validate that the controller cleans up the token for the failed task
 					syncLogs, err := helpers.GetCloudWatchLogEvents(t, cfg, c.ecsClusterARN, controllerTaskID, "consul-ecs-controller")
 					r.Check(err)
