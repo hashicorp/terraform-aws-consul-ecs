@@ -1,3 +1,11 @@
+# 0.10.0 (July 9, 2026)
+
+IMPROVEMENTS
+* Bump Consul image to `2.0.1` and `2.0.1-ent`
+* Bump Dataplane image to `2.0.1`
+* Bump Consul ECS image to `0.10.0`
+* Bump Go to `1.26.4` and upgrade acceptance test dependencies to latest, including security fixes for `crypto`, `net`, and `sys` packages [[GH-404](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/404)]
+
 ## 0.9.4 (April 15, 2026)
 
 IMPROVEMENTS
