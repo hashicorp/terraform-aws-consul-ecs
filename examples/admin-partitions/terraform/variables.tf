@@ -26,7 +26,7 @@ variable "consul_ecs_image" {
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:1.9.6"
+  default     = "hashicorp/consul-dataplane:2.0.1"
 }
 
 variable "client_partition" {

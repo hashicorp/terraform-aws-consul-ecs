@@ -91,7 +91,7 @@ variable "additional_execution_role_policies" {
 variable "consul_image" {
   description = "Consul Docker image."
   type        = string
-  default     = "hashicorp/consul:1.22.6"
+  default     = "hashicorp/consul:2.0.1"
 }
 
 variable "consul_server_hosts" {
