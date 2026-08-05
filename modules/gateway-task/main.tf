@@ -255,7 +255,7 @@ resource "aws_ecs_task_definition" "this" {
           {
             name             = "consul-ecs-health-sync"
             image            = var.consul_ecs_image
-            essential        = false
+            essential        = true
             logConfiguration = var.log_configuration
             command          = ["health-sync"]
             user             = "5996"
