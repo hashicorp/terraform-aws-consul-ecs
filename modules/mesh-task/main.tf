@@ -229,7 +229,7 @@ resource "aws_ecs_task_definition" "this" {
           {
             name             = "consul-dataplane"
             image            = var.consul_dataplane_image
-            essential        = false
+            essential        = true
             user             = "5995"
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
@@ -265,7 +265,7 @@ resource "aws_ecs_task_definition" "this" {
           {
             name             = "consul-ecs-health-sync"
             image            = var.consul_ecs_image
-            essential        = false
+            essential        = true
             logConfiguration = var.log_configuration
             command          = ["health-sync"]
             user             = "5996"
