@@ -233,7 +233,7 @@ resource "aws_ecs_task_definition" "this" {
             user             = "5995"
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
-            command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-mesh-init dumps the dataplane's config into consul-dataplane.json
+            command          = concat(["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"], var.dataplane_extra_commands) # consul-ecs-mesh-init dumps the dataplane's config into consul-dataplane.json
             portMappings     = []
             mountPoints = [
               local.consul_data_mount

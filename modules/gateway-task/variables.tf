@@ -441,3 +441,9 @@ variable "extra_container_definitions" {
   description = "Any extra containers to add to the gateway task"
   default     = []
 }
+
+variable "dataplane_extra_commands" {
+  type        = list(string)
+  description = "Extra command line arguments to pass to the Consul dataplane container"
+  default     = []
+}

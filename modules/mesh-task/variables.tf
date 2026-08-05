@@ -527,3 +527,9 @@ variable "exclude_uids" {
   type        = list(string)
   default     = []
 }
+
+variable "dataplane_extra_commands" {
+  type        = list(string)
+  description = "Extra command line arguments to pass to the Consul dataplane container"
+  default     = []
+}
