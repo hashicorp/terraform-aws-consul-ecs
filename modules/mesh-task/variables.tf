@@ -376,6 +376,16 @@ variable "consul_ecs_config" {
   }
 
   validation {
+    error_message = "Only the 'enabled', 'outlierDetection' fields are allowed in consul_ecs_config.service.networkResilienceConfig."
+    condition = alltrue(flatten([
+      for service in [lookup(var.consul_ecs_config, "service", {})] : [
+        for key in keys(lookup(service, "networkResilienceConfig", {})) :
+        contains(["enabled", "outlierDetection"], key)
+      ]
+    ]))
+  }
+
+  validation {
     error_message = "Only the 'interval', 'maxFailures', 'enforcingConsecutive5xx', and 'maxEjectionPercent' fields are allowed in consul_ecs_config.service.networkResilienceConfig.outlierDetection."
     condition = alltrue(flatten([
       for service in [lookup(var.consul_ecs_config, "service", {})] : [
