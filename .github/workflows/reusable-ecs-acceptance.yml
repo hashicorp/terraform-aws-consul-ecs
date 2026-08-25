@@ -22,11 +22,11 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.21.5"
+        default: "1.21.7"
       consul-enterprise-version:
         required: false
         type: string
-        default: "1.21.x"
+        default: "1.21.40"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
