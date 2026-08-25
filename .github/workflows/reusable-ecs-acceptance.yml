@@ -22,7 +22,7 @@ on:
       consul-version:
         required: false
         type: string
-        default: "1.21.7"
+        default: "1.21.5"
       consul-enterprise-version:
         required: false
         type: string
