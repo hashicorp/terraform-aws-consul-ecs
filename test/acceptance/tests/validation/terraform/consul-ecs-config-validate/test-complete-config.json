@@ -11,6 +11,9 @@
         "interval": "10s",
         "maxFailures": 5,
         "enforcingConsecutive5xx": 100,
+        "consecutive5xx": 5,
+        "enforcingConsecutiveGatewayFailure": 100,
+        "consecutiveGatewayFailure": 5,
         "maxEjectionPercent": 50
       }
     }
