@@ -502,6 +502,7 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 			errors: []string{
 				"Only the 'service', 'proxy', 'transparentProxy' and 'consulLogin' fields are allowed in consul_ecs_config.",
 				"Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service.",
+				"Only the 'interval', 'maxFailures', 'enforcingConsecutive5xx', 'consecutive5xx', 'enforcingConsecutiveGatewayFailure', 'consecutiveGatewayFailure', and 'maxEjectionPercent' fields are allowed in consul_ecs_config.service.networkResilienceConfig.outlierDetection.",
 				"Only the 'meshGateway', 'expose', and 'config' fields are allowed in consul_ecs_config.proxy.",
 				"Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway.",
 				"Only the 'checks' and 'paths' fields are allowed in consul_ecs_config.proxy.expose.",
