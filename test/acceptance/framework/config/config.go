@@ -48,14 +48,19 @@ func (t TestConfig) TFVars(ignoreVars ...string) map[string]interface{} {
 	return vars
 }
 
+// COMPAT-CHECK (DO NOT MERGE): dev images built from consul/consul-enterprise
+// `main` so this branch exercises unreleased Consul against unreleased
+// consul-ecs. Released images cannot be used here because `main` reports the
+// non-semver version 2.1.0-dev.
+const (
+	devConsulImage           = "docker.io/sureshkumardunga/consul-dev:2.1.0-dev-amd64"
+	devConsulEnterpriseImage = "docker.io/sureshkumardunga/consul-dev:2.1.0-dev-ent-amd64"
+)
+
 // ConsulImageURI returns the Consul image URI for the configured consul version.
 func (t TestConfig) ConsulImageURI(enterprise bool) string {
 	if enterprise {
-		version := t.ConsulEnterpriseVersion
-		if version == "" {
-			version = t.ConsulVersion
-		}
-		return "public.ecr.aws/hashicorp/consul-enterprise:" + version + "-ent"
+		return devConsulEnterpriseImage
 	}
-	return "public.ecr.aws/hashicorp/consul:" + t.ConsulVersion
+	return devConsulImage
 }

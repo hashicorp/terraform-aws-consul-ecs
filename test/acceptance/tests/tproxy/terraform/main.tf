@@ -69,7 +69,8 @@ variable "launch_type" {
 variable "consul_ecs_image" {
   description = "Consul ECS image to use."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.10.0"
+  # COMPAT-CHECK (DO NOT MERGE): dev image built from consul-ecs `main`.
+  default = "docker.io/sureshkumardunga/consul-ecs-dev:main-amd64"
 }
 
 variable "server_service_name" {
