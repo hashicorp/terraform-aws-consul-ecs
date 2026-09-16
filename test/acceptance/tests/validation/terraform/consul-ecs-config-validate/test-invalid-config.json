@@ -3,6 +3,7 @@
   "service": {
     "invalid-key": "",
     "networkResilienceConfig": {
+      "invalid-key": "",
       "outlierDetection": {
         "invalid-key": ""
       }
