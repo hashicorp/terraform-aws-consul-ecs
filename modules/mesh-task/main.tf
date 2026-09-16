@@ -94,7 +94,7 @@ locals {
         value = local.encoded_config
       }
     ]
-    linuxParameters = merge (
+    linuxParameters = merge(
       { initProcessEnabled = true },
       var.enable_transparent_proxy ? { capabilities = { add = ["NET_ADMIN"] } } : {}
     )

@@ -16,9 +16,9 @@ locals {
       "dataplane-version" = var.consul_dataplane_image_version
     }
   )
-  proxyExtra   = lookup(var.consul_ecs_config, "proxy", {})
-  loginExtra   = lookup(var.consul_ecs_config, "consulLogin", {})
-  tProxyExtra  = lookup(var.consul_ecs_config, "transparentProxy", {})
+  proxyExtra  = lookup(var.consul_ecs_config, "proxy", {})
+  loginExtra  = lookup(var.consul_ecs_config, "consulLogin", {})
+  tProxyExtra = lookup(var.consul_ecs_config, "transparentProxy", {})
 
   consulLogin = var.acls ? {
     enabled = var.acls
