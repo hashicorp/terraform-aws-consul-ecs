@@ -4,6 +4,15 @@
     "weights": {
       "passing": 1,
       "warning": 1
+    },
+    "networkResilienceConfig": {
+      "enabled": true,
+      "outlierDetection": {
+        "interval": "10s",
+        "maxFailures": 5,
+        "enforcingConsecutive5xx": 100,
+        "maxEjectionPercent": 50
+      }
     }
   },
   "proxy": {

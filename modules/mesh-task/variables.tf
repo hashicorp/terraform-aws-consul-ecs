@@ -24,7 +24,7 @@ variable "consul_service_tags" {
 }
 
 variable "consul_service_meta" {
-  description = "A map of metadata that will be used for the Consul service registration"
+  description = "A map of metadata that will be used for the Consul service registration. Note: 'ecs-version' and 'dataplane-version' are reserved — use var.consul_ecs_image_version and var.consul_dataplane_image_version to set them. Keys with a 'consul-' prefix are only valid if that key is recognised by Consul; unrecognised 'consul-' keys cause service registration to fail. Refer: https://github.com/hashicorp/consul/blob/9a38fac228fae7960f12f5b2a45c7548c90e8224/agent/structs/structs.go#L182"
   type        = map(string)
   default     = {}
 }
@@ -148,10 +148,22 @@ variable "consul_ecs_image" {
   default     = "public.ecr.aws/hashicorp/consul-ecs:0.10.0"
 }
 
+variable "consul_ecs_image_version" {
+  description = "Set this to the version represented by the consul-ecs Docker image. This value is referenced by the 'ecs-version' Consul service metadata field."
+  type        = string
+  default     = "0.10.0"
+}
+
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
   default     = "hashicorp/consul-dataplane:2.0.1"
+}
+
+variable "consul_dataplane_image_version" {
+  description = "Set this to the version represented by the consul-dataplane Docker image. This value is referenced by the 'dataplane-version' Consul service metadata field."
+  type        = string
+  default     = "2.0.1"
 }
 
 variable "envoy_public_listener_port" {
@@ -350,7 +362,7 @@ variable "consul_ecs_config" {
   }
 
   validation {
-    error_message = "Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service."
+    error_message = "Only the 'enableTagOverride', 'weights', and 'networkResilienceConfig' fields are allowed in consul_ecs_config.service."
     condition = alltrue([
       for key in keys(lookup(var.consul_ecs_config, "service", {})) :
       contains(["enableTagOverride", "weights", "networkResilienceConfig"], key)
@@ -371,6 +383,16 @@ variable "consul_ecs_config" {
       for service in [lookup(var.consul_ecs_config, "service", {})] : [
         for key in keys(lookup(service, "weights", {})) :
         contains(["passing", "warning"], key)
+      ]
+    ]))
+  }
+
+  validation {
+    error_message = "Only the 'enabled', 'outlierDetection' fields are allowed in consul_ecs_config.service.networkResilienceConfig."
+    condition = alltrue(flatten([
+      for service in [lookup(var.consul_ecs_config, "service", {})] : [
+        for key in keys(lookup(service, "networkResilienceConfig", {})) :
+        contains(["enabled", "outlierDetection"], key)
       ]
     ]))
   }
@@ -525,5 +547,11 @@ variable "exclude_outbound_cidrs" {
 variable "exclude_uids" {
   description = "List of additional UIDs to exclude from outbound traffic redirection."
   type        = list(string)
+  default     = []
+}
+
+variable "dataplane_extra_commands" {
+  type        = list(string)
+  description = "Extra command line arguments to pass to the Consul dataplane container"
   default     = []
 }

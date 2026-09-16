@@ -30,7 +30,7 @@ variable "consul_service_tags" {
 }
 
 variable "consul_service_meta" {
-  description = "A map of metadata that will be used for the Consul gateway registration"
+  description = "A map of metadata that will be used for the Consul gateway registration. Note: 'ecs-version' and 'dataplane-version' are reserved — use var.consul_ecs_image_version and var.consul_dataplane_image_version to set them. Keys with a 'consul-' prefix are only valid if that key is recognised by Consul; unrecognised 'consul-' keys cause service registration to fail. Refer: https://github.com/hashicorp/consul/blob/9a38fac228fae7960f12f5b2a45c7548c90e8224/agent/structs/structs.go#L182"
   type        = map(string)
   default     = {}
 }
@@ -111,10 +111,22 @@ variable "consul_ecs_image" {
   default     = "public.ecr.aws/hashicorp/consul-ecs:0.10.0"
 }
 
+variable "consul_ecs_image_version" {
+  description = "Set this to the version represented by the consul-ecs Docker image. This value is referenced by the 'ecs-version' Consul service metadata field."
+  type        = string
+  default     = "0.10.0"
+}
+
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
   default     = "hashicorp/consul-dataplane:2.0.1"
+}
+
+variable "consul_dataplane_image_version" {
+  description = "Set this to the version represented by the consul-dataplane Docker image. This value is referenced by the 'dataplane-version' Consul service metadata field."
+  type        = string
+  default     = "2.0.1"
 }
 
 variable "envoy_readiness_port" {
@@ -439,5 +451,11 @@ variable "exclude_uids" {
 variable "extra_container_definitions" {
   type        = any
   description = "Any extra containers to add to the gateway task"
+  default     = []
+}
+
+variable "dataplane_extra_commands" {
+  type        = list(string)
+  description = "Extra command line arguments to pass to the Consul dataplane container"
   default     = []
 }

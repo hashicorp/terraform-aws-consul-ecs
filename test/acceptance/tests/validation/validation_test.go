@@ -501,12 +501,13 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 			configFile: "test-invalid-config.json",
 			errors: []string{
 				"Only the 'service', 'proxy', 'transparentProxy' and 'consulLogin' fields are allowed in consul_ecs_config.",
-				"Only the 'enableTagOverride' and 'weights' fields are allowed in consul_ecs_config.service.",
+				"Only the 'enableTagOverride', 'weights', and 'networkResilienceConfig' fields are allowed in consul_ecs_config.service.",
 				"Only the 'meshGateway', 'expose', and 'config' fields are allowed in consul_ecs_config.proxy.",
 				"Only the 'mode' field is allowed in consul_ecs_config.proxy.meshGateway.",
 				"Only the 'checks' and 'paths' fields are allowed in consul_ecs_config.proxy.expose.",
 				"Only the 'listenerPort', 'path', 'localPathPort', and 'protocol' fields are allowed in each item of consul_ecs_config.proxy.expose.paths[*].",
 				"Only the 'enabled', 'method', 'includeEntity', 'meta', 'region', 'stsEndpoint', and 'serverIdHeaderValue' fields are allowed in consul_ecs_config.consulLogin.",
+				"Only the 'enabled', 'outlierDetection' fields are allowed in consul_ecs_config.service.networkResilienceConfig.",
 			},
 		},
 	}

@@ -1,7 +1,14 @@
 {
   "invalid-key": "",
   "service": {
-    "invalid-key": ""
+    "invalid-key": "",
+    "networkResilienceConfig": {
+      "enabled": false,
+      "outlierDetection": {
+        "interval": "10s"
+      },
+      "invalid-key": ""
+    }
   },
   "proxy": {
     "invalid-key": "",
