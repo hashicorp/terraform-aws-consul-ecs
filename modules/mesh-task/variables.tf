@@ -166,6 +166,12 @@ variable "consul_dataplane_image_version" {
   default     = "2.0.1"
 }
 
+variable "enable_consul_image_version_metadata" {
+  description = "Set to true to include consul-ecs and consul-dataplane image versions in Consul service metadata, for example to make versions visible during upgrades. Defaults to false."
+  type        = bool
+  default     = false
+}
+
 variable "envoy_public_listener_port" {
   description = "The public listener port for Envoy that is used for service-to-service communication."
   type        = number

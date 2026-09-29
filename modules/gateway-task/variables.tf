@@ -129,6 +129,12 @@ variable "consul_dataplane_image_version" {
   default     = "2.0.1"
 }
 
+variable "enable_consul_image_version_metadata" {
+  description = "Set to true to include consul-ecs and consul-dataplane image versions in Consul gateway metadata, for example to make versions visible during upgrades. Defaults to false."
+  type        = bool
+  default     = false
+}
+
 variable "envoy_readiness_port" {
   description = "The port that is exposed by Envoy to indicate it's readiness. ECS uses this port to detect envoy's readiness and start the app containers depending on this."
   type        = number

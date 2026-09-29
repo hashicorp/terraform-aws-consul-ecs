@@ -546,6 +546,73 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 	}
 }
 
+// TestValidation_ConsulImageVersionMetadata verifies image version metadata is
+// opt-in for both the mesh-task and gateway-task modules: the provided image versions
+// are injected only when enabled, and never leak into the registration when the toggle is off.
+// Each module is planned in its own directory so an assertion can only pass because of that module.
+func TestValidation_ConsulImageVersionMetadata(t *testing.T) {
+	t.Parallel()
+
+	// Distinctive versions so we can assert the values actually flow through.
+	const (
+		ecsVersion = "9.9.9"
+		dpVersion  = "8.8.8"
+	)
+
+	dirs := map[string]string{
+		"mesh-task":    "./terraform/consul-image-version-metadata",
+		"gateway-task": "./terraform/consul-image-version-metadata-gateway",
+	}
+	for _, dir := range dirs {
+		terraform.Init(t, &terraform.Options{TerraformDir: dir, NoColor: true})
+	}
+
+	cases := map[string]struct {
+		module  string // mesh-task or gateway-task
+		enabled bool   // whether the image version metadata is enabled for this module
+	}{
+		"mesh-task disabled":    {module: "mesh-task", enabled: false},
+		"mesh-task enabled":     {module: "mesh-task", enabled: true},
+		"gateway-task disabled": {module: "gateway-task", enabled: false},
+		"gateway-task enabled":  {module: "gateway-task", enabled: true},
+	}
+
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			vars := map[string]interface{}{
+				"consul_ecs_image_version":       ecsVersion,
+				"consul_dataplane_image_version": dpVersion,
+			}
+			if c.enabled {
+				vars["enable_consul_image_version_metadata"] = true
+			}
+
+			out, err := terraform.PlanE(t, &terraform.Options{
+				TerraformDir: dirs[c.module],
+				NoColor:      true,
+				Vars:         vars,
+			})
+			require.NoError(t, err)
+
+			// Substring checks are sufficient here; asserting exact key:value pairs against the plan's escaped JSON is brittle.
+			if c.enabled {
+				require.Contains(t, out, "ecs-version")
+				require.Contains(t, out, "dataplane-version")
+				require.Contains(t, out, ecsVersion)
+				require.Contains(t, out, dpVersion)
+			} else {
+				require.NotContains(t, out, "ecs-version")
+				require.NotContains(t, out, "dataplane-version")
+				require.NotContains(t, out, ecsVersion)
+				require.NotContains(t, out, dpVersion)
+			}
+		})
+	}
+}
+
 func TestValidation_HTTPConfig(t *testing.T) {
 	t.Parallel()
 
