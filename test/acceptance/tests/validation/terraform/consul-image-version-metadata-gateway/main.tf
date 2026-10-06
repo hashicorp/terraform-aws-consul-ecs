@@ -12,12 +12,12 @@ variable "enable_consul_image_version_metadata" {
 
 variable "consul_ecs_image_version" {
   type    = string
-  default = "0.10.0"
+  default = "0.10.1"
 }
 
 variable "consul_dataplane_image_version" {
   type    = string
-  default = "2.0.1"
+  default = "2.0.4"
 }
 
 module "test_gateway" {

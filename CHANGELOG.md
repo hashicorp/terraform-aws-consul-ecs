@@ -1,11 +1,17 @@
-## Unreleased
+## 0.10.1 (October 7, 2026)
 
 IMPROVEMENTS
+* Bump Consul ECS image to `0.10.1`, which includes Go and dependency security fixes and FIPS 140-3 builds. See the [consul-ecs 0.10.1 changelog](https://github.com/hashicorp/consul-ecs/blob/v0.10.1/CHANGELOG.md#0101-october-6-2026). [[GH-434](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/434)]
+* Bump Consul image to `2.0.4` and `2.0.4-ent` [[GH-434](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/434)]
+* Bump Dataplane image to `2.0.4` [[GH-434](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/434)]
 * Add opt-in Consul service metadata for consul-ecs and Consul Dataplane image versions. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
 * Omit empty Linux capabilities when transparent proxying is disabled to prevent Terraform plan drift. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
 * Allow additional passive health-check fields and validate `networkResilienceConfig` keys. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
 * Mark the Consul Dataplane and health-sync containers as essential. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
 * Add `dataplane_extra_commands` to pass additional arguments to Consul Dataplane. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+
+BUG FIXES
+* Fix the `gateway-task` module's default `consul_dataplane_image`, which was still `hashicorp/consul-dataplane:1.9.6`. It now matches the `mesh-task` module. [[GH-434](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/434)]
 
 ## 0.10.0 (July 9, 2026)
 
