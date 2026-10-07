@@ -21,7 +21,7 @@ variable "lb_ingress_ip" {
 variable "consul_image" {
   type        = string
   description = "hashicorp consul image"
-  default     = "hashicorp/consul:2.0.1"
+  default     = "hashicorp/consul:2.0.4"
 }
 
 variable "certs_mount_path" {

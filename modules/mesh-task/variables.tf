@@ -145,25 +145,25 @@ variable "outbound_only" {
 variable "consul_ecs_image" {
   description = "consul-ecs Docker image."
   type        = string
-  default     = "public.ecr.aws/hashicorp/consul-ecs:0.10.0"
+  default     = "public.ecr.aws/hashicorp/consul-ecs:0.10.1"
 }
 
 variable "consul_ecs_image_version" {
   description = "Set this to the version represented by the consul-ecs Docker image. This value is referenced by the 'ecs-version' Consul service metadata field."
   type        = string
-  default     = "0.10.0"
+  default     = "0.10.1"
 }
 
 variable "consul_dataplane_image" {
   description = "consul-dataplane Docker image."
   type        = string
-  default     = "hashicorp/consul-dataplane:2.0.1"
+  default     = "hashicorp/consul-dataplane:2.0.4"
 }
 
 variable "consul_dataplane_image_version" {
   description = "Set this to the version represented by the consul-dataplane Docker image. This value is referenced by the 'dataplane-version' Consul service metadata field."
   type        = string
-  default     = "2.0.1"
+  default     = "2.0.4"
 }
 
 variable "enable_consul_image_version_metadata" {
