@@ -1,4 +1,13 @@
-# 0.10.0 (July 9, 2026)
+## Unreleased
+
+IMPROVEMENTS
+* Add opt-in Consul service metadata for consul-ecs and Consul Dataplane image versions. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+* Omit empty Linux capabilities when transparent proxying is disabled to prevent Terraform plan drift. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+* Allow additional passive health-check fields and validate `networkResilienceConfig` keys. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+* Mark the Consul Dataplane and health-sync containers as essential. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+* Add `dataplane_extra_commands` to pass additional arguments to Consul Dataplane. [[GH-431](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/431)]
+
+## 0.10.0 (July 9, 2026)
 
 IMPROVEMENTS
 * Bump Consul image to `2.0.1` and `2.0.1-ent`
