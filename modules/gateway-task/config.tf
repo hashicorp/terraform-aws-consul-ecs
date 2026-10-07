@@ -13,10 +13,20 @@ locals {
   // The namespace for gateways is always "default" for enterprise or "" for OSS.
   consul_namespace = var.consul_partition != "" ? "default" : ""
 
-  // if mesh gateway WAN federation is enabled add the metadata to the gateway service registration that exposes the Consul servers.
+  // If mesh gateway WAN federation is enabled add the metadata to the gateway service registration that exposes the Consul servers.
+
+  // Image version keys are injected only when var.enable_consul_image_version_metadata is true (opt-in, default false).
+  // When enabled, the reserved keys ('ecs-version', 'dataplane-version') are sourced from var.consul_ecs_image_version
+  // and var.consul_dataplane_image_version and take precedence over any matching existing keys in var.consul_service_meta,
+  // so they can only be changed through those variables. Variables remain the source of truth for version metadata.
+  // Keys with a 'consul-' prefix are only valid if that key is recognised by Consul; unrecognised 'consul-' keys cause service registration to fail. Refer: https://github.com/hashicorp/consul/blob/9a38fac228fae7960f12f5b2a45c7548c90e8224/agent/structs/structs.go#L182.
   consul_service_meta = merge(
     var.consul_service_meta,
-    var.enable_mesh_gateway_wan_federation ? { "consul-wan-federation" : "1" } : {}
+    var.enable_mesh_gateway_wan_federation ? { "consul-wan-federation" : "1" } : {},
+    var.enable_consul_image_version_metadata ? {
+      "ecs-version"       = var.consul_ecs_image_version
+      "dataplane-version" = var.consul_dataplane_image_version
+    } : {}
   )
 
   httpSettings = merge(
