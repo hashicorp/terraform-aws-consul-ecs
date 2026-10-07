@@ -4,9 +4,22 @@
 locals {
   // Define the Consul ECS config file contents.
   serviceExtra = lookup(var.consul_ecs_config, "service", {})
-  proxyExtra   = lookup(var.consul_ecs_config, "proxy", {})
-  loginExtra   = lookup(var.consul_ecs_config, "consulLogin", {})
-  tProxyExtra  = lookup(var.consul_ecs_config, "transparentProxy", {})
+
+  // Image version keys are injected only when var.enable_consul_image_version_metadata is true (opt-in, default false).
+  // When enabled, the reserved keys ('ecs-version', 'dataplane-version') are sourced from var.consul_ecs_image_version
+  // and var.consul_dataplane_image_version and take precedence over any matching existing keys in var.consul_service_meta,
+  // so they can only be changed through those variables. Variables remain the source of truth for version metadata.
+  // Keys with a 'consul-' prefix are only valid if that key is recognised by Consul; unrecognised 'consul-' keys cause service registration to fail. Refer: https://github.com/hashicorp/consul/blob/9a38fac228fae7960f12f5b2a45c7548c90e8224/agent/structs/structs.go#L182.
+  service_meta = merge(
+    var.consul_service_meta,
+    var.enable_consul_image_version_metadata ? {
+      "ecs-version"       = var.consul_ecs_image_version
+      "dataplane-version" = var.consul_dataplane_image_version
+    } : {}
+  )
+  proxyExtra  = lookup(var.consul_ecs_config, "proxy", {})
+  loginExtra  = lookup(var.consul_ecs_config, "consulLogin", {})
+  tProxyExtra = lookup(var.consul_ecs_config, "transparentProxy", {})
 
   consulLogin = var.acls ? {
     enabled = var.acls
@@ -46,7 +59,7 @@ locals {
         name      = local.service_name
         tags      = var.consul_service_tags
         port      = var.port
-        meta      = var.consul_service_meta
+        meta      = local.service_meta
         namespace = var.consul_namespace
         partition = var.consul_partition
       },

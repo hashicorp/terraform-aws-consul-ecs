@@ -76,10 +76,10 @@ locals {
         value = local.encoded_config
       }
     ]
-    linuxParameters = {
-      initProcessEnabled = true
-      capabilities       = var.enable_transparent_proxy ? { add = ["NET_ADMIN"] } : {}
-    }
+    linuxParameters = merge(
+      { initProcessEnabled = true },
+      var.enable_transparent_proxy ? { capabilities = { add = ["NET_ADMIN"] } } : {}
+    )
     secrets = flatten(
       concat(
         var.tls ? [
@@ -216,7 +216,7 @@ resource "aws_ecs_task_definition" "this" {
             user             = "5995"
             logConfiguration = var.log_configuration
             entryPoint       = ["/consul/consul-ecs", "envoy-entrypoint"]
-            command          = ["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"] # consul-ecs-mesh-init dumps the dataplane's config into consul-dataplane.json
+            command          = concat(["consul-dataplane", "-config-file", "/consul/consul-dataplane.json"], var.dataplane_extra_commands) # consul-ecs-mesh-init dumps the dataplane's config into consul-dataplane.json
             portMappings = [
               {
                 containerPort = local.lan_port
@@ -255,7 +255,7 @@ resource "aws_ecs_task_definition" "this" {
           {
             name             = "consul-ecs-health-sync"
             image            = var.consul_ecs_image
-            essential        = false
+            essential        = true
             logConfiguration = var.log_configuration
             command          = ["health-sync"]
             user             = "5996"
