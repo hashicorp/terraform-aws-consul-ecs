@@ -307,7 +307,7 @@ func TestValidation_UpstreamsVariable(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -320,7 +320,7 @@ func TestValidation_UpstreamsVariable(t *testing.T) {
 			} else {
 				require.Error(t, err)
 				for _, regex := range c.errors {
-					require.Regexp(t, regex, out)
+					require.Regexp(t, regex, err.Error())
 				}
 			}
 		})
@@ -358,7 +358,7 @@ func TestValidation_EnvoyPublicListenerPort(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -372,7 +372,7 @@ func TestValidation_EnvoyPublicListenerPort(t *testing.T) {
 				// handle multiline error messages.
 				regex := strings.ReplaceAll(regexp.QuoteMeta(c.error), " ", "\\s+")
 				require.Error(t, err)
-				require.Regexp(t, regex, out)
+				require.Regexp(t, regex, err.Error())
 			}
 		})
 	}
@@ -413,7 +413,7 @@ func TestValidation_EnvoyReadinessPort(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -427,7 +427,7 @@ func TestValidation_EnvoyReadinessPort(t *testing.T) {
 				// handle multiline error messages.
 				regex := strings.ReplaceAll(regexp.QuoteMeta(c.error), " ", "\\s+")
 				require.Error(t, err)
-				require.Regexp(t, regex, out)
+				require.Regexp(t, regex, err.Error())
 			}
 		})
 	}
@@ -462,7 +462,7 @@ func TestValidation_ConsulServiceName(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -472,7 +472,7 @@ func TestValidation_ConsulServiceName(t *testing.T) {
 
 			if c.error {
 				require.Error(t, err)
-				require.Regexp(t, "The consul_service_name must be lower case.", out)
+				require.Regexp(t, "The consul_service_name must be lower case.", err.Error())
 			} else {
 				require.NoError(t, err)
 			}
@@ -525,7 +525,7 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -536,10 +536,11 @@ func TestValidation_ConsulEcsConfigVariable(t *testing.T) {
 			if len(c.errors) == 0 {
 				require.NoError(t, err)
 			} else {
+				require.Error(t, err)
 				for _, msg := range c.errors {
 					// error messages are wrapped, so a space may turn into a newline.
 					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
-					require.Regexp(t, regex, out)
+					require.Regexp(t, regex, err.Error())
 				}
 			}
 		})
@@ -649,7 +650,7 @@ func TestValidation_HTTPConfig(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -660,10 +661,11 @@ func TestValidation_HTTPConfig(t *testing.T) {
 			if len(c.errors) == 0 {
 				require.NoError(t, err)
 			} else {
+				require.Error(t, err)
 				for _, msg := range c.errors {
 					// error messages are wrapped, so a space may turn into a newline.
 					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
-					require.Regexp(t, regex, out)
+					require.Regexp(t, regex, err.Error())
 				}
 			}
 		})
@@ -706,7 +708,7 @@ func TestValidation_GRPCConfig(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars: map[string]interface{}{
@@ -717,10 +719,11 @@ func TestValidation_GRPCConfig(t *testing.T) {
 			if len(c.errors) == 0 {
 				require.NoError(t, err)
 			} else {
+				require.Error(t, err)
 				for _, msg := range c.errors {
 					// error messages are wrapped, so a space may turn into a newline.
 					regex := strings.ReplaceAll(regexp.QuoteMeta(msg), " ", "\\s+")
-					require.Regexp(t, regex, out)
+					require.Regexp(t, regex, err.Error())
 				}
 			}
 		})
@@ -976,12 +979,12 @@ func TestValidation_MeshGateway(t *testing.T) {
 			})
 			t.Cleanup(func() { _, _ = terraform.DestroyE(t, applyOpts) })
 
-			out, err := terraform.PlanE(t, applyOpts)
+			_, err := terraform.PlanE(t, applyOpts)
 			if len(c.expError) > 0 {
 				// handle multiline error messages.
 				regex := strings.ReplaceAll(regexp.QuoteMeta(c.expError), " ", "\\s+")
 				require.Error(t, err)
-				require.Regexp(t, regex, out)
+				require.Regexp(t, regex, err.Error())
 			} else {
 				require.NoError(t, err)
 			}
@@ -1210,7 +1213,7 @@ func TestValidation_TProxy(t *testing.T) {
 				vars["enable_transparent_proxy"] = false
 			}
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars:         vars,
@@ -1218,7 +1221,7 @@ func TestValidation_TProxy(t *testing.T) {
 
 			if c.error {
 				require.Error(t, err)
-				require.Regexp(t, c.errorStr, out)
+				require.Regexp(t, c.errorStr, err.Error())
 			} else {
 				require.NoError(t, err)
 			}
@@ -1275,7 +1278,7 @@ func TestValidation_TProxy_Gateway(t *testing.T) {
 				vars["enable_transparent_proxy"] = false
 			}
 
-			out, err := terraform.PlanE(t, &terraform.Options{
+			_, err := terraform.PlanE(t, &terraform.Options{
 				TerraformDir: terraformOptions.TerraformDir,
 				NoColor:      true,
 				Vars:         vars,
@@ -1283,7 +1286,7 @@ func TestValidation_TProxy_Gateway(t *testing.T) {
 
 			if c.error {
 				require.Error(t, err)
-				require.Regexp(t, c.errorStr, out)
+				require.Regexp(t, c.errorStr, err.Error())
 			} else {
 				require.NoError(t, err)
 			}
