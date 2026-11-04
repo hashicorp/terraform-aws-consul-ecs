@@ -1,3 +1,8 @@
+## Unreleased
+
+BUG FIXES
+* Use the ECS-optimized Amazon Linux 2 kernel 5.10 AMI for acceptance tests to meet Consul ECS 0.11.0's transparent-proxy kernel requirement.
+
 ## 0.11.0 (October 26, 2026)
 
 IMPROVEMENTS
