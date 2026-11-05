@@ -1,4 +1,9 @@
-##Unreleased
+## Unreleased
+
+BUG FIXES
+* Use the ECS-optimized Amazon Linux 2 kernel 5.10 AMI for acceptance tests to meet Consul ECS 0.11.0's transparent-proxy kernel requirement.
+
+## 0.11.0 (October 26, 2026)
 
 IMPROVEMENTS
 * BUMP golang.org/x/net TO `v0.60.0` fixes CVEs CVE-2026-78660, CVE-2026-78659, CVE-2026-78669 and CVE-2026-97032.[[GH-441](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/441)]
