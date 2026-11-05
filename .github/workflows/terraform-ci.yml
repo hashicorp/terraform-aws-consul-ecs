@@ -42,40 +42,42 @@ jobs:
       - terraform-fmt
       - go-fmt-and-lint-acceptance
     strategy:
-      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
-        name:
-          - acceptance-1.17-FARGATE
         include:
-          - name: acceptance-1.17-FARGATE
-            enable-hcp: false
-            launch-type: FARGATE
+          - consul-version: "1.21.5"
+            consul-enterprise-version: "1.21.12"
+          - consul-version: "2.1.0"
+            consul-enterprise-version: "2.1.0"
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
-      name: ${{ matrix.name }}
-      launch-type: ${{ matrix.launch-type }}
-      enable-hcp: ${{ matrix.enable-hcp }}
+      name: acceptance-${{ matrix.consul-version }}-FARGATE
+      launch-type: FARGATE
+      consul-version: ${{ matrix.consul-version }}
+      consul-enterprise-version: ${{ matrix.consul-enterprise-version }}
+      # HCP acceptance is intentionally disabled as it is deprecated.
+      enable-hcp: false
     secrets: inherit
   acceptance-ec2:
     needs:
       - get-go-version
       - acceptance-fargate
     strategy:
-      # HCP acceptance is intentionally disabled as it is deprecated.
       matrix:
-        name:
-          - acceptance-1.17-EC2
         include:
-          - name: acceptance-1.17-EC2
-            enable-hcp: false
-            launch-type: EC2
+          - consul-version: "1.21.5"
+            consul-enterprise-version: "1.21.12"
+          - consul-version: "2.1.0"
+            consul-enterprise-version: "2.1.0"
       fail-fast: false
     uses: ./.github/workflows/reusable-ecs-acceptance.yml
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
-      name: ${{ matrix.name }}
-      launch-type: ${{ matrix.launch-type }}
-      enable-hcp: ${{ matrix.enable-hcp }}
+      name: acceptance-${{ matrix.consul-version }}-EC2
+      launch-type: EC2
+      consul-version: ${{ matrix.consul-version }}
+      consul-enterprise-version: ${{ matrix.consul-enterprise-version }}
+      # HCP acceptance is intentionally disabled as it is deprecated.
+      enable-hcp: false
     secrets: inherit
