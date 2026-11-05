@@ -14,6 +14,11 @@ The following prerequisites are needed to run the acceptance tests:
    - [AWS Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
 - [Amazon ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html) (`ecs-cli`)
 
+EC2 transparent-proxy tests using Consul ECS 0.11.0 or later require Linux
+kernel 5.2 or later for nftables traffic redirection. The setup fixture selects
+the ECS-optimized Amazon Linux 2 kernel 5.10 AMI; the standard Amazon Linux 2
+AMI uses kernel 4.14 and does not meet this requirement.
+
 ### Instructions
 
 1. To run the tests, first you must run the setup terraform in `setup-terraform`.
