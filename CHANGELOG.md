@@ -1,3 +1,8 @@
+## Unreleased
+
+IMPROVEMENTS
+* Bump golang.org/x/net to `v0.62.0` in acceptance tests to fix CVE-2026-78661. [[GH-449](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/449)]
+
 ## 0.10.1 (October 7, 2026)
 
 IMPROVEMENTS
