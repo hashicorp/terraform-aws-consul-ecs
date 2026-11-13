@@ -1,5 +1,8 @@
 ## Unreleased
 
+IMPROVEMENTS
+* Bump golang.org/x/net to `v0.62.0` in acceptance tests to fix CVE-2026-78661. [[GH-449](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/449)]
+
 BUG FIXES
 * Use the ECS-optimized Amazon Linux 2 kernel 5.10 AMI for acceptance tests to meet Consul ECS 0.11.0's transparent-proxy kernel requirement.
 
