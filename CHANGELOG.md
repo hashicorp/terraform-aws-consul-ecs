@@ -1,6 +1,10 @@
 ## Unreleased
 
+IMPROVEMENTS
+* Test Consul server versions `1.21.5` (`1.21.12-ent`) and `2.1.0` (`2.1.0-ent`) in parallel Fargate and EC2 acceptance matrices.
+
 BUG FIXES
+* Fix `dev-server` version detection for Consul 2.x so TLS-enabled servers use the supported `grpc_tls` listener.
 * Use the ECS-optimized Amazon Linux 2 kernel 5.10 AMI for acceptance tests to meet Consul ECS 0.11.0's transparent-proxy kernel requirement.
 
 ## 0.11.0 (October 26, 2026)

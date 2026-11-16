@@ -2,6 +2,13 @@
 
 These tests run the Terraform code. For scenario based tests please refer to [this](./examples/README.md) document.
 
+### CI coverage
+
+On pull requests and pushes to `main` and `release/**`, CI tests Consul server
+versions `1.21.5` (`1.21.12-ent`) and `2.1.0` (`2.1.0-ent`) in parallel within
+the Fargate stage, followed by both EC2 versions in parallel after the Fargate
+stage succeeds.
+
 ### Prerequisites
 
 The following prerequisites are needed to run the acceptance tests:

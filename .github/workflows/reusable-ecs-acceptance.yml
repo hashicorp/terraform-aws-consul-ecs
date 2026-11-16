@@ -20,13 +20,11 @@ on:
         type: string
         default: "FARGATE"
       consul-version:
-        required: false
+        required: true
         type: string
-        default: "1.21.5"
       consul-enterprise-version:
-        required: false
+        required: true
         type: string
-        default: "1.21.12"
       enable-hcp:
         description: "Whether to create a HCP cluster for running acceptance tests"
         required: true
