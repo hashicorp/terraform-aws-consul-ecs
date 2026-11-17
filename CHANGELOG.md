@@ -2,6 +2,7 @@
 
 IMPROVEMENTS
 * Test Consul server versions `1.21.5` (`1.21.12-ent`) and `2.1.0` (`2.1.0-ent`) in parallel Fargate and EC2 acceptance matrices.
+* Bump golang.org/x/net to `v0.62.0` in acceptance tests to fix CVE-2026-78661. [[GH-449](https://github.com/hashicorp/terraform-aws-consul-ecs/pull/449)]
 
 BUG FIXES
 * Fix `dev-server` version detection for Consul 2.x so TLS-enabled servers use the supported `grpc_tls` listener.
