@@ -56,8 +56,6 @@ jobs:
       launch-type: FARGATE
       consul-version: ${{ matrix.consul-version }}
       consul-enterprise-version: ${{ matrix.consul-enterprise-version }}
-      # HCP acceptance is intentionally disabled as it is deprecated.
-      enable-hcp: false
     secrets: inherit
   acceptance-ec2:
     needs:
@@ -78,6 +76,4 @@ jobs:
       launch-type: EC2
       consul-version: ${{ matrix.consul-version }}
       consul-enterprise-version: ${{ matrix.consul-enterprise-version }}
-      # HCP acceptance is intentionally disabled as it is deprecated.
-      enable-hcp: false
     secrets: inherit
