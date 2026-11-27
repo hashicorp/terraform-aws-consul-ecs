@@ -25,18 +25,12 @@ on:
       consul-enterprise-version:
         required: true
         type: string
-      enable-hcp:
-        description: "Whether to create a HCP cluster for running acceptance tests"
-        required: true
-        type: boolean
 
 
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.0
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-  HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
 
 jobs:
   acceptance-tests:
@@ -94,12 +88,7 @@ jobs:
           -var "launch_type=${{ inputs.launch-type }}"
           -var "consul_version=${{ inputs.consul-version }}"
           -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
-          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
         )
-        case "$GITHUB_REF_NAME" in
-          main) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
-            *) VARS+=( -var "enable_hcp=false" );;
-        esac
 
         terraform init
 
@@ -180,10 +169,5 @@ jobs:
           -var "launch_type=${{ inputs.launch-type }}"
           -var "consul_version=${{ inputs.consul-version }}"
           -var "consul_enterprise_version=${{ inputs.consul-enterprise-version }}"
-          -var "hcp_project_id=${{ secrets.HCP_PROJECT_ID }}"
         )
-        case "$GITHUB_REF_NAME" in
-          main) VARS+=( -var "enable_hcp=${{ inputs.enable-hcp }}" );;
-            *) VARS+=( -var "enable_hcp=false" );;
-        esac
         terraform destroy -auto-approve "${VARS[@]}"

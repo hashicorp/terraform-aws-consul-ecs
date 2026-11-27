@@ -26,7 +26,6 @@ jobs:
         name:
           - Consul ECS on Fargate
           - Consul ECS on EC2
-          - Consul ECS with HCP
           - Consul ECS on EC2 - Transparent Proxy
         include:
           - name: Consul ECS on Fargate
@@ -35,9 +34,6 @@ jobs:
           - name: Consul ECS on EC2
             scenario: EC2
 
-          - name: Consul ECS with HCP
-            scenario: HCP
-          
           - name: Consul ECS on EC2 - Transparent Proxy
             scenario: EC2_TPROXY
       fail-fast: false
