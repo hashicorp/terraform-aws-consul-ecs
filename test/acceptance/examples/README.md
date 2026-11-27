@@ -11,20 +11,19 @@ The following prerequisites are needed to run the acceptance tests:
 - [Go](https://go.dev/dl/) (`go test`)
 - [Terraform](https://www.terraform.io/downloads) (`terraform`)
    - [Authentication for AWS provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication)
-   - [Authentication for HCP provider](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs/guides/auth)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (`aws`)
    - [AWS Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
 - [Amazon ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html) (`ecs-cli`)
 
 ### Instructions
 
-1. Make sure to set relevant environment variables to configure AWS and HCP (if you are running HCP based scenarios) credentials.
+1. Make sure to set relevant environment variables to configure AWS credentials.
 
 1. Make sure to set the `TEST_SCENARIO` environment variable. This must match one of the scenarios listed in the `scenarioFuncs` map present in [main.go](./main_test.go).
 
 1. To run the tests, use `go test` from the `test/acceptance/examples` directory:
 
-   For tests that use Consul Enterprise outside of HCP, you must set the
+   For tests that use Consul Enterprise, you must set the
    `CONSUL_LICENSE` environment variable to a Consul Enterprise license key.
 
    ```sh
