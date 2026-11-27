@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2"
 	ec2tproxy "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/ec2-tproxy"
 	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/fargate"
-	"github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/hcp"
 	localityawarerouting "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/locality-aware-routing"
 	sameness "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/service-sameness"
 	terminatinggateway "github.com/hashicorp/terraform-aws-consul-ecs/test/acceptance/examples/scenarios/terminating-gateway"
@@ -91,7 +90,6 @@ func setupScenarios() scenarios.ScenarioRegistry {
 	fargate.RegisterScenario(reg)
 	ec2.RegisterScenario(reg)
 	clusterpeering.RegisterScenario(reg)
-	hcp.RegisterScenario(reg)
 	sameness.RegisterScenario(reg)
 	wan.RegisterScenario(reg)
 	localityawarerouting.RegisterScenario(reg)
